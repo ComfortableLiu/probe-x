@@ -1,0 +1,15 @@
+{
+  "name": "frontend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/frontend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "command": "cd apps/frontend && yarn run build"
+    },
+    "serve": {
+      "command": "cd apps/frontend && yarn run dev"
+    }
+  },
+  "tags": []
+}

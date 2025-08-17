@@ -1,0 +1,50 @@
+.footer {
+  display: flex;
+  width: 100%;
+  background-color: #353535;
+  padding: 24px 0;
+
+  .content {
+    display: flex;
+    flex-direction: row;
+    margin: 0 auto;
+    justify-content: center;
+    max-width: var(--page-max-width);
+    width: 100%;
+
+    .info-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      color: #CCCCCC;
+      gap: 8px;
+
+      .contact-me {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        font-size: 14px;
+        color: #FFFFFF;
+      }
+    }
+
+    .logo-image {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+
+      .title {
+        color: #FFFFFF;
+        font-size: 28px;
+        font-weight: bolder;
+      }
+    }
+  }
+}
+
+.icon {
+  display: flex;
+}

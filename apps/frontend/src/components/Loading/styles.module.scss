@@ -1,0 +1,30 @@
+.loading-box {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  z-index: 10;
+  left: 0;
+  width: 100%;
+  background: #FFFFFF;
+  transition: padding 0.15s;
+  opacity: 0.5;
+}
+
+.loading-box-style {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-top: 60px;
+  box-sizing: border-box;
+
+  position: absolute;
+  top: 60px;
+  z-index: 10;
+  left: 0;
+  width: 100vw;
+  background: #fafafa;
+}

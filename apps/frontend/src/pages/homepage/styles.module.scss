@@ -1,0 +1,25 @@
+.main-feature-area {
+  display: flex;
+  margin-top: 48px;
+  flex-direction: column;
+  gap: 28px;
+
+  .base-component {
+    display: flex;
+    flex-direction: column;
+
+    .title {
+      font-size: 22px;
+    }
+
+    .content-area {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+
+      .btn {
+        height: 58px;
+      }
+    }
+  }
+}

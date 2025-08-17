@@ -1,0 +1,42 @@
+{
+  "name": "probe-x",
+  "version": "1.0.0",
+  "description": "ProbeX，探针，一款Web数据分析解决方案",
+  "homepage": "https://github.com/ComfortableLiu/probe-x#readme",
+  "bugs": {
+    "url": "https://github.com/ComfortableLiu/probe-x/issues"
+  },
+  "repository": "git+git@github.com:ComfortableLiu/probe-x.git",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "nx": "nx",
+    "start:backend": "nx serve backend",
+    "start:frontend": "nx serve frontend",
+    "build:backend": "nx build backend",
+    "build:frontend": "nx build frontend",
+    "dev": "nx run-many --target=serve --projects=frontend,backend --parallel",
+    "build": "nx run-many --target=build --projects=frontend,backend --parallel",
+    "build:sequence": "nx run-many --target=build --projects=frontend,backend --sequence"
+  },
+  "author": "逍遥成居士 <liuchengxu1994@gmail.com>",
+  "packageManager": "yarn@1.22.22",
+  "devDependencies": {
+    "@nx/devkit": "^21.3.10",
+    "@nx/rspack": "^21.3.10",
+    "@nx/workspace": "^21.3.10",
+    "@rspack/cli": "^1.4.11",
+    "@rspack/core": "^1.4.11",
+    "@rspack/plugin-react-refresh": "^1.4.3",
+    "@types/node": "^24.1.0",
+    "cross-env": "^10.0.0",
+    "nx": "^21.3.10",
+    "typescript": "^5.9.2"
+  },
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
