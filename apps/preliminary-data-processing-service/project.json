@@ -1,0 +1,44 @@
+{
+  "name": "preliminary-data-processing-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/preliminary-data-processing-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/rspack:rspack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/preliminary-data-processing-service",
+        "main": "apps/preliminary-data-processing-service/src/main.ts",
+        "tsConfig": "apps/preliminary-data-processing-service/tsconfig.app.json",
+        "rspackConfig": "apps/preliminary-data-processing-service/rspack.config.ts"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/preliminary-data-processing-service/src/environments/environment.ts",
+              "with": "apps/preliminary-data-processing-service/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/rspack:dev-server",
+      "options": {
+        "buildTarget": "preliminary-data-processing-service:build",
+        "port": 3002
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "preliminary-data-processing-service:build:production"
+        }
+      }
+    }
+  },
+  "tags": []
+}

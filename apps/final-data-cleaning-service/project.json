@@ -1,0 +1,44 @@
+{
+  "name": "final-data-cleaning-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/final-data-cleaning-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/rspack:rspack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/final-data-cleaning-service",
+        "main": "apps/final-data-cleaning-service/src/main.ts",
+        "tsConfig": "apps/final-data-cleaning-service/tsconfig.app.json",
+        "rspackConfig": "apps/final-data-cleaning-service/rspack.config.ts"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/final-data-cleaning-service/src/environments/environment.ts",
+              "with": "apps/final-data-cleaning-service/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/rspack:dev-server",
+      "options": {
+        "buildTarget": "final-data-cleaning-service:build",
+        "port": 3003
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "final-data-cleaning-service:build:production"
+        }
+      }
+    }
+  },
+  "tags": []
+}

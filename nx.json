@@ -19,10 +19,18 @@
       "outputs": [
         "{projectRoot}/dist"
       ]
+    },
+    "serve": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
     }
   },
   "workspaceLayout": {
     "appsDir": "apps",
-    "libsDir": "packages"
+    "libsDir": "libs"
   }
 }

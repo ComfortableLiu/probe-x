@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "receiving-point-service",
+  "sourceRoot": "apps/receiving-point-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "command": "cd apps/receiving-point-service && yarn run build"
+    },
+    "serve": {
+      "command": "cd apps/receiving-point-service && yarn run dev"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  },
+  "dependencies": ["shared-types"]
+}
