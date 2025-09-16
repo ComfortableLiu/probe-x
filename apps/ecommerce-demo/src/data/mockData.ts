@@ -1,0 +1,306 @@
+import { Product, Category, User, Order, OrderStatus, PaymentStatus } from '../types';
+
+// 重新导出类型
+export { OrderStatus, PaymentStatus };
+
+// 模拟商品数据
+export const mockProducts: Product[] = [
+  {
+    id: '1',
+    name: 'iPhone 15 Pro',
+    description: '最新款iPhone，搭载A17 Pro芯片，钛金属设计',
+    price: 7999,
+    originalPrice: 8999,
+    image: 'https://via.placeholder.com/300x300?text=iPhone+15+Pro',
+    images: [
+      'https://via.placeholder.com/300x300?text=iPhone+15+Pro+1',
+      'https://via.placeholder.com/300x300?text=iPhone+15+Pro+2',
+      'https://via.placeholder.com/300x300?text=iPhone+15+Pro+3'
+    ],
+    category: '手机数码',
+    brand: 'Apple',
+    stock: 50,
+    rating: 4.8,
+    reviewCount: 1250,
+    sales: 3200,
+    tags: ['新品', '热销', '5G'],
+    specifications: {
+      '屏幕尺寸': '6.1英寸',
+      '存储容量': '128GB',
+      '颜色': '钛金属原色',
+      '网络': '5G'
+    },
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z'
+  },
+  {
+    id: '2',
+    name: 'MacBook Pro 14英寸',
+    description: 'M3 Pro芯片，专业级性能，适合创意工作者',
+    price: 15999,
+    originalPrice: 17999,
+    image: 'https://via.placeholder.com/300x300?text=MacBook+Pro',
+    images: [
+      'https://via.placeholder.com/300x300?text=MacBook+Pro+1',
+      'https://via.placeholder.com/300x300?text=MacBook+Pro+2'
+    ],
+    category: '电脑办公',
+    brand: 'Apple',
+    stock: 25,
+    rating: 4.9,
+    reviewCount: 890,
+    sales: 1200,
+    tags: ['专业', '高性能', '创意'],
+    specifications: {
+      '处理器': 'M3 Pro',
+      '内存': '18GB',
+      '存储': '512GB SSD',
+      '屏幕': '14.2英寸 Liquid Retina XDR'
+    },
+    createdAt: '2024-01-10T10:00:00Z',
+    updatedAt: '2024-01-10T10:00:00Z'
+  },
+  {
+    id: '3',
+    name: 'AirPods Pro 2',
+    description: '主动降噪，空间音频，H2芯片',
+    price: 1899,
+    originalPrice: 1999,
+    image: 'https://via.placeholder.com/300x300?text=AirPods+Pro',
+    images: [
+      'https://via.placeholder.com/300x300?text=AirPods+Pro+1',
+      'https://via.placeholder.com/300x300?text=AirPods+Pro+2'
+    ],
+    category: '手机数码',
+    brand: 'Apple',
+    stock: 100,
+    rating: 4.7,
+    reviewCount: 2100,
+    sales: 5600,
+    tags: ['降噪', '无线', '便携'],
+    specifications: {
+      '芯片': 'H2',
+      '降噪': '主动降噪',
+      '续航': '6小时',
+      '充电盒': '30小时总续航'
+    },
+    createdAt: '2024-01-05T10:00:00Z',
+    updatedAt: '2024-01-05T10:00:00Z'
+  },
+  {
+    id: '4',
+    name: 'iPad Air 5',
+    description: 'M1芯片，10.9英寸Liquid Retina显示屏',
+    price: 4399,
+    originalPrice: 4799,
+    image: 'https://via.placeholder.com/300x300?text=iPad+Air',
+    images: [
+      'https://via.placeholder.com/300x300?text=iPad+Air+1',
+      'https://via.placeholder.com/300x300?text=iPad+Air+2'
+    ],
+    category: '平板电脑',
+    brand: 'Apple',
+    stock: 80,
+    rating: 4.6,
+    reviewCount: 1500,
+    sales: 2800,
+    tags: ['轻薄', '高性能', '创作'],
+    specifications: {
+      '处理器': 'M1',
+      '屏幕': '10.9英寸 Liquid Retina',
+      '存储': '64GB',
+      '颜色': '深空灰色'
+    },
+    createdAt: '2024-01-08T10:00:00Z',
+    updatedAt: '2024-01-08T10:00:00Z'
+  },
+  {
+    id: '5',
+    name: 'Apple Watch Series 9',
+    description: 'S9芯片，健康监测，运动追踪',
+    price: 2999,
+    originalPrice: 3199,
+    image: 'https://via.placeholder.com/300x300?text=Apple+Watch',
+    images: [
+      'https://via.placeholder.com/300x300?text=Apple+Watch+1',
+      'https://via.placeholder.com/300x300?text=Apple+Watch+2'
+    ],
+    category: '智能穿戴',
+    brand: 'Apple',
+    stock: 60,
+    rating: 4.5,
+    reviewCount: 980,
+    sales: 1900,
+    tags: ['健康', '运动', '智能'],
+    specifications: {
+      '芯片': 'S9',
+      '屏幕': '45mm',
+      '材质': '铝金属',
+      '表带': '运动型表带'
+    },
+    createdAt: '2024-01-12T10:00:00Z',
+    updatedAt: '2024-01-12T10:00:00Z'
+  },
+  {
+    id: '6',
+    name: 'Samsung Galaxy S24 Ultra',
+    description: 'AI摄影，S Pen，钛金属边框',
+    price: 8999,
+    originalPrice: 9999,
+    image: 'https://via.placeholder.com/300x300?text=Galaxy+S24',
+    images: [
+      'https://via.placeholder.com/300x300?text=Galaxy+S24+1',
+      'https://via.placeholder.com/300x300?text=Galaxy+S24+2'
+    ],
+    category: '手机数码',
+    brand: 'Samsung',
+    stock: 40,
+    rating: 4.7,
+    reviewCount: 750,
+    sales: 1200,
+    tags: ['AI', '摄影', 'S Pen'],
+    specifications: {
+      '屏幕': '6.8英寸 Dynamic AMOLED 2X',
+      '处理器': 'Snapdragon 8 Gen 3',
+      '存储': '256GB',
+      '摄像头': '200MP主摄'
+    },
+    createdAt: '2024-01-20T10:00:00Z',
+    updatedAt: '2024-01-20T10:00:00Z'
+  }
+];
+
+// 模拟分类数据
+export const mockCategories: Category[] = [
+  {
+    id: '1',
+    name: '手机数码',
+    icon: '📱',
+    description: '智能手机、平板电脑、智能穿戴设备',
+    sort: 1
+  },
+  {
+    id: '2',
+    name: '电脑办公',
+    icon: '💻',
+    description: '笔记本电脑、台式机、办公设备',
+    sort: 2
+  },
+  {
+    id: '3',
+    name: '平板电脑',
+    icon: '📱',
+    description: 'iPad、Android平板、二合一设备',
+    sort: 3
+  },
+  {
+    id: '4',
+    name: '智能穿戴',
+    icon: '⌚',
+    description: '智能手表、智能手环、健康监测设备',
+    sort: 4
+  },
+  {
+    id: '5',
+    name: '数码配件',
+    icon: '🔌',
+    description: '充电器、数据线、保护壳、耳机',
+    sort: 5
+  }
+];
+
+// 模拟用户数据
+export const mockUser: User = {
+  id: '1',
+  username: '张三',
+  email: 'zhangsan@example.com',
+  phone: '13800138000',
+  avatar: 'https://via.placeholder.com/100x100?text=张三',
+  gender: '男',
+  birthday: '1990-05-15',
+  address: [
+    {
+      id: '1',
+      name: '张三',
+      phone: '13800138000',
+      province: '北京市',
+      city: '北京市',
+      district: '朝阳区',
+      address: '三里屯街道工体北路8号',
+      postalCode: '100027',
+      isDefault: true
+    },
+    {
+      id: '2',
+      name: '张三',
+      phone: '13800138000',
+      province: '上海市',
+      city: '上海市',
+      district: '浦东新区',
+      address: '陆家嘴环路1000号',
+      postalCode: '200120',
+      isDefault: false
+    }
+  ],
+  createdAt: '2023-01-01T10:00:00Z',
+  lastLoginAt: '2024-01-25T10:00:00Z'
+};
+
+// 模拟订单数据
+export const mockOrders: Order[] = [
+  {
+    id: '1',
+    orderNumber: 'ORD202401250001',
+    userId: '1',
+    items: [
+      {
+        id: '1',
+        product: mockProducts[0],
+        quantity: 1,
+        price: 7999,
+        totalPrice: 7999
+      }
+    ],
+    totalAmount: 7999,
+    discountAmount: 0,
+    shippingFee: 0,
+    finalAmount: 7999,
+    status: OrderStatus.DELIVERED,
+    paymentStatus: PaymentStatus.PAID,
+    shippingAddress: mockUser.address[0],
+    paymentMethod: '支付宝',
+    createdAt: '2024-01-20T10:00:00Z',
+    updatedAt: '2024-01-22T15:30:00Z'
+  },
+  {
+    id: '2',
+    orderNumber: 'ORD202401250002',
+    userId: '1',
+    items: [
+      {
+        id: '2',
+        product: mockProducts[1],
+        quantity: 1,
+        price: 15999,
+        totalPrice: 15999
+      },
+      {
+        id: '3',
+        product: mockProducts[2],
+        quantity: 1,
+        price: 1899,
+        totalPrice: 1899
+      }
+    ],
+    totalAmount: 17898,
+    discountAmount: 1000,
+    shippingFee: 0,
+    finalAmount: 16898,
+    status: OrderStatus.SHIPPED,
+    paymentStatus: PaymentStatus.PAID,
+    shippingAddress: mockUser.address[0],
+    paymentMethod: '微信支付',
+    createdAt: '2024-01-18T14:20:00Z',
+    updatedAt: '2024-01-24T09:15:00Z'
+  }
+];

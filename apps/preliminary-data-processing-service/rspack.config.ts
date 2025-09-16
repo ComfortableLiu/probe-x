@@ -1,64 +1,97 @@
-import { Configuration } from '@rspack/core';
-import { NxAppWebpackPlugin } from '@nx/webpack/src/plugins/nx-app-webpack-plugin';
-import { join } from 'path';
+import type { Configuration } from "@rspack/cli";
+import { rspack } from "@rspack/core";
+import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+
+// 由于在 ES 模块中没有 __dirname，所以我们需要创建它
+// @ts-ignore
+const __filename = fileURLToPath(import.meta.url);
+// 根目录路径
+const __dirname = path.dirname(path.dirname(path.dirname(path.dirname(__filename))));
+const preliminaryDataProcessingServicePath = path.dirname(__filename)
+
+const sharedPath = path.resolve(path.dirname(path.dirname(path.dirname(__filename))), 'dist/libs')
 
 const config: Configuration = {
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
-  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
-  entry: './src/main.ts',
+  context: __dirname,
   target: 'node',
-  resolve: {
-    extensions: ['.ts', '.js'],
-    alias: {
-      '@src': join(__dirname, 'src'),
-      '@shared-types': join(__dirname, '../../libs/shared-types/src/index.ts'),
-    },
+  entry: {
+    main: [
+      path.resolve(preliminaryDataProcessingServicePath, './src/main.ts')
+    ],
   },
   output: {
-    path: join(__dirname, 'dist'),
-    filename: 'main.js',
+    path: path.resolve(path.dirname(path.dirname(__dirname)), 'dist/backend'),
+    clean: true,
+  },
+  resolve: {
+    extensions: ['...', 'js', '.ts', '.tsx', '.jsx'],
+    alias: {
+      "@src": path.resolve(preliminaryDataProcessingServicePath, 'src'),
+      '@shared-types': path.resolve(sharedPath, 'shared-types'),
+    }
   },
   module: {
     rules: [
       {
         test: /\.ts$/,
-        use: [
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  decorators: true,
-                },
-                transform: {
-                  legacyDecorator: true,
-                  decoratorMetadata: true,
-                },
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                decorators: true,
+              },
+              transform: {
+                legacyDecorator: true,
+                decoratorMetadata: true,
               },
             },
           },
-        ],
-        exclude: /node_modules/,
+        },
       },
     ],
   },
-  plugins: [
-    new NxAppWebpackPlugin({
-      target: 'node',
-      compiler: 'tsc',
-      main: './src/main.ts',
-      tsConfig: './tsconfig.json',
-      assets: [],
-      optimization: false,
-      outputHashing: 'none',
-    }),
-  ],
-  externals: {
-    'kafkajs': 'commonjs kafkajs',
-    'mysql2': 'commonjs mysql2',
-    'ioredis': 'commonjs ioredis',
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+          mangle: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        },
+      }),
+    ],
   },
+  externalsType: 'commonjs',
+  plugins: [
+    !process.env.BUILD &&
+    new RunScriptWebpackPlugin({
+      name: 'main.js',
+      autoRestart: false,
+    }),
+  ].filter(Boolean),
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+  ignoreWarnings: [
+    (warning) => {
+      const list = [
+        'Critical dependency: the request of a dependency is an expression'
+      ]
+      return list.some((item) => warning.message.includes(item))
+    }
+  ]
 };
 
-export default config;
+export default config

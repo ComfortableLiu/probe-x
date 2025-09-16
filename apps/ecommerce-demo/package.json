@@ -1,0 +1,38 @@
+{
+  "name": "ecommerce-demo",
+  "version": "1.0.0",
+  "description": "电商平台Demo - 用于演示Probe-X数据埋点平台",
+  "main": "index.js",
+  "scripts": {
+    "start": "nx serve ecommerce-demo",
+    "build": "nx build ecommerce-demo",
+    "dev": "nx serve ecommerce-demo",
+    "test": "nx test ecommerce-demo",
+    "lint": "nx lint ecommerce-demo"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "antd": "^5.12.0",
+    "@ant-design/icons": "^5.2.0",
+    "axios": "^1.6.0",
+    "dayjs": "^1.11.0",
+    "classnames": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.2.0"
+  },
+  "keywords": [
+    "ecommerce",
+    "demo",
+    "react",
+    "probe-x",
+    "analytics"
+  ],
+  "author": "逍遥成居士 <liuchengxu1994@gmail.com>",
+  "license": "MIT"
+}
