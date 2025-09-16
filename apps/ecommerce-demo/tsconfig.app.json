@@ -1,0 +1,45 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc",
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "forceConsistentCasingInFileNames": false,
+    "isolatedModules": false,
+    "noEmit": false,
+    "resolveJsonModule": true,
+    "checkJs": false,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true
+  },
+  "files": [
+    "../../node_modules/@nx/react/typings/cssmodule.d.ts",
+    "../../node_modules/@nx/react/typings/image.d.ts"
+  ],
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.js",
+    "src/**/*.test.js",
+    "src/**/*.spec.jsx",
+    "src/**/*.test.jsx"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx", "src/types/global.d.ts"]
+}

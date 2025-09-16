@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { ClientKafka } from '@nestjs/microservices';
 import { Event } from '../entity/event.entity';
 import { ProcessedEvent } from '../entity/processed-event.entity';
-import { IAnyObj } from '@shared-types';
+// import { IAnyObj } from '@shared-types';
 
 @Injectable()
 export class ProcessingService {
@@ -18,7 +18,7 @@ export class ProcessingService {
   ) {}
 
   // 处理单个原始事件
-  async processRawEvent(eventData: IAnyObj) {
+  async processRawEvent(eventData: any) {
     try {
       console.log('开始处理原始事件:', eventData);
 
@@ -43,7 +43,7 @@ export class ProcessingService {
   }
 
   // 处理批量事件
-  async processBatchEvents(batchData: IAnyObj) {
+  async processBatchEvents(batchData: any) {
     try {
       console.log('开始处理批量事件，数量:', batchData.events?.length || 0);
 
@@ -64,7 +64,7 @@ export class ProcessingService {
   }
 
   // 更新处理状态
-  async updateProcessingStatus(statusData: IAnyObj) {
+  async updateProcessingStatus(statusData: any) {
     try {
       const { eventId, status, metadata } = statusData;
       
@@ -86,7 +86,7 @@ export class ProcessingService {
   }
 
   // 数据清洗
-  private cleanEventData(eventData: IAnyObj): IAnyObj {
+  private cleanEventData(eventData: any): any {
     const cleaned = { ...eventData };
 
     // 移除空值和无效数据
@@ -118,7 +118,7 @@ export class ProcessingService {
   }
 
   // 数据增强
-  private async enhanceEventData(eventData: IAnyObj): Promise<IAnyObj> {
+  private async enhanceEventData(eventData: any): Promise<any> {
     const enhanced = { ...eventData };
 
     // 添加处理时间戳
@@ -144,7 +144,7 @@ export class ProcessingService {
   }
 
   // 保存处理后的事件
-  private async saveProcessedEvent(eventData: IAnyObj): Promise<ProcessedEvent> {
+  private async saveProcessedEvent(eventData: any): Promise<ProcessedEvent> {
     const processedEvent = this.processedEventRepository.create({
       originalEventId: eventData.id,
       eventName: eventData.eventName,
@@ -205,9 +205,9 @@ export class ProcessingService {
   }
 
   // 解析用户代理
-  private parseUserAgent(ua: string): IAnyObj {
+  private parseUserAgent(ua: string): any {
     // 简单的用户代理解析
-    const info: IAnyObj = {};
+    const info: any = {};
     
     if (ua.includes('Chrome')) {
       info.browser = 'Chrome';
@@ -243,7 +243,7 @@ export class ProcessingService {
   }
 
   // 获取地理位置信息
-  private async getGeoInfo(ip: string): Promise<IAnyObj> {
+  private async getGeoInfo(ip: string): Promise<any> {
     // 这里可以集成第三方IP地理位置服务
     // 暂时返回模拟数据
     return {
@@ -255,7 +255,7 @@ export class ProcessingService {
   }
 
   // 生成会话信息
-  private generateSessionInfo(eventData: IAnyObj): IAnyObj {
+  private generateSessionInfo(eventData: any): any {
     return {
       sessionId: `${eventData.deviceId}_${Math.floor(Date.now() / (1000 * 60 * 30))}`, // 30分钟会话
       isNewSession: true, // 这里需要更复杂的逻辑来判断
@@ -264,7 +264,7 @@ export class ProcessingService {
   }
 
   // 解析页面信息
-  private parsePageInfo(eventData: IAnyObj): IAnyObj {
+  private parsePageInfo(eventData: any): any {
     const url = new URL(eventData.path, eventData.site);
     return {
       domain: url.hostname,
