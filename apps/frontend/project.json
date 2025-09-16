@@ -11,5 +11,6 @@
       "command": "cd apps/frontend && yarn run dev"
     }
   },
-  "tags": []
+  "tags": [],
+  "dependencies": ["shared-types"]
 }

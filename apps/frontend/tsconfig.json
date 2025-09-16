@@ -22,6 +22,9 @@
       ],
       "@public/*": [
         "public/*"
+      ],
+      "@shared-types": [
+        "../../dist/libs/shared-types"
       ]
     }
   }

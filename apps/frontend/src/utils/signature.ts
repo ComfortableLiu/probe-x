@@ -1,8 +1,8 @@
 /**
  * 签名验证工具函数
  */
-import { IAnyObj } from "@utils/type";
 import { hmacSHA } from "@utils/encryption";
+import { IAnyObj } from "@shared-types";
 
 interface ISignatureData {
   method: string

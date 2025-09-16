@@ -1,0 +1,35 @@
+{
+  "name": "final-data-cleaning-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "cross-env BUILD=true NODE_ENV=production rspack build",
+    "dev": "cross-env NODE_ENV=development rspack serve"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.5",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.5",
+    "@nestjs/platform-express": "^11.1.5",
+    "@nestjs/microservices": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
+    "mysql2": "^3.14.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.25",
+    "uuid": "^11.1.0",
+    "kafkajs": "^2.2.4",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "ioredis": "^5.7.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.7",
+    "@nx/js": "^21.3.10",
+    "@nx/nest": "^21.3.10",
+    "@types/express": "^5.0.3",
+    "run-script-webpack-plugin": "^0.2.3"
+  }
+}

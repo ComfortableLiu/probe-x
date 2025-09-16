@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probe-X Web SDK - 基础使用示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Probe-X Web SDK 基础使用示例</h1>
+    
+    <div class="form-group">
+        <label for="apiUrl">API URL:</label>
+        <input type="text" id="apiUrl" value="http://localhost:3000/data/beacon" placeholder="请输入API地址">
+    </div>
+    
+    <div class="form-group">
+        <label for="appId">App ID:</label>
+        <input type="text" id="appId" value="demo-app" placeholder="请输入应用ID">
+    </div>
+    
+    <div class="form-group">
+        <label for="debug">调试模式:</label>
+        <input type="checkbox" id="debug" checked>
+    </div>
+    
+    <button class="button" onclick="initSDK()">初始化SDK</button>
+    <button class="button" onclick="destroySDK()">销毁SDK</button>
+    
+    <hr>
+    
+    <h2>手动埋点示例</h2>
+    <button class="button" onclick="trackClick()">点击事件</button>
+    <button class="button" onclick="trackCustomEvent()">自定义事件</button>
+    <button class="button" onclick="trackPurchase()">购买事件</button>
+    
+    <hr>
+    
+    <h2>用户属性设置</h2>
+    <div class="form-group">
+        <label for="userId">用户ID:</label>
+        <input type="text" id="userId" placeholder="请输入用户ID">
+    </div>
+    <div class="form-group">
+        <label for="userName">用户名:</label>
+        <input type="text" id="userName" placeholder="请输入用户名">
+    </div>
+    <button class="button" onclick="setUser()">设置用户属性</button>
+    
+    <hr>
+    
+    <h2>表单测试</h2>
+    <form id="testForm">
+        <div class="form-group">
+            <label for="email">邮箱:</label>
+            <input type="email" id="email" name="email" placeholder="请输入邮箱">
+        </div>
+        <div class="form-group">
+            <label for="message">消息:</label>
+            <textarea id="message" name="message" placeholder="请输入消息"></textarea>
+        </div>
+        <button type="submit" class="button">提交表单</button>
+    </form>
+    
+    <hr>
+    
+    <h2>事件日志</h2>
+    <div id="log" class="log"></div>
+    <button class="button" onclick="clearLog()">清空日志</button>
+    
+    <!-- 引入SDK -->
+    <script src="../../dist/probe-x-sdk.js"></script>
+    
+    <script>
+        let probeX = null;
+        
+        // 初始化SDK
+        function initSDK() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const appId = document.getElementById('appId').value;
+            const debug = document.getElementById('debug').checked;
+            
+            if (!apiUrl || !appId) {
+                alert('请填写API URL和App ID');
+                return;
+            }
+            
+            // 销毁现有实例
+            if (probeX) {
+                probeX.destroy();
+            }
+            
+            // 创建新实例
+            probeX = new ProbeX({
+                apiUrl: apiUrl,
+                appId: appId,
+                debug: debug,
+                autoTrack: true,
+                autoTrackPageView: true,
+                autoTrackClick: true,
+                autoTrackScroll: true,
+                autoTrackForm: true,
+                enableErrorTracking: true,
+                enablePerformanceTracking: true,
+                enableHeartbeat: true,
+                heartbeatInterval: 30000,
+                batchSize: 5,
+                flushInterval: 3000,
+            });
+            
+            // 监听SDK事件
+            window.addEventListener('probe-x-event', function(event) {
+                logEvent('SDK Event', event.detail);
+            });
+            
+            logEvent('SDK初始化', { apiUrl, appId, debug });
+        }
+        
+        // 销毁SDK
+        function destroySDK() {
+            if (probeX) {
+                probeX.destroy();
+                probeX = null;
+                logEvent('SDK销毁', {});
+            }
+        }
+        
+        // 手动埋点示例
+        function trackClick() {
+            if (!probeX) {
+                alert('请先初始化SDK');
+                return;
+            }
+            
+            probeX.track('button_click', {
+                button_name: '示例按钮',
+                button_id: 'track-click-btn',
+                click_time: new Date().toISOString(),
+            });
+            
+            logEvent('手动埋点', { event: 'button_click' });
+        }
+        
+        function trackCustomEvent() {
+            if (!probeX) {
+                alert('请先初始化SDK');
+                return;
+            }
+            
+            probeX.track('custom_event', {
+                event_type: 'user_action',
+                action_name: 'custom_action',
+                timestamp: Date.now(),
+                random_value: Math.random(),
+            });
+            
+            logEvent('自定义事件', { event: 'custom_event' });
+        }
+        
+        function trackPurchase() {
+            if (!probeX) {
+                alert('请先初始化SDK');
+                return;
+            }
+            
+            probeX.track('purchase', {
+                product_id: 'prod_123',
+                product_name: '示例商品',
+                price: 99.99,
+                currency: 'CNY',
+                quantity: 1,
+                order_id: 'order_' + Date.now(),
+            });
+            
+            logEvent('购买事件', { event: 'purchase' });
+        }
+        
+        // 设置用户属性
+        function setUser() {
+            if (!probeX) {
+                alert('请先初始化SDK');
+                return;
+            }
+            
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+            
+            if (!userId || !userName) {
+                alert('请填写用户ID和用户名');
+                return;
+            }
+            
+            probeX.setUser({
+                user_id: userId,
+                user_name: userName,
+                user_type: 'demo_user',
+                registration_date: new Date().toISOString(),
+            });
+            
+            logEvent('用户属性设置', { userId, userName });
+        }
+        
+        // 表单提交处理
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!probeX) {
+                alert('请先初始化SDK');
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            probeX.track('form_submit', {
+                form_id: 'testForm',
+                form_data: data,
+                submit_time: new Date().toISOString(),
+            });
+            
+            logEvent('表单提交', { form: 'testForm', data });
+            
+            // 清空表单
+            this.reset();
+        });
+        
+        // 日志记录
+        function logEvent(type, data) {
+            const log = document.getElementById('log');
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+            logItem.innerHTML = `
+                <strong>${type}</strong> - ${new Date().toLocaleTimeString()}<br>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            log.insertBefore(logItem, log.firstChild);
+            
+            // 限制日志数量
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+        
+        // 清空日志
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // 页面加载完成后自动初始化
+        window.addEventListener('load', function() {
+            logEvent('页面加载完成', { url: window.location.href });
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            logEvent('JavaScript错误', {
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                colno: e.colno,
+            });
+        });
+        
+        // 未处理的Promise错误
+        window.addEventListener('unhandledrejection', function(e) {
+            logEvent('未处理的Promise错误', {
+                reason: e.reason,
+            });
+        });
+    </script>
+</body>
+</html>
