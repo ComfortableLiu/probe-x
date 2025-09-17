@@ -1,11 +1,11 @@
 import React, { Fragment, memo, useEffect, useMemo } from "react";
 import { allRoutes, allRoutesMap } from "@/router";
-import { IRouteItem } from "@router/type.ts";
-import { classnames } from "@utils/classnames.ts";
+import { IRouteItem } from "@router/type";
+import { classnames } from "@utils/classnames";
 import * as styles from "./styles.module.scss"
-import { Link, useLocation } from "react-router";
+import { Link, useLocation } from "react-router-dom";
 import { Dropdown, MenuProps } from "antd";
-import { handleHead, maintainFrequentRouteHistory, manageRouteHistory } from "@utils/router.ts";
+import { handleHead, maintainFrequentRouteHistory, manageRouteHistory } from "@utils/router";
 
 const MenuView = () => {
 

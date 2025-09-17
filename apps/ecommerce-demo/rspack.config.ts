@@ -4,6 +4,8 @@ import type { Configuration } from '@rspack/core';
 import { rspack } from '@rspack/core';
 import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 
+const PORT = 9000
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
@@ -25,7 +27,7 @@ const config: Configuration = {
   },
 
   devServer: {
-    port: 4200,
+    port: PORT,
     hot: true,
     historyApiFallback: true,
     static: {

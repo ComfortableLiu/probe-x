@@ -2,6 +2,7 @@
   "name": "receiving-point-service",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "埋点接收api服务",
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production rspack build",

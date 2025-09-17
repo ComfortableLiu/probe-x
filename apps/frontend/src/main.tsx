@@ -1,7 +1,7 @@
 import React from 'react';
-import App from './layout/App.tsx';
-import { StoreProvider } from "./store/storeContext.tsx";
+import { StoreProvider } from "./store/storeContext";
 import { createRoot } from "react-dom/client";
+import App from "@/layout/App";
 
 const container = document.getElementById('app');
 if (container) {

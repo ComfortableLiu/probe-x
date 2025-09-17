@@ -2,6 +2,7 @@
   "name": "data-dashboard-api-service",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "数据可视化接口服务",
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production rspack build",

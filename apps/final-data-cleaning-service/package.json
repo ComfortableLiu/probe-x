@@ -2,6 +2,7 @@
   "name": "final-data-cleaning-service",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "最终数据清洗服务",
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production rspack build",

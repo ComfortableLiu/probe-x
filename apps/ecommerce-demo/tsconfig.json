@@ -1,21 +1,13 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "allowJs": true,
+    "target": "es2017",
+    "module": "esnext",
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "types": ["node"],
-    "skipLibCheck": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": false,
-    "noImplicitThis": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "allowImportingTsExtensions": true,
+    "jsx": "react"
   },
-  "files": [],
-  "include": [],
   "references": [
     {
       "path": "./tsconfig.app.json"

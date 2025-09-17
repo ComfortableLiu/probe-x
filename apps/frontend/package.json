@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "description": "埋点管理、数据可视化页面",
   "scripts": {
     "dev": "cross-env NODE_ENV=development rspack dev",
     "build": "cross-env NODE_ENV=production rspack build"

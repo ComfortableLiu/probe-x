@@ -71,9 +71,14 @@ yarn dev
 ```
 
 ### 访问应用
-- 前端界面: http://localhost:3000
-- 埋点接收API: http://localhost:3000/data/beacon
-- 数据仪表板API: http://localhost:3001
+- 前端界面: http://localhost:8000
+- 电商Demo页面: http://localhost:9000
+- 埋点接收API服务: http://localhost:3004
+- 数据仪表板API服务: http://localhost:3001
+
+### 不可访问的服务
+- 数据初步清洗服务: http://localhost:3003
+- 数据最终清洗服务: http://localhost:3002
 
 ## 📋 常用命令
 

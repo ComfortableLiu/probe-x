@@ -2,6 +2,7 @@
   "name": "preliminary-data-processing-service",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "初步数据处理服务",
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production rspack build",

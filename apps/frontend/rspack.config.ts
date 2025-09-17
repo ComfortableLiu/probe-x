@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import Dotenv from "dotenv-webpack";
 import SassEmbedded from "sass-embedded";
 
+const PORT = 8000
+
 // 由于在 ES 模块中没有 __dirname，所以我们需要创建它
 const __filename = fileURLToPath(import.meta.url);
 // 根目录路径
@@ -46,7 +48,7 @@ const config: Configuration = {
   },
 
   devServer: {
-    port: 3000,
+    port: PORT,
     hot: true,
     historyApiFallback: true,
     static: {
