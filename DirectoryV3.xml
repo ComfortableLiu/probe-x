@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+ <trees>
+     <tree path="/apps/data-dashboard-api-service" title="数据大盘服务" />
+     <tree path="/apps/ecommerce-demo" title="电商Demo" />
+     <tree path="/apps/final-data-cleaning-service" title="最终清洗服务" />
+     <tree path="/apps/frontend" title="前端项目" />
+     <tree path="/apps/preliminary-data-processing-service" title="初步数据补充服务" extension="" presentableText=""
+           tooltipTitle="" icon="" textColor="" backgroundColor="" />
+     <tree path="/apps/receiving-point-service" title="埋点接收api服务" />
+     <tree path="/apps/web-sdk" title="web埋点SDK" />
+     <tree path="/apps" title="主项目" />
+     <tree path="/scripts" title="部署/启动脚本" />
+     <tree path="/libs" title="公共库" />
+    <tree path="/libs/shared-types" title="共用类型" />
+</trees>
