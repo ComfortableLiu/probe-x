@@ -1,14 +1,8 @@
 .app-main-style {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     min-height: 100vh;
     width: 100vw;
-}
-
-.app-main-header {
-    width: 100%;
-    display: flex;
-    justify-content: center;
 }
 
 .app-router-view {

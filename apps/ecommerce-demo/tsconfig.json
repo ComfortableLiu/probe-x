@@ -5,7 +5,6 @@
     "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "allowImportingTsExtensions": true,
     "jsx": "react"
   },
   "references": [

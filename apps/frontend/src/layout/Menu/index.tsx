@@ -1,121 +1,57 @@
-import React, { Fragment, memo, useEffect, useMemo } from "react";
-import { allRoutes, allRoutesMap } from "@/router";
-import { IRouteItem } from "@router/type";
-import { classnames } from "@utils/classnames";
+import React, { memo, useState } from "react"
+import { Menu, MenuProps } from "antd"
 import * as styles from "./styles.module.scss"
-import { Link, useLocation } from "react-router-dom";
-import { Dropdown, MenuProps } from "antd";
-import { handleHead, maintainFrequentRouteHistory, manageRouteHistory } from "@utils/router";
+import { classnames } from "@utils/classnames"
+import { allRoutes } from "@/router"
+import { MenuUnfoldOne } from "@icon-park/react"
 
 const MenuView = () => {
 
-  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
 
-  const handleRouter = (path: string) => {
-    // 维护最近历史记录
-    manageRouteHistory(path as `/${string}`)
-    // 维护高频路由历史记录
-    maintainFrequentRouteHistory(path as `/${string}`)
+  type MenuItem = Required<MenuProps>['items'][number];
+
+  const items: MenuItem[] = allRoutes.map(route => ({
+    key: route.key,
+    icon: route.meta?.icon,
+    label: route.name,
+    children: route.children?.map(child => ({
+      key: child.key,
+      icon: child.meta?.icon,
+      label: child.name,
+    })),
+  }))
+
+  const switchCollapsed = () => {
+    setCollapsed(!collapsed)
   }
 
-  useEffect(() => {
-    handleRouter(location.pathname)
-  }, [location.pathname])
-
-  const metadata = useMemo(() => handleHead(allRoutesMap.get(location.pathname)), [location.pathname])
-
-  // 现在选择的一级菜单
-  const selectedFirstMenu = useMemo(() => allRoutesMap.get(`/${location.pathname.split('/')[1]}`), [location.pathname])
-  // 现在选择的二级菜单
-  const selectedSecondMenu = useMemo(() => allRoutesMap.get(location.pathname), [location.pathname])
-
-  // 一级菜单
-  const firstMenuView = useMemo(() => {
-    // 一级列表
-    const list = allRoutes.map((route) => {
-      const items: MenuProps['items'] = (route.children || []).map((children: IRouteItem) => {
-        const href = `${route.path || ''}${children.path}`
-        return {
-          key: children.key,
-          label: (
-            <Link
-              to={href}
-              className={classnames(styles.linkA, {
-                [styles.active]: selectedFirstMenu?.key === route.key
-              })}
-            >
-              {children.name}
-            </Link>
-          ),
-        }
-      })
-
-      const href = route.children ? `${route.path}${route.children[0].path}` : route.path
-      return (
-        <Dropdown
-          key={route.key}
-          menu={{ items }}
-        >
-          <Link
-            to={href}
-            className={classnames(styles.linkA, {
-              [styles.active]: selectedFirstMenu?.key === route.key
-            })}
-          >
-            {route.name}
-          </Link>
-        </Dropdown>
-      )
-    })
-
-    // 容器
-    return (
-      <div className={styles.content}>
-        {list}
-      </div>
-    )
-  }, [selectedFirstMenu?.key])
-
-  // 二级菜单
-  const secondMenuView = useMemo(() => {
-    const list = (selectedFirstMenu?.children || []).map(route => {
-      const href = `${selectedFirstMenu?.path || ''}${route.path}`
-      return (
-        <Link
-          to={href}
-          key={route.key}
-          className={classnames(styles.linkA, {
-            [styles.active]: selectedSecondMenu?.key === route.key
-          })}
-        >
-          {route.name}
-        </Link>
-      )
-    })
-
-    return (
-      <div className={styles.content}>
-        {list}
-      </div>
-    )
-  }, [selectedFirstMenu?.children, selectedFirstMenu?.path, selectedSecondMenu?.key])
-
   return (
-    <Fragment>
-      <title>{metadata.title || ''}</title>
-      <meta name="description" content={metadata.description || ''} />
-      <meta name="keywords" content={metadata.keywords || ''} />
-      <div className={styles.menu}>
-        <div className={styles.menuFirst}>
-          {firstMenuView}
-        </div>
-        {selectedFirstMenu?.children ?
-          <div className={styles.menuSecond}>
-            {secondMenuView}
-          </div>
-          : null}
+    <div
+      className={classnames(styles.sider, {
+        [styles.collapsed]: collapsed,
+      })}
+    >
+      <Menu
+        className={styles.menu}
+        inlineCollapsed={collapsed}
+        mode="inline"
+        items={items}
+      />
+      <div>
+        <Menu
+          className={classnames(styles.bottomMenu, styles.menu)}
+          inlineCollapsed={collapsed}
+          mode="inline"
+          items={[{
+            key: 'collapse',
+            icon: <MenuUnfoldOne theme="outline" size="12" fill="#333" />,
+            label: <span className={classnames({ collapsed })}>收起</span>,
+            onClick: () => switchCollapsed(),
+          }]}
+        />
       </div>
-    </Fragment>
+    </div>
   )
 }
 

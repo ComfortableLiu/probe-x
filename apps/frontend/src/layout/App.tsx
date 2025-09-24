@@ -1,15 +1,14 @@
-import React, { Suspense } from 'react';
-import * as styles from "./style.module.scss";
-import '@ant-design/v5-patch-for-react-19';
-import MenuView from "./Menu";
-import FooterView from "./Footer";
-import { Route, Routes } from "react-router";
-import themeConfig from "../../components/theme/themeConfig";
-import { routes } from "@/router";
-import Loading from "@/components/Loading";
+import React, { Suspense } from 'react'
+import * as styles from "./style.module.scss"
+import '@ant-design/v5-patch-for-react-19'
+import MenuView from "./Menu"
+import { Route, Routes } from "react-router"
+import themeConfig from "../../components/theme/themeConfig"
+import { routes } from "@/router"
+import Loading from "@/components/Loading"
 import "@public/main.css"
-import { ConfigProvider } from "antd";
-import { StaticRouter, BrowserRouter } from "react-router-dom";
+import { ConfigProvider } from "antd"
+import { BrowserRouter, StaticRouter } from "react-router-dom"
 import icon from "@public/icon.png"
 
 export interface AppProps {
@@ -18,16 +17,14 @@ export interface AppProps {
 
 const App = ({ location }: AppProps) => {
 
-  const RouterComponent = location ? StaticRouter : BrowserRouter;
+  const RouterComponent = location ? StaticRouter : BrowserRouter
 
   return (
     <ConfigProvider theme={themeConfig}>
       <RouterComponent location={location}>
         <link rel="icon" href={icon} />
         <div className={styles.appMainStyle}>
-          <header className={styles.appMainHeader}>
-            <MenuView />
-          </header>
+          <MenuView />
           <main className={styles.appRouterView}>
             <Routes>
               {routes.map((route) => (
@@ -43,13 +40,10 @@ const App = ({ location }: AppProps) => {
               ))}
             </Routes>
           </main>
-          <footer>
-            <FooterView />
-          </footer>
         </div>
       </RouterComponent>
     </ConfigProvider>
   )
 }
 
-export default App;
+export default App

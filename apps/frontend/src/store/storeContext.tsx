@@ -1,5 +1,5 @@
-import { configure } from "mobx";
-import React, { createContext, FC, useContext, useRef } from "react";
+import { configure } from "mobx"
+import React, { createContext, FC, useContext, useRef } from "react"
 
 // MobX 最佳实践
 configure({ enforceActions: "always", isolateGlobalState: true })

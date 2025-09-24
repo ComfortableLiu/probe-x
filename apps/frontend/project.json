@@ -12,5 +12,8 @@
     }
   },
   "tags": [],
-  "dependencies": ["shared-types"]
+  "dependencies": [
+    "shared-types",
+    "shared-utils"
+  ]
 }

@@ -1,0 +1,16 @@
+{
+  "name": "@probe-x/shared-utils",
+  "version": "0.0.1",
+  "description": "",
+  "main": "../../dist/libs/shared-utils/index.js",
+  "types": "../../dist/libs/shared-utils/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

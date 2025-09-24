@@ -1,4 +1,4 @@
-import { IAnyObj } from "@shared-types";
+import { IAnyObj } from "@shared-types"
 
 /**
  * 动态classname，会自动将string类型的拼接，并将object中为false的过滤掉，然后将为true的key拼接到一起

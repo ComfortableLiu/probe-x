@@ -1,5 +1,7 @@
-import type { IRouteItem } from "./type";
-import { lazy } from "react";
+import type { IRouteItem } from "./type"
+import React, { lazy } from "react"
+import { Home } from "@icon-park/react"
+import routePages from "./page"
 
 const homepageRoutes: IRouteItem = {
   path: '/',
@@ -8,16 +10,13 @@ const homepageRoutes: IRouteItem = {
   alias: ['/home', '/homepage', '/index'],
   component: lazy(() => import('@pages/homepage/index')),
   meta: {
-    seoHead: {
-      title: 'Code Pulse - 开发者工具平台',
-      description: 'Code Pulse 为开发者提供一系列实用的小工具，包括JSON格式化、Base64编码、SHA加密、二维码生成等，帮助提升开发效率',
-      keywords: '开发者工具,在线工具,JSON格式化,Base64编码,SHA加密,二维码生成'
-    }
-  }
+    icon: <Home theme="outline" size="16" fill="#333" />,
+  },
 }
 
 export const allRoutes = [
   homepageRoutes,
+  ...routePages,
 ]
 
 // 用来做path=>item的映射的，同时包括一级和二级菜单，并同时包括别名
@@ -59,11 +58,11 @@ export const flatRoutes = allRoutes.reduce((previousValue, currentValue) => {
 }, new Map<string, IRouteItem>())
 
 // 扁平化路由，用来注册用，实际业务中是需要有父子路由的，所以这个实际业务中没有用
-export const routes: IRouteItem[] = allRoutes.reduce<IRouteItem[]>((previousValue, currentValue) => {
+export const routes: IRouteItem[] = allRoutes.reduce<IRouteItem[]>((previousValue, currentValue: IRouteItem) => {
   const list: IRouteItem[] = []
   if (currentValue.component) {
     const alias = [...(currentValue.alias || [])].reduce<`/${string}`[]>((p, c) => {
-      const l = [...p, c,]
+      const l = [...p, c]
       if (c !== '/') {
         l.push(`${c}.html`)
       }

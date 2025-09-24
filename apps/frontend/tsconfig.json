@@ -2,10 +2,9 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "esnext",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "allowImportingTsExtensions": true,
     "jsx": "react",
     "paths": {
       "@/*": [

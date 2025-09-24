@@ -1,4 +1,4 @@
-import { FC, LazyExoticComponent } from "react";
+import { FC, LazyExoticComponent, ReactNode } from "react";
 
 export interface IMetadata {
   title: string
@@ -7,15 +7,15 @@ export interface IMetadata {
 }
 
 export interface IRouteItem {
-  path: `/${string}`,
+  path: `/${string}`
   alias?: `/${string}`[]
-  key: string,
-  name: string,
+  key: string
+  name: string
   children?: IRouteItem[]
   component?: LazyExoticComponent<FC>
   meta?: {
-    isHidden?: boolean;
-    // 为了SEO，只好委屈你了，所有页面必须要写一个描述
-    seoHead: IMetadata
+    icon?: ReactNode
+    isHidden?: boolean
+    permissionId?: string | string[]
   }
 }

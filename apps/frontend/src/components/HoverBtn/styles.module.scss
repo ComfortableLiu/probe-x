@@ -1,0 +1,73 @@
+.element {
+  position: relative;
+  padding-left: 8px;
+  align-items: center;
+  display: flex;
+
+  &:first-child {
+    padding-left: 0;
+  }
+}
+
+.title-node-box {
+  display: flex;
+  position: relative;
+
+  :global(.ant-btn-primary) {
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
+
+.hover-btn-box {
+  border: 1px dashed transparent;
+  position: relative;
+  color: #714cdd;
+  max-width: 100%;
+  width: auto;
+  word-break: break-all;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  display: inline-flex;
+  cursor: pointer;
+
+  .operate_list {
+    position: absolute;
+    top: calc(-50% - 5px);
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    background: #fff;
+    padding: 2px 4px;
+    border-radius: 2px;
+    transition-delay: 1s;
+    transition: 1s;
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &:hover {
+    .operate_list {
+      display: flex;
+    }
+
+    border: 1px dashed #714cdd;
+    box-sizing: border-box;
+  }
+}
+
+.tooltip-container {
+  max-width: 420px;
+
+  :global {
+    .ant-tooltip-content {
+      top: 4px;
+    }
+
+    .ant-tooltip-arrow {
+      margin-bottom: -4px;
+    }
+  }
+}

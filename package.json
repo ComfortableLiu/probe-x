@@ -27,15 +27,16 @@
     "build:web-sdk": "nx build web-sdk",
     "build:ecommerce-demo": "nx build ecommerce-demo",
     "build:shared-types": "nx build shared-types",
-    "build:lib": "nx run-many --target=build --projects=shared-types --parallel",
+    "build:shared-utils": "nx build shared-utils",
+    "build:lib": "nx run-many --target=build --projects=shared-types,shared-utils --parallel",
     "dev": "nx run-many --target=serve --projects=frontend,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",
     "dev:frontend": "nx run-many --target=serve --projects=frontend --parallel",
     "dev:backend": "nx run-many --target=serve --projects=receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",
     "dev:services": "nx run-many --target=serve --projects=receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",
     "dev:web-sdk": "nx dev web-sdk",
     "dev:ecommerce-demo": "nx serve ecommerce-demo",
-    "build": "nx run-many --target=build --projects=frontend,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service,shared-types,web-sdk,ecommerce-demo --parallel",
-    "build:sequence": "nx run-many --target=build --projects=shared-types,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service,frontend,web-sdk,ecommerce-demo --sequence",
+    "build": "nx run-many --target=build --projects=frontend,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service,shared-types,shared-utils,web-sdk,ecommerce-demo --parallel",
+    "build:sequence": "nx run-many --target=build --projects=shared-types,shared-utils,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service,frontend,web-sdk,ecommerce-demo --sequence",
     "build:frontend-only": "nx run-many --target=build --projects=frontend --parallel",
     "build:backend-only": "nx run-many --target=build --projects=receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",
     "build:sdk-only": "nx run-many --target=build --projects=web-sdk --parallel",
@@ -75,7 +76,12 @@
     "@rspack/core": "^1.4.11",
     "@rspack/plugin-react-refresh": "^1.4.3",
     "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
     "cross-env": "^10.0.0",
+    "dayjs": "^1.11.0",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
     "nx": "^21.3.10",
     "typescript": "^4.9.5"
   },
@@ -83,5 +89,8 @@
   "workspaces": [
     "apps/*",
     "libs/*"
-  ]
+  ],
+  "dependencies": {
+    "axios": "^1.12.2"
+  }
 }
