@@ -1,0 +1,104 @@
+import React, { memo, useCallback, useEffect, useMemo } from "react"
+import { Button, Col, Form, Row, Space } from "antd"
+import { IFormComponentProps, IFormItem } from "./type"
+import { FormItemType } from "./constants"
+import { useQuery, useRouter } from "@/hooks"
+import { IAnyObj } from "@shared-types"
+import FormText from "@components/FormComponent/form-item/text"
+import * as styles from "./styles.module.scss"
+
+/**
+ * 表单组件
+ * @param props
+ * @constructor
+ */
+function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>) {
+
+  const {
+    formItems,
+    onFinish,
+  } = props
+
+  const [form] = Form.useForm<T>()
+
+  const {
+    refresh,
+  } = useRouter()
+
+  const query = useQuery<T>()
+
+  useEffect(() => {
+    form.setFieldsValue(query as any)
+  }, [form, query])
+
+  const onHandleFinish = useCallback(async (values: T) => {
+    if (onFinish) {
+      onFinish(values)
+    } else {
+      refresh(values)
+    }
+  }, [onFinish, refresh])
+
+  const renderFormItem = useCallback((item: IFormItem) => {
+    switch (item.type) {
+      case FormItemType.TEXT:
+        return <FormText {...item} key={item.key} />
+    }
+  }, [])
+
+  const renderFormItems = useMemo(() => {
+    return formItems.map(item => (
+      <Col
+        key={item.key}
+        span={6}
+      >
+        <Form.Item
+          name={item.key}
+          label={item.label}
+        >
+          {renderFormItem(item)}
+        </Form.Item>
+      </Col>
+    ))
+  }, [formItems, renderFormItem])
+
+  const onReset = () => {
+    form.resetFields()
+    form.submit()
+  }
+
+  return (
+    <Form
+      className={styles.formGroup}
+      form={form}
+      onFinish={onHandleFinish}
+    >
+      <Row
+        gutter={[16, 8]}
+        style={{ width: '100%' }}
+      >
+        {renderFormItems}
+      </Row>
+      <Form.Item
+        style={{ width: '100%' }}
+      >
+        <Space>
+          <Button
+            type="primary"
+            htmlType="submit"
+          >
+            提交
+          </Button>
+          <Button
+            type="default"
+            onClick={onReset}
+          >
+            重置
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
+  )
+}
+
+export default memo(FormComponent)

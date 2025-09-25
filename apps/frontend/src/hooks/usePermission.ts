@@ -1,12 +1,12 @@
 import { useCallback } from 'react'
 import { useApp } from './index'
-import { getLocalStorage } from '@/lib/storage'
 import { USER_INFO } from '@/constant/storage'
 import { IUserInfo } from "@/models/application/type"
-import { useNavigator } from "@/routes/navigator";
+import { useNavigator } from "@/routes/navigator"
+import { Localstorage } from "@utils/storage"
 
 type IUsePermissionParams = [roleRouterMap: any, getPermission: (permissionKey: string) => boolean]
-const userInfo = (getLocalStorage(USER_INFO) as IUserInfo) || { staffId: -1 }
+const userInfo = (Localstorage.get(USER_INFO) as IUserInfo) || { staffId: -1 }
 
 // 权限
 export function usePermission (): IUsePermissionParams {
@@ -64,7 +64,7 @@ export function usePathPermission () {
 
       return validateRsult
     },
-    [roleRouterMap]
+    [roleRouterMap],
   )
   return validPathPermission
 }

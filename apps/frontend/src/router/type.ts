@@ -7,7 +7,7 @@ export interface IMetadata {
 }
 
 export interface IRouteItem {
-  path: `/${string}`
+  path?: `/${string}`
   alias?: `/${string}`[]
   key: string
   name: string

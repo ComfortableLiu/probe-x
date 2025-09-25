@@ -1,18 +1,57 @@
 import { useEffect, useMemo, useRef } from "react"
-// import { getQuery } from "@/lib/utils"
 import { useLocation } from "react-router-dom"
+import { IAnyObj } from "@shared-types"
+import { useNavigate } from "react-router"
+import queryString from "query-string"
 
-export function useQuery() {
+/**
+ * 解析query的hooks
+ */
+export function useQuery<T = IAnyObj>() {
   const location = useLocation()
-  const query = new URLSearchParams(location.search)
-  return useMemo(() => getQuery(location.search), [location.search]) as any
+
+  return useMemo<T>(() => {
+    return (queryString.parse(location.search, {
+      parseBooleans: true,
+      parseNumbers: true,
+    }) || {}) as T
+  }, [location.search])
 }
 
+/**
+ * 监听history
+ */
 export function useHistoryListener(fn: (location: Location) => void) {
   const location = useLocation() as unknown as Location
-  useEffect(() => fn && fn(location), [location])
+  useEffect(() => fn && fn(location), [fn, location])
 }
 
+/**
+ * 完整版路由操作hooks
+ */
+export function useRouter() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return {
+    location,
+    navigate,
+    refresh: (query?: IAnyObj) => {
+      navigate({
+        pathname: location.pathname,
+        search: query ? queryString.stringify(query) : location.search,
+      })
+    },
+    goBack: () => navigate(-1),
+    goForward: () => navigate(1),
+    go: (path: string) => navigate(path),
+  }
+}
+
+/**
+ * 循环定时hooks
+ * @param fun
+ * @param delay
+ */
 export function useInterval(fun: () => void, delay = 1000) {
   const ref = useRef(null)
 

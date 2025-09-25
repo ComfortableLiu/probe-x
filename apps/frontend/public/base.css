@@ -33,8 +33,6 @@
     --color-text: var(--vt-c-text-light-1);
 
     --section-gap: 160px;
-
-    --page-max-width: 1160px;
 }
 
 @media (prefers-color-scheme: dark) {

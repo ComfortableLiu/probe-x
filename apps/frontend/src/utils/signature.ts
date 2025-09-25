@@ -1,8 +1,8 @@
 /**
  * 签名验证工具函数
  */
-import { hmacSHA } from "@utils/encryption";
-import { IAnyObj } from "@shared-types";
+import { hmacSHA } from "@utils/encryption"
+import { IAnyObj } from "@shared-types"
 
 interface ISignatureData {
   method: string
@@ -22,7 +22,7 @@ export async function generateSignature(
   signatureData: ISignatureData,
   timestamp: number,
   nonce: string,
-  secretKey: string
+  secretKey: string,
 ) {
 
   const params = {
@@ -31,26 +31,26 @@ export async function generateSignature(
     method: signatureData.method.toUpperCase(),
     path: signatureData.path || '',
     query: signatureData.query || {},
-    body: signatureData.body || {}
-  };
+    body: signatureData.body || {},
+  }
 
   // 过滤并排序参数
-  const sortedParams: IAnyObj = {};
+  const sortedParams: IAnyObj = {}
   Object.keys(params)
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
     .filter(key => key !== 'signature') // 排除签名本身
-    .forEach((key: string) => sortedParams[key] = params[key as keyof typeof params]);
+    .forEach((key: string) => sortedParams[key] = params[key as keyof typeof params])
 
   // 构造待签名字符串
   const signStr = Object.entries(sortedParams)
     .map(([key, value]) => {
       // 处理嵌套对象
       if (typeof value === 'object' && value !== null) {
-        return `${key}=${JSON.stringify(value)}`;
+        return `${key}=${JSON.stringify(value)}`
       }
-      return `${key}=${value}`;
+      return `${key}=${value}`
     })
-    .join('&');
+    .join('&')
 
   // 使用 HMAC-SHA256 生成签名
   return await hmacSHA(signStr, '256', secretKey)
@@ -69,20 +69,20 @@ export async function verifySignature(
   timestamp: number,
   nonce: string,
   signature: string,
-  secretKey: string
+  secretKey: string,
 ) {
-  const expectedSignature = await generateSignature(data, timestamp, nonce, secretKey);
-  return expectedSignature === signature;
+  const expectedSignature = await generateSignature(data, timestamp, nonce, secretKey)
+  return expectedSignature === signature
 }
 
 /**
  * 生成随机字符串
  */
 export function generateNonce(length: number = 16): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
   }
-  return result;
+  return result
 }

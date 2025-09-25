@@ -7,9 +7,7 @@
 
 .app-router-view {
     display: flex;
-    max-width: var(--page-max-width);
     flex-direction: column;
-    margin: 22px auto;
     flex: 1;
     width: 100%;
 }
