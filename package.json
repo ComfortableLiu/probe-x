@@ -75,7 +75,7 @@
     "@rspack/cli": "^1.4.11",
     "@rspack/core": "^1.4.11",
     "@rspack/plugin-react-refresh": "^1.4.3",
-    "@types/node": "^24.1.0",
+    "@types/node": "^24.5.2",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
     "cross-env": "^10.0.0",
@@ -83,6 +83,7 @@
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "nx": "^21.3.10",
+    "ts-node": "^10.9.2",
     "typescript": "^4.9.5"
   },
   "private": true,

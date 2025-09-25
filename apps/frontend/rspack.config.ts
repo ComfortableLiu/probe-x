@@ -1,38 +1,38 @@
-import path from 'path';
-import type { Configuration } from '@rspack/core';
-import { rspack } from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
-import { fileURLToPath } from "node:url";
-import Dotenv from "dotenv-webpack";
-import SassEmbedded from "sass-embedded";
+import path from 'path'
+import type { Configuration } from '@rspack/core'
+import { rspack } from '@rspack/core'
+import ReactRefreshPlugin from '@rspack/plugin-react-refresh'
+import CssMinimizerPlugin from 'css-minimizer-webpack-plugin'
+import { fileURLToPath } from "node:url"
+import Dotenv from "dotenv-webpack"
+import SassEmbedded from "sass-embedded"
 
 const PORT = 8000
 
 // 由于在 ES 模块中没有 __dirname，所以我们需要创建它
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(import.meta.url)
 // 根目录路径
-const __dirname = path.dirname(path.dirname(path.dirname(path.dirname(__filename))));
+const __dirname = path.dirname(path.dirname(path.dirname(path.dirname(__filename))))
 const frontendPath = path.dirname(__filename)
 
 const sharedPath = path.resolve(path.dirname(path.dirname(path.dirname(__filename))), 'dist/libs')
 
 // 获取当前环境
-const env = process.env.NODE_ENV || 'development';
+const env = process.env.NODE_ENV || 'development'
 
 // 确定环境文件路径
-const envPath = path.resolve(frontendPath, `config/env/.env.${env}`);
+const envPath = path.resolve(frontendPath, `config/env/.env.${env}`)
 
-const htmlPath = path.resolve(frontendPath, `public/index.html`);
-const entryPath = path.resolve(frontendPath, `src/main.tsx`);
+const htmlPath = path.resolve(frontendPath, `public/index.html`)
+const entryPath = path.resolve(frontendPath, `src/main.tsx`)
 
 // 获取当前环境
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development'
 
 const config: Configuration = {
 
   entry: {
-    main: entryPath
+    main: entryPath,
   },
 
   output: {
@@ -52,14 +52,14 @@ const config: Configuration = {
     hot: true,
     historyApiFallback: true,
     static: {
-      directory: path.join(__dirname, 'public')
+      directory: path.join(__dirname, 'public'),
     },
     client: {
       overlay: {
         errors: true,
-        warnings: false
-      }
-    }
+        warnings: false,
+      },
+    },
   },
 
   experiments: {
@@ -76,7 +76,7 @@ const config: Configuration = {
       "@public": path.resolve(frontendPath, 'public'),
       '@': path.resolve(frontendPath, 'src'),
       '@shared-types': path.resolve(sharedPath, 'shared-types'),
-    }
+    },
   },
 
   // 开发工具配置
@@ -95,19 +95,19 @@ const config: Configuration = {
             jsc: {
               parser: {
                 syntax: 'typescript',
-                tsx: true
+                tsx: true,
               },
               transform: {
                 react: {
                   runtime: 'automatic',
                   development: isDev,
-                  refresh: isDev
-                }
-              }
-            }
-          }
+                  refresh: isDev,
+                },
+              },
+            },
+          },
         },
-        exclude: /node_modules/
+        exclude: /node_modules/,
       },
 
       // 图片资源规则
@@ -119,7 +119,7 @@ const config: Configuration = {
       // 字体资源规则
       {
         test: /\.(woff2?|eot|ttf|otf)$/i,
-        type: 'asset/resource'
+        type: 'asset/resource',
       },
       {
         test: /\.css$/,
@@ -131,9 +131,9 @@ const config: Configuration = {
               modules: {
                 auto: true,
                 exportLocalsConvention: 'camelCase',
-                localIdentName: '[name]__[local]--[hash:base64:5]'
-              }
-            }
+                localIdentName: '[name]__[local]--[hash:base64:5]',
+              },
+            },
           },
         ],
       },
@@ -147,9 +147,9 @@ const config: Configuration = {
               modules: {
                 auto: true,
                 exportLocalsConvention: 'camelCase',
-                localIdentName: '[name]__[local]--[hash:base64:5]'
-              }
-            }
+                localIdentName: '[name]__[local]--[hash:base64:5]',
+              },
+            },
           },
           {
             loader: 'sass-loader',
@@ -159,8 +159,8 @@ const config: Configuration = {
             },
           },
         ],
-      }
-    ]
+      },
+    ],
   },
 
   // 插件配置
@@ -172,7 +172,7 @@ const config: Configuration = {
     }),
     new rspack.HtmlRspackPlugin({
       template: htmlPath,
-      inject: 'body'
+      inject: 'body',
     }),
     // React 热更新插件 (仅开发环境)
     isDev ? new ReactRefreshPlugin() : false,
@@ -183,7 +183,7 @@ const config: Configuration = {
       defaults: '.env', // 基础配置
       expand: true, // 支持变量扩展
       systemvars: true, // 包含系统环境变量
-    })
+    }),
   ].filter(Boolean) as Configuration['plugins'],
 
   // 优化配置
@@ -209,21 +209,21 @@ const config: Configuration = {
           test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
           name: 'react',
           priority: 20,
-          chunks: 'all'
+          chunks: 'all',
         },
         // Ant Design 相关库打包成一个 chunk
         antd: {
           test: /[\\/]node_modules[\\/](@ant-design|antd|@ant-design\/v5-patch-for-react-19)[\\/]/,
           name: 'antd',
           priority: 15,
-          chunks: 'all'
+          chunks: 'all',
         },
         // CodeMirror 相关库打包成一个 chunk
         codemirror: {
           test: /[\\/]node_modules[\\/](codemirror|@codemirror)[\\/]/,
           name: 'codemirror',
           priority: 10,
-          chunks: 'all'
+          chunks: 'all',
         },
         // 其他 node_modules 中的库
         vendor: {
@@ -231,20 +231,20 @@ const config: Configuration = {
           name: 'vendors',
           priority: 5,
           chunks: 'all',
-          minChunks: 2
-        }
+          minChunks: 2,
+        },
       },
       // 控制 chunk 的最大大小
       maxInitialRequests: 10,
       maxAsyncRequests: 10,
       minSize: 20000,
-      maxSize: 244000
+      maxSize: 244000,
     },
     // 运行时 chunk 配置
     runtimeChunk: {
-      name: 'runtime'
-    }
+      name: 'runtime',
+    },
   },
-};
+}
 
-export default config;
+export default config
