@@ -9,9 +9,8 @@ import { KEY_ACCESS_TOKEN } from "@/constant/storage"
 import { delay } from "@shared-utils"
 
 function Login() {
-
   const navigate = useNavigate()
-  const { redirect } = useQuery<{ redirect?: string }>()
+  const { clientId, responseType, redirectUri } = useQuery()
 
   const [loading, setLoading] = useState(false)
 
@@ -26,8 +25,8 @@ function Login() {
       message.success('登录成功')
 
       setTimeout(() => {
-        if (redirect) {
-          navigate(redirect, { replace: true })
+        if (redirectUri) {
+          navigate(redirectUri, { replace: true })
         } else {
           navigate('/', { replace: true })
         }
@@ -37,7 +36,7 @@ function Login() {
     } finally {
       setLoading(false)
     }
-  }, [navigate, redirect])
+  }, [navigate, redirectUri])
 
   return (
     <div className={styles.loginContainer}>

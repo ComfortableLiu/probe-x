@@ -102,7 +102,7 @@ export class ApplicationStore {
     const { pathname } = payload
     const token = Localstorage.get<string>(KEY_ACCESS_TOKEN)
     if (!token) {
-      ssoAuth.ssoLogout()
+      ssoAuth.gotoLoginPage()
       return
     }
 

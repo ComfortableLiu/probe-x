@@ -4,34 +4,25 @@ import { Localstorage } from "@utils/storage"
 
 const KEY_CLIENT_ID = 'probe-x'
 
+// TODO 先写死自己的页面，后续需要做一个SSO适配器
+const ssoURL = window.location.origin + '/'
+
 function getAccessToken() {
   return Localstorage.get<string>(KEY_ACCESS_TOKEN)
 }
 
 /**
- * sso登陆
+ * 请求登录态，并跳转到登录页
  */
-function ssoLogin() {
+function gotoLoginPage() {
   Localstorage.remove(USER_INFO)
   Localstorage.remove(KEY_ACCESS_TOKEN)
-  window.location.href = `${env.ssoURL}/oauth/authorize?client_id=${KEY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(
+  window.location.href = `${ssoURL}/login?clientId=${KEY_CLIENT_ID}&responseType=token&redirectUri=${encodeURIComponent(
     window.location.href,
   )}`
 }
 
-/**
- * sso退出登陆
- */
-function ssoLogout() {
-  Localstorage.remove(USER_INFO)
-  Localstorage.remove(KEY_ACCESS_TOKEN)
-  window.location.href = `${env.ssoURL}/logout?ciderAccessToken=${
-    getAccessToken()
-  }&client_id=${KEY_CLIENT_ID}&redirect_uri=${window.location.href}`
-}
-
 export default {
-  ssoLogin,
-  ssoLogout,
-  // getAccessToken,
+  gotoLoginPage,
+  getAccessToken,
 }

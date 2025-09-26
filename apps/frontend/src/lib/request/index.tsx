@@ -35,14 +35,13 @@ const getConfig = async (options: IOption) => {
     ...options?.headers,
   }
   if (token && typeof token === 'string') {
-    headers['token'] = token
     headers['authorization'] = `Bearer ${token}`
-    headers['cider_access_token'] = token
+    headers['access_token'] = token
   }
   if (userInfo) {
     const uid = userInfo?.staffId
     // 如果是网关
-    if (options.target && options.target === '/ms/sso') {
+    if (options.target && options.target === '/api/sso') {
       params.staffId = uid
     } else {
       if (!options?.headers?.noUid && uid) {
@@ -123,16 +122,6 @@ export default async function <T> (options: IOption): Promise<IResult<T>> {
     if (config.noCatch) {
       return Promise.reject({ noMessage: true })
     }
-    // DbUtils.putLogData({
-    //   title: 'Network Error',
-    //   content: {
-    //     code: e?.code,
-    //     data: JSON.stringify(e),
-    //     request: JSON.stringify(e.request),
-    //     response: JSON.stringify(e.response)
-    //   },
-    //   logType: 'network_error'
-    // })
     console.error('Network Error: ', JSON.stringify(e), 'request:', JSON.stringify(e.request), 'response:', JSON.stringify(e.response))
     if (!e || !e?.response) {
       logError(`${e.code || e.message} - ${config.baseURL}${config.url}`, e)

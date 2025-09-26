@@ -55,7 +55,7 @@ apiClient.interceptors.response.use(
     switch (code) {
       case 400:
       case 401:
-        ssoAuth.ssoLogin()
+        ssoAuth.gotoLoginPage()
         return error
     }
     console.warn(error)

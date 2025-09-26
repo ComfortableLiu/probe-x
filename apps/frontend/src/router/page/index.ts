@@ -1,7 +1,7 @@
-import loginRoutes from "./Login"
+import accountRoutes from "./Account"
 import pointManageRoutes from "./PointManage"
 
 export default [
-  loginRoutes,
+  ...accountRoutes,
   pointManageRoutes,
 ]
