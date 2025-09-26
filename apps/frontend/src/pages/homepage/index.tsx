@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo } from "react"
 
 const Homepage = () => {
 
@@ -7,4 +7,4 @@ const Homepage = () => {
   )
 }
 
-export default memo(Homepage);
+export default memo(Homepage)

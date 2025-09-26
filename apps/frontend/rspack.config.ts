@@ -76,6 +76,7 @@ const config: Configuration = {
       "@public": path.resolve(frontendPath, 'public'),
       "@components": path.resolve(frontendPath, 'src/components'),
       '@': path.resolve(frontendPath, 'src'),
+      '@config': path.resolve(frontendPath, 'config/configuration'),
       '@shared-types': path.resolve(sharedPath, 'shared-types'),
       '@shared-utils': path.resolve(sharedPath, 'shared-utils'),
     },

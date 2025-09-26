@@ -25,6 +25,9 @@
       "@public/*": [
         "public/*"
       ],
+      "@config": [
+        "config/configuration"
+      ],
       "@shared-types": [
         "../../dist/libs/shared-types"
       ],

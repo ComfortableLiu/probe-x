@@ -1,11 +1,11 @@
 // import env from "@/patch/env"
 import { KEY_ACCESS_TOKEN, USER_INFO } from "@/constant/storage"
 import { Localstorage } from "@utils/storage"
+import { get } from "@config"
 
 const KEY_CLIENT_ID = 'probe-x'
 
-// TODO 先写死自己的页面，后续需要做一个SSO适配器
-const ssoURL = window.location.origin
+const ssoURL = get('ssoUrl')
 
 function getAccessToken() {
   return Localstorage.get<string>(KEY_ACCESS_TOKEN)

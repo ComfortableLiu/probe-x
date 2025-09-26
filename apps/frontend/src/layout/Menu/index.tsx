@@ -49,7 +49,7 @@ const MenuView = () => {
       />
       <div>
         <Menu
-          className={classnames(styles.bottomMenu, styles.menu)}
+          className={styles.menu}
           inlineCollapsed={collapsed}
           mode="vertical"
           items={[{
