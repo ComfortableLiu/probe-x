@@ -1,4 +1,4 @@
-const BASE_KEY = 'PROBE-X'
+const BASE_KEY = 'PROBE-X-'
 // 用户信息存储key
 export const USER_INFO = BASE_KEY + 'userInfo'
 // token 存储key

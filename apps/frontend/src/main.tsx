@@ -8,7 +8,7 @@ if (container) {
   const root = createRoot(container)
   root.render(
     <StoreProvider>
-      <App/>
+      <App />
     </StoreProvider>,
   )
 } else {

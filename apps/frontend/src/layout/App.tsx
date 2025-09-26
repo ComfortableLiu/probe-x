@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Fragment, Suspense } from 'react'
 import * as styles from "./style.module.scss"
 import '@ant-design/v5-patch-for-react-19'
 import MenuView from "./Menu"
@@ -8,39 +8,70 @@ import { routes } from "@/router"
 import Loading from "@/components/Loading"
 import "@public/main.css"
 import { ConfigProvider } from "antd"
-import { BrowserRouter, StaticRouter } from "react-router-dom"
+import { BrowserRouter, StaticRouter, useLocation } from "react-router-dom"
 import icon from "@public/icon.png"
+import RouteGuard from "@/layout/RouteGuard"
 
 export interface AppProps {
   location?: string;
 }
 
+const AppContent = () => {
+
+  const location = useLocation()
+  // 假设登录页路径为 /login，根据实际情况调整
+  const isLoginPage = location.pathname === '/login'
+
+  return (
+    <div className={styles.appMainStyle}>
+      {isLoginPage ? null : <MenuView />}
+      <main className={styles.appRouterView}>
+        <Routes>
+          {routes.map((route) => (
+            <Fragment key={route.key}>
+              {/* 主路由 */}
+              <Route
+                path={route.path}
+                key={route.key}
+                element={(
+                  <Suspense fallback={<Loading />}>
+                    <route.component />
+                  </Suspense>
+                )}
+              />
+              {/* 别名路由 */}
+              {Array.isArray(route.alias) &&
+                route.alias.map((aliasPath) => (
+                  <Route
+                    key={aliasPath}
+                    path={aliasPath}
+                    element={(
+                      <Suspense fallback={<Loading />}>
+                        <route.component />
+                      </Suspense>
+                    )}
+                  />
+                ))}
+            </Fragment>
+          ))}
+        </Routes>
+      </main>
+    </div>
+  )
+}
+
 const App = ({ location }: AppProps) => {
 
+  // 这个可以兼容后续的SSR
   const RouterComponent = location ? StaticRouter : BrowserRouter
 
   return (
     <ConfigProvider theme={themeConfig}>
       <RouterComponent location={location}>
         <link rel="icon" href={icon} />
-        <div className={styles.appMainStyle}>
-          <MenuView />
-          <main className={styles.appRouterView}>
-            <Routes>
-              {routes.map((route) => (
-                <Route
-                  path={route.path}
-                  key={route.key}
-                  element={(
-                    <Suspense fallback={<Loading />}>
-                      <route.component />
-                    </Suspense>
-                  )}
-                />
-              ))}
-            </Routes>
-          </main>
-        </div>
+        <RouteGuard>
+          <AppContent />
+        </RouteGuard>
       </RouterComponent>
     </ConfigProvider>
   )

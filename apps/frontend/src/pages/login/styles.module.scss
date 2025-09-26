@@ -1,0 +1,22 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.login-card {
+  width: 400px;
+  max-width: 90%;
+
+  :global {
+    .ant-card-head {
+      text-align: center;
+    }
+  }
+}
+
+.login-button {
+  width: 100%;
+}

@@ -18,7 +18,7 @@ const MenuView = () => {
   // 当前选择的选项，根据路由展示的
   const selectedKeys = useMemo(() => allRoutesWithAliasMap.get(location.pathname).key, [location.pathname])
 
-  const items: MenuItem[] = allRoutes.map(route => ({
+  const items: MenuItem[] = allRoutes.filter(route => !route.meta.isHidden).map(route => ({
     key: route.key,
     icon: route.meta?.icon,
     label: route.path ? <Link to={route.path}>{route.name}</Link> : route.name,

@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx"
 import { IApplicationState, IUserInfo } from "./type"
 import queryString from "query-string"
-import { USER_INFO } from "@/constant/storage"
+import { KEY_ACCESS_TOKEN, USER_INFO } from "@/constant/storage"
 import { queryPermissionInfo, queryUserInfo } from "@/models/application/services"
 import ssoAuth from "@/lib/request/sso/ssoAuth"
 import { Localstorage } from "@utils/storage"
@@ -40,19 +40,19 @@ export class ApplicationStore {
     const hashQuery = queryString.parse(hash)
     const query = queryString.parse(search)
     const { access_token } = hashQuery
-    let token: string = Localstorage.get<string>('token') || ''
+    let token: string = Localstorage.get<string>(KEY_ACCESS_TOKEN) || ''
     if (!token) {
       Localstorage.remove(USER_INFO)
     }
 
     // 存在token则刷新一次用户信息
     if (access_token) {
-      Localstorage.remove('token')
+      Localstorage.remove(KEY_ACCESS_TOKEN)
       if (Array.isArray(access_token)) {
-        Localstorage.set('token', access_token[0])
+        Localstorage.set(KEY_ACCESS_TOKEN, access_token[0])
         token = access_token[0] as string
       } else if (typeof access_token === 'string') {
-        Localstorage.set('token', access_token)
+        Localstorage.set(KEY_ACCESS_TOKEN, access_token)
         token = access_token
       }
       // TODO 裸的api太暴力了，要优化
@@ -100,7 +100,7 @@ export class ApplicationStore {
   // 校验路由权限
   async validRouter(payload: { pathname: string }) {
     const { pathname } = payload
-    const token = Localstorage.get<string>('token')
+    const token = Localstorage.get<string>(KEY_ACCESS_TOKEN)
     if (!token) {
       ssoAuth.ssoLogout()
       return
