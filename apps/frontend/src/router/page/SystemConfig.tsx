@@ -4,7 +4,7 @@ import { SettingOne } from "@icon-park/react"
 
 export default {
   name: '系统设置',
-  key: 'system-data',
+  key: 'system-config',
   meta: {
     icon: <SettingOne theme="outline" size="16" fill="#333" />,
   },

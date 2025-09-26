@@ -10,10 +10,10 @@ export default [{
     isHidden: true,
   },
 }, {
-  name: '用户注销',
-  key: 'logout',
-  path: '/logout',
-  component: lazy(() => import('@pages/account/logout/index')),
+  name: '个人中心',
+  key: 'account-center',
+  path: '/account',
+  component: lazy(() => import('@pages/account/account-center/index')),
   meta: {
     isHidden: true,
   },

@@ -3,9 +3,10 @@ import { Menu, MenuProps } from "antd"
 import * as styles from "./styles.module.scss"
 import { classnames } from "@utils/classnames"
 import { allRoutes, allRoutesWithAliasMap } from "@/router"
-import { MenuUnfoldOne } from "@icon-park/react"
+import { Me, MenuUnfoldOne } from "@icon-park/react"
 import { Link } from "react-router"
 import { useLocation } from "react-router-dom"
+import ssoAuth from "@/lib/request/sso/ssoAuth"
 
 const MenuView = () => {
 
@@ -50,10 +51,26 @@ const MenuView = () => {
         <Menu
           className={classnames(styles.bottomMenu, styles.menu)}
           inlineCollapsed={collapsed}
-          mode="inline"
+          mode="vertical"
           items={[{
+            key: 'account',
+            icon: <Me theme="outline" size="16" fill="#333" />,
+            label: <span className={classnames({ collapsed })}>用户名</span>,
+            children: [{
+              key: 'account-center',
+              label: (
+                <Link to="/account">
+                  <span className={classnames({ collapsed })}>个人中心</span>
+                </Link>
+              ),
+            }, {
+              key: 'logout',
+              label: <span className={classnames({ collapsed })}>退出登录</span>,
+              onClick: () => ssoAuth.gotoLoginPage(),
+            }],
+          }, {
             key: 'collapse',
-            icon: <MenuUnfoldOne theme="outline" size="12" fill="#333" />,
+            icon: <MenuUnfoldOne theme="outline" size="16" fill="#333" />,
             label: <span className={classnames({ collapsed })}>收起</span>,
             onClick: () => switchCollapsed(),
           }]}

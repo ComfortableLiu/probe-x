@@ -5,7 +5,7 @@ import { Localstorage } from "@utils/storage"
 const KEY_CLIENT_ID = 'probe-x'
 
 // TODO 先写死自己的页面，后续需要做一个SSO适配器
-const ssoURL = window.location.origin + '/'
+const ssoURL = window.location.origin
 
 function getAccessToken() {
   return Localstorage.get<string>(KEY_ACCESS_TOKEN)

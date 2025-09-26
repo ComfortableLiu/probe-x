@@ -3,13 +3,11 @@ import { Button, Card, Checkbox, Form, Input, message } from "antd"
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import * as styles from './styles.module.scss'
 import { useQuery } from "@/hooks"
-import { useNavigate } from "react-router"
 import { Localstorage } from "@utils/storage"
 import { KEY_ACCESS_TOKEN } from "@/constant/storage"
 import { delay } from "@shared-utils"
 
 function Login() {
-  const navigate = useNavigate()
   const { clientId, responseType, redirectUri } = useQuery()
 
   const [loading, setLoading] = useState(false)
@@ -26,9 +24,9 @@ function Login() {
 
       setTimeout(() => {
         if (redirectUri) {
-          navigate(redirectUri, { replace: true })
+          window.location.replace(redirectUri)
         } else {
-          navigate('/', { replace: true })
+          window.location.replace('/')
         }
       }, 1000)
     } catch (e) {
@@ -36,7 +34,7 @@ function Login() {
     } finally {
       setLoading(false)
     }
-  }, [navigate, redirectUri])
+  }, [redirectUri])
 
   return (
     <div className={styles.loginContainer}>
