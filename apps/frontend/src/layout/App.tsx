@@ -11,6 +11,7 @@ import { ConfigProvider } from "antd"
 import { BrowserRouter, StaticRouter, useLocation } from "react-router-dom"
 import icon from "@public/icon.png"
 import RouteGuard from "@/layout/RouteGuard"
+import { StoreProvider } from "@/store/storeContext"
 
 export interface AppProps {
   location?: string;
@@ -66,14 +67,16 @@ const App = ({ location }: AppProps) => {
   const RouterComponent = location ? StaticRouter : BrowserRouter
 
   return (
-    <ConfigProvider theme={themeConfig}>
-      <RouterComponent location={location}>
-        <link rel="icon" href={icon} />
-        <RouteGuard>
-          <AppContent />
-        </RouteGuard>
-      </RouterComponent>
-    </ConfigProvider>
+    <StoreProvider>
+      <ConfigProvider theme={themeConfig}>
+        <RouterComponent location={location}>
+          <link rel="icon" href={icon} />
+          <RouteGuard>
+            <AppContent />
+          </RouteGuard>
+        </RouterComponent>
+      </ConfigProvider>
+    </StoreProvider>
   )
 }
 

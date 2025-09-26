@@ -6,7 +6,7 @@ import { IUserInfo } from "@/models/application/type"
 import { Localstorage } from "@utils/storage"
 
 type IUsePermissionParams = [roleRouterMap: any, getPermission: (permissionKey: string) => boolean]
-const userInfo = (Localstorage.get(USER_INFO) as IUserInfo) || { staffId: -1 }
+const userInfo = Localstorage.get<IUserInfo>(USER_INFO) || { staffId: -1 }
 
 // 权限
 export function usePermission(): IUsePermissionParams {
@@ -30,7 +30,7 @@ function validatePermissionByPathname(roleRouterMap: {
   // 缓存有就直接返回true
   if (CachePermission.queryPermission(path, permissionKey)) return true
 
-  let result = false
+  let result
   if (typeof permissionKey === 'string') {
     result = roleRouterMap[path] && roleRouterMap[path].includes(permissionKey)
   } else {
@@ -81,7 +81,7 @@ export function usePathPermission() {
 type IPermissionKey = string | string[]
 
 export class CachePermission {
-  static hasPermissionKeyPath: string[] = []
+  static hasPermissionKeyPath: Set<string> = new Set()
 
   // 构建key
   static buildKey(path: string, permissionKey: IPermissionKey) {
@@ -90,11 +90,11 @@ export class CachePermission {
 
   // 缓存权限
   static cachePath(path: string, permissionKey: IPermissionKey) {
-    this.hasPermissionKeyPath.push(this.buildKey(path, permissionKey))
+    this.hasPermissionKeyPath.add(this.buildKey(path, permissionKey))
   }
 
   // 查询权限
   static queryPermission(path: string, permission: IPermissionKey) {
-    return this.hasPermissionKeyPath.includes(this.buildKey(path, permission))
+    return this.hasPermissionKeyPath.has(this.buildKey(path, permission))
   }
 }
