@@ -5,30 +5,23 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/rspack:rspack",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/final-data-cleaning-service",
         "main": "apps/final-data-cleaning-service/src/main.ts",
-        "tsConfig": "apps/final-data-cleaning-service/tsconfig.app.json",
-        "rspackConfig": "apps/final-data-cleaning-service/rspack.config.ts"
+        "tsConfig": "apps/final-data-cleaning-service/tsconfig.json"
       },
       "configurations": {
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/final-data-cleaning-service/src/environments/environment.ts",
-              "with": "apps/final-data-cleaning-service/src/environments/environment.prod.ts"
-            }
-          ]
+          "inspect": false
         }
       }
     },
     "serve": {
-      "executor": "@nx/rspack:dev-server",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "final-data-cleaning-service:build",
         "port": 3003

@@ -5,30 +5,23 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/rspack:rspack",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/preliminary-data-processing-service",
         "main": "apps/preliminary-data-processing-service/src/main.ts",
-        "tsConfig": "apps/preliminary-data-processing-service/tsconfig.app.json",
-        "rspackConfig": "apps/preliminary-data-processing-service/rspack.config.ts"
+        "tsConfig": "apps/preliminary-data-processing-service/tsconfig.json"
       },
       "configurations": {
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/preliminary-data-processing-service/src/environments/environment.ts",
-              "with": "apps/preliminary-data-processing-service/src/environments/environment.prod.ts"
-            }
-          ]
+          "inspect": false
         }
       }
     },
     "serve": {
-      "executor": "@nx/rspack:dev-server",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "preliminary-data-processing-service:build",
         "port": 3002

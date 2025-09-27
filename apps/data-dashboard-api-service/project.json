@@ -5,30 +5,23 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/rspack:rspack",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/data-dashboard-api-service",
         "main": "apps/data-dashboard-api-service/src/main.ts",
-        "tsConfig": "apps/data-dashboard-api-service/tsconfig.app.json",
-        "rspackConfig": "apps/data-dashboard-api-service/rspack.config.ts"
+        "tsConfig": "apps/data-dashboard-api-service/tsconfig.json"
       },
       "configurations": {
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/data-dashboard-api-service/src/environments/environment.ts",
-              "with": "apps/data-dashboard-api-service/src/environments/environment.prod.ts"
-            }
-          ]
+          "inspect": false
         }
       }
     },
     "serve": {
-      "executor": "@nx/rspack:dev-server",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "data-dashboard-api-service:build",
         "port": 3001

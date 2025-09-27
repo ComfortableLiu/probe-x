@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Event } from '../entity/event.entity';
-import { ProcessedEvent } from '../entity/processed-event.entity';
+import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import { EventEntity } from '@entity/event.entity'
+import { ProcessedEventEntity } from '@entity/processed-event.entity'
 
 @Module({
   imports: [
@@ -15,13 +15,13 @@ import { ProcessedEvent } from '../entity/processed-event.entity';
         username: configService.get('DB_USERNAME', 'root'),
         password: configService.get('DB_PASSWORD', ''),
         database: configService.get('DB_DATABASE', 'probe_x'),
-        entities: [Event, ProcessedEvent],
+        entities: [EventEntity, ProcessedEventEntity],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([Event, ProcessedEvent]),
+    TypeOrmModule.forFeature([EventEntity, ProcessedEventEntity]),
   ],
   exports: [TypeOrmModule],
 })

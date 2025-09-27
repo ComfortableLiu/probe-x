@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?> 
+<?xml version="1.0" encoding="UTF-8"?>
  <trees>
      <tree path="/apps/data-dashboard-api-service" title="数据大盘服务" />
      <tree path="/apps/ecommerce-demo" title="电商Demo" />
@@ -12,4 +12,6 @@
      <tree path="/scripts" title="部署/启动脚本" />
      <tree path="/libs" title="公共库" />
     <tree path="/libs/shared-types" title="共用类型" />
+    <tree path="/libs/shared-utils" title="共用工具" extension="" presentableText="" tooltipTitle="" icon=""
+          textColor="" backgroundColor=""/>
 </trees>

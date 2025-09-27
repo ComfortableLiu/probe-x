@@ -1,60 +1,60 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity('event_01')
-export class Event {
+export class EventEntity {
   @PrimaryGeneratedColumn()
-  id?: number;
+  id?: number
 
   @Column({
     name: 'event_name',
   })
-  eventName?: string;
+  eventName?: string
 
   @Column()
-  ip?: string;
+  ip?: string
 
   @Column()
-  ua?: string;
+  ua?: string
 
   @Column()
-  site?: string;
+  site?: string
 
   @Column()
-  path?: string;
+  path?: string
 
   @Column()
-  params?: string;
+  params?: string
 
   @Column({
     name: 'device_id',
   })
-  deviceId?: string;
+  deviceId?: string
 
   @Column()
-  referrer?: string;
+  referrer?: string
 
   @Column()
-  utmSource?: string;
+  utmSource?: string
 
   @Column()
-  utmMedium?: string;
+  utmMedium?: string
 
   @Column()
-  utmCampaign?: string;
+  utmCampaign?: string
 
   @Column()
-  utmTerm?: string;
+  utmTerm?: string
 
   @Column()
-  utmContent?: string;
+  utmContent?: string
 
   @Column({
     name: 'log_time',
   })
-  logTime?: Date;
+  logTime?: Date
 
   @Column({
     name: 'service_time',
   })
-  serviceTime?: Date;
+  serviceTime?: Date
 }

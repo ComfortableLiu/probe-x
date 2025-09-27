@@ -1,94 +1,94 @@
-import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 
 @Entity('processed_events')
-export class ProcessedEvent {
+export class ProcessedEventEntity {
   @PrimaryGeneratedColumn()
-  id?: number;
+  id?: number
 
   @Column({
     name: 'original_event_id',
   })
-  originalEventId?: number;
+  originalEventId?: number
 
   @Column({
     name: 'event_name',
   })
-  eventName?: string;
+  eventName?: string
 
   @Column()
-  ip?: string;
+  ip?: string
 
   @Column()
-  ua?: string;
+  ua?: string
 
   @Column()
-  site?: string;
+  site?: string
 
   @Column()
-  path?: string;
+  path?: string
 
   @Column()
-  params?: string;
+  params?: string
 
   @Column({
     name: 'device_id',
   })
-  deviceId?: string;
+  deviceId?: string
 
   @Column()
-  referrer?: string;
+  referrer?: string
 
   @Column()
-  utmSource?: string;
+  utmSource?: string
 
   @Column()
-  utmMedium?: string;
+  utmMedium?: string
 
   @Column()
-  utmCampaign?: string;
+  utmCampaign?: string
 
   @Column()
-  utmTerm?: string;
+  utmTerm?: string
 
   @Column()
-  utmContent?: string;
+  utmContent?: string
 
   @Column({
     name: 'log_time',
   })
-  logTime?: Date;
+  logTime?: Date
 
   @Column({
     name: 'service_time',
   })
-  serviceTime?: Date;
+  serviceTime?: Date
 
   @Column({
     name: 'processing_status',
     default: 'pending',
   })
-  processingStatus?: string;
+  processingStatus?: string
 
   @Column({
     name: 'processed_at',
     nullable: true,
   })
-  processedAt?: Date;
+  processedAt?: Date
 
   @Column({
     name: 'cleaned_data',
     type: 'json',
     nullable: true,
   })
-  cleanedData?: any;
+  cleanedData?: any
 
   @CreateDateColumn({
     name: 'created_at',
   })
-  createdAt?: Date;
+  createdAt?: Date
 
   @UpdateDateColumn({
     name: 'updated_at',
   })
-  updatedAt?: Date;
+  updatedAt?: Date
 }

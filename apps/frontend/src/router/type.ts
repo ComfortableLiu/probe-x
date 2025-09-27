@@ -1,4 +1,4 @@
-import { FC, LazyExoticComponent, ReactNode } from "react";
+import { FC, LazyExoticComponent, ReactNode } from "react"
 
 export interface IMetadata {
   title: string

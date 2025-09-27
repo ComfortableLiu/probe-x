@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
+import { Observable } from 'rxjs'
+import { map } from 'rxjs/operators'
 
 export interface Response<T> {
   code: number;
@@ -24,6 +19,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         data,
         timestamp: Date.now(),
       })),
-    );
+    )
   }
 }

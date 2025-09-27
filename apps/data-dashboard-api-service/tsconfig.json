@@ -11,7 +11,6 @@
     "target": "ES2020",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -23,8 +22,18 @@
     "useDefineForClassFields": false,
     "paths": {
       "@src/*": ["src/*"],
-      "@shared-types": ["../../libs/shared-types/src/index.ts"]
-    }
+      "@entity/*": ["src/entity/*"],
+      "@shared-types": ["../../dist/libs/shared-types"],
+      "@shared-utils": ["../../dist/libs/shared-utils"]
+    },
+    "baseUrl": ".",
+    "rootDir": "src",
+    "plugins": [
+      {
+        "transform": "typescript-transform-paths",
+        "afterDeclarations": true
+      }
+    ]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

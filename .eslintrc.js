@@ -12,14 +12,25 @@ module.exports = {
   rules: {
     'semi': ['error', 'never'],
     'comma-dangle': ['error', 'always-multiline'],
-    indent: ["error", 2, {
+    'indent': ['error', 2, {
       "SwitchCase": 1,
+      "ignoredNodes": [
+        "TemplateLiteral *",
+        // 类属性
+        "PropertyDefinition",
+        // 类方法
+        "MethodDefinition",
+        // 类体中的所有元素
+        "ClassBody > *",
+      ],
     }],
-    "react-hooks/rules-of-hooks": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "react/jsx-tag-spacing": ["error", {
-      "beforeSelfClosing": "always",
+    'react-hooks/rules-of-hooks': 'warn',
+    'react-hooks/exhaustive-deps': 'warn',
+    'react/jsx-tag-spacing': ['error', {
+      'beforeSelfClosing': 'always',
     }],
+    // 禁止出现只有空格的行
+    'no-trailing-spaces': ['error', {'skipBlankLines': false}],
   },
   env: {
     browser: true,

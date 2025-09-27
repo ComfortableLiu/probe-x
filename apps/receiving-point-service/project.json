@@ -5,10 +5,31 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "command": "cd apps/receiving-point-service && yarn run build"
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/receiving-point-service",
+        "main": "apps/receiving-point-service/src/main.ts",
+        "tsConfig": "apps/receiving-point-service/tsconfig.json"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false
+        }
+      }
     },
     "serve": {
-      "command": "cd apps/receiving-point-service && yarn run dev"
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "receiving-point-service:build"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "receiving-point-service:build:production"
+        }
+      }
     },
     "lint": {
       "executor": "@nx/eslint:lint"

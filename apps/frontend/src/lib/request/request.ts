@@ -1,13 +1,13 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { generateNonce, generateSignature } from '@utils/signature'
 import ssoAuth from "@/lib/request/sso/ssoAuth"
+import { get } from "@config"
 
 // 密钥 - 在实际项目中应该从环境变量中获取
-const SECRET_KEY = process.env.NEXT_PUBLIC_API_SECRET_KEY || ''
+const SECRET_KEY = get<string>("signatureSecret") || ''
 
 // 创建 axios 实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ apiClient.interceptors.request.use(
 
     // 生成签名
     const signature = await generateSignature({
-      path: config.url ? new URL(config.url).pathname : '/',
+      path: config.url,
       method: config.method || '',
       body: config.data,
       query: config.params,

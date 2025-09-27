@@ -10,11 +10,12 @@ import { IAnyObj } from "@shared-types"
 import HoverBtn from "@/components/HoverBtn"
 import { clipboard, LoadingToast } from "@/utils"
 import { KEY_ACCESS_TOKEN, USER_INFO } from "@/constant/storage"
-import { IUserInfo } from "@/models/application/type"
 import apiClient from "@/lib/request/request"
+import { IUserInfo } from "@/store/models/app/type"
+import { get } from "@config"
 
-const defaultBaseURL = 'env.baseURL'
-const defaultTarget = 'env.target' || ''
+const defaultTarget = '/'
+const API_BASE_URL = get<string>("apiBaseUrl") || ''
 
 /**
  * 填充进去一些基本参数，如SSO参数等
@@ -25,7 +26,7 @@ const getConfig = async (options: IOption) => {
   const cancel = axios.CancelToken
   const source = cancel.source()
 
-  const { baseURL = defaultBaseURL, target = defaultTarget, data = {}, params = {} } = options
+  const { baseURL = API_BASE_URL, target = defaultTarget, data = {}, params = {} } = options
 
   const token = Localstorage.get<IUserInfo>(KEY_ACCESS_TOKEN)
   const userInfo = Localstorage.get<IUserInfo>(USER_INFO)
@@ -94,7 +95,7 @@ const logError = (messageStr: string, data: IAnyObj) => {
   )
 }
 
-export default async function <T> (options: IOption): Promise<IResult<T>> {
+export default async function <T>(options: IOption): Promise<IResult<T>> {
   const config = await getConfig(options)
 
   const { successCode = 'SUCCESS' } = config

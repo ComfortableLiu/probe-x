@@ -3,6 +3,17 @@ import { useLocation } from "react-router-dom"
 import { IAnyObj } from "@shared-types"
 import { useNavigate } from "react-router"
 import queryString from "query-string"
+import { useSelector } from "react-redux"
+import { RootState } from "@/store/storeContext"
+
+export function useModel<T> (key: keyof RootState) {
+  return useSelector((store: RootState) => store[key] as T)
+}
+
+/**
+ * loading
+ */
+export const useLoading = () => useSelector((store: RootState) => store.loading.effects)
 
 /**
  * 解析query的hooks

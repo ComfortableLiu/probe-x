@@ -16,7 +16,6 @@ interface EnvironmentConfig {
 const getConfig = (): EnvironmentConfig => {
   // 动态导入 package.json 以获取版本号
   const packageJson = require('../package.json')
-  console.log(packageJson)
 
   const environment = process.env.NODE_ENV || ''
   const serverHost = process.env.DASHBOARD_HOST || 'http://localhost'
