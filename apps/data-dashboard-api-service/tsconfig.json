@@ -23,11 +23,19 @@
     "paths": {
       "@src/*": ["src/*"],
       "@entity/*": ["src/entity/*"],
-      "@shared-types": ["../../dist/libs/shared-types"],
-      "@shared-utils": ["../../dist/libs/shared-utils"]
+      "@modules/*": ["src/modules/*"],
+      "@shared-types": [
+        "../../dist/libs/shared-types"
+      ],
+      "@shared-utils": [
+        "../../dist/libs/shared-utils"
+      ],
+      "@shared-utils/backend-common": [
+        "../../dist/libs/shared-utils/lib/backend-common"
+      ]
     },
     "baseUrl": ".",
-    "rootDir": "src",
+    "rootDir": ".",
     "plugins": [
       {
         "transform": "typescript-transform-paths",

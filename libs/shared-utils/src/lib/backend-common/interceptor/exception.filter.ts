@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common"
 import { Request, Response } from 'express'
-import { ResponseData } from "@entity/response.entity"
 import { BusinessException } from "./business.exception"
-import { isString } from "@src/utils"
+import { ResponseData } from "../entity/response.entity"
+import { isString } from "../../index"
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

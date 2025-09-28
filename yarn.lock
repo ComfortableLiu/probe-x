@@ -1129,6 +1129,18 @@
   resolved "https://registry.npmmirror.com/@bufbuild/protobuf/-/protobuf-2.6.3.tgz"
   integrity sha512-w/gJKME9mYN7ZoUAmSMAWXk4hkVpxRKvEJCb3dV5g9wwWdxTJJ0ayOJAVcNxtdqaxDyFuC0uz4RSGVacJ030PQ==
 
+"@clickhouse/client-common@1.12.1":
+  version "1.12.1"
+  resolved "https://registry.npmmirror.com/@clickhouse/client-common/-/client-common-1.12.1.tgz#e6900d98316076c4e99f91a95c433dd714c77516"
+  integrity sha512-ccw1N6hB4+MyaAHIaWBwGZ6O2GgMlO99FlMj0B0UEGfjxM9v5dYVYql6FpP19rMwrVAroYs/IgX2vyZEBvzQLg==
+
+"@clickhouse/client@^1.12.1":
+  version "1.12.1"
+  resolved "https://registry.npmmirror.com/@clickhouse/client/-/client-1.12.1.tgz#6379542c5bfdc227477853945ce6ba7916653eae"
+  integrity sha512-7ORY85rphRazqHzImNXMrh4vsaPrpetFoTWpZYueCO2bbO6PXYDXp/GQ4DgxnGIqbWB/Di1Ai+Xuwq2o7DJ36A==
+  dependencies:
+    "@clickhouse/client-common" "1.12.1"
+
 "@codemirror/autocomplete@^6.0.0":
   version "6.18.6"
   resolved "https://registry.npmmirror.com/@codemirror/autocomplete/-/autocomplete-6.18.6.tgz"

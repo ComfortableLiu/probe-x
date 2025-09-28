@@ -3,6 +3,6 @@ export class BusinessException extends Error {
     public message: string,
     public code: number = -100,
   ) {
-    super(message);
+    super(message)
   }
 }

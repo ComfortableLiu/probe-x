@@ -6,6 +6,8 @@ export function isEmpty(value: unknown) {
   return value === null || value === '' || value === undefined
 }
 
+export const isString = (val: unknown): boolean => Object.prototype.toString.call(val) === '[object String]'
+
 /**
  * 延时函数
  * @param time

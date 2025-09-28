@@ -18,9 +18,12 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": [
-        "packages/shared"
-      ]
+      "@shared-types": [
+        "dist/libs/shared-types"
+      ],
+      "@shared-utils": [
+        "dist/libs/shared-utils"
+      ],
     }
   },
   "exclude": [

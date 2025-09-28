@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/apps/receiving-point-service",
         "main": "apps/receiving-point-service/src/main.ts",
@@ -35,5 +37,8 @@
       "executor": "@nx/eslint:lint"
     }
   },
-  "dependencies": ["shared-types"]
+  "dependencies": [
+    "shared-types",
+    "shared-utils"
+  ]
 }

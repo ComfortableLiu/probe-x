@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.base",
   "compilerOptions": {
     "module": "CommonJS",
     "declaration": true,
@@ -27,6 +28,12 @@
       ],
       "@shared-types": [
         "../../dist/libs/shared-types"
+      ],
+      "@shared-utils": [
+        "../../dist/libs/shared-utils"
+      ],
+      "@shared-utils/backend-common": [
+        "../../dist/libs/shared-utils/lib/backend-common"
       ]
     },
     "declarationMap": true,

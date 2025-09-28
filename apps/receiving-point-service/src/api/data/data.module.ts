@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataController } from './data.controller';
-import { DataService } from './data.service';
-import { Event } from '../../entity/event.entity';
-import { KafkaModule } from '../../kafka/kafka.module';
+import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { DataController } from './data.controller'
+import { DataService } from './data.service'
+import { Event } from '../../entity/event.entity'
+import { KafkaModule } from '../../modules/kafka.module'
 
 @Module({
   imports: [

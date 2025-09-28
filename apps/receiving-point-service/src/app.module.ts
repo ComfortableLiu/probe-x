@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common'
-import DatabaseModule from "./database/database.module"
-import EnvConfigModule from "./database/env-config.module"
-import { KafkaModule } from './kafka/kafka.module'
+import DatabaseModule from "./modules/database.module"
+import EnvConfigModule from "./modules/env-config.module"
+import { KafkaModule } from './modules/kafka.module'
 import { DataModule } from './api/data/data.module'
 import { PointModule } from './api/point/point.module'
-import { ResponseInterceptor } from "@src/interceptors/response.interceptor"
 import { APP_INTERCEPTOR } from '@nestjs/core'
+import { ResponseInterceptor, SignatureInterceptor } from "@shared-utils/backend-common"
 
 @Module({
   imports: [
@@ -18,6 +18,9 @@ import { APP_INTERCEPTOR } from '@nestjs/core'
   providers: [{
     provide: APP_INTERCEPTOR,
     useClass: ResponseInterceptor,
+  }, {
+    provide: APP_INTERCEPTOR,
+    useClass: SignatureInterceptor,
   }],
 })
 export class AppModule {
