@@ -8,10 +8,10 @@ export class ResponseData<T> {
   }
 
   static success<T>(data?: T): ResponseData<T> {
-    return new ResponseData(200, 'success', data);
+    return new ResponseData(200, 'success', data)
   }
 
   static error<T>(message: string, code: number = -1): ResponseData<T | null> {
-    return new ResponseData(code, message, null);
+    return new ResponseData(code, message, null)
   }
 }

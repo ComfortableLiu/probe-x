@@ -1,0 +1,79 @@
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { EventPropertyRelationStatus } from "@entity/type/EventPropertyRelation"
+import { MetaEventEntity } from './MetaEvent.entity'
+import { MetaPropertyEntity } from './MetaProperty.entity'
+
+@Entity('event_property_relation')
+export class EventPropertyRelationEntity {
+
+  @PrimaryGeneratedColumn()
+  id?: number
+
+  @Column({
+    name: 'event_property_remark',
+    type: 'text',
+    comment: '当前事件的属性说明备注',
+    default: '',
+  })
+  eventPropertyRemark?: string
+
+  @CreateDateColumn({
+    name: 'creat_time',
+    type: 'datetime',
+    comment: '创建时间',
+    nullable: false,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  creatTime?: Date
+
+  @Column({
+    name: 'creat_user_id',
+    type: 'int',
+    comment: '创建用户id',
+    nullable: false,
+  })
+  creatUserId?: number
+
+  @Column({
+    name: 'update_time',
+    type: 'datetime',
+    comment: '更新时间',
+    nullable: false,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  updateTime?: Date
+
+  @Column({
+    name: 'update_user_id',
+    type: 'int',
+    comment: '更新用户id',
+    nullable: false,
+  })
+  updateUserId?: number
+
+  @Column({
+    name: 'status',
+    comment: '状态，预留字段',
+    type: 'enum',
+    enum: EventPropertyRelationStatus,
+    default: EventPropertyRelationStatus.VALID,
+  })
+  status?: EventPropertyRelationStatus
+
+  @ManyToOne(() => MetaEventEntity, metaEvent => metaEvent.eventPropertyRelations, { primary: true })
+  @JoinColumn({ name: 'event_name' })
+  metaEvent?: MetaEventEntity
+
+  @ManyToOne(() => MetaPropertyEntity, metaProperty => metaProperty.eventPropertyRelations, { primary: true })
+  @JoinColumn({ name: 'property_name' })
+  metaProperty?: MetaPropertyEntity
+
+  // 添加访问器属性，方便获取关联的event_name和property_name
+  get eventName(): string | undefined {
+    return this.metaEvent?.eventName
+  }
+
+  get propertyName(): string | undefined {
+    return this.metaProperty?.propertyName
+  }
+}
