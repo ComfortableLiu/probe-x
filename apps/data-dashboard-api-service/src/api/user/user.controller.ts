@@ -7,6 +7,12 @@ export class UserController {
   constructor(private readonly userService: UserService) {
   }
 
+  @Get('/getUserByToken')
+  @HttpCode(200)
+  async getUserByToken(@Query('accessToken') accessToken: string) {
+    return 'fwefqwef--:' + accessToken
+  }
+
   @Post('/login')
   @HttpCode(200)
   async login(@Body() loginDto: { username: string; password: string }) {

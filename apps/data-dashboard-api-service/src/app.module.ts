@@ -3,6 +3,7 @@ import { KafkaModule } from '@modules/kafka.module'
 import { DatabaseModule } from '@modules/database.module'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import { UserModule } from './api/user/user.module'
+import { EventModule } from './api/event/event.module'
 import { ResponseInterceptor, SignatureInterceptor } from "@shared-utils/backend-common"
 import EnvConfigModule from "@modules/env-config.module"
 
@@ -12,6 +13,7 @@ import EnvConfigModule from "@modules/env-config.module"
     DatabaseModule,
     KafkaModule,
     UserModule,
+    EventModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

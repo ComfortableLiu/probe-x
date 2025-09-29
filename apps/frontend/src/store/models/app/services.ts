@@ -2,9 +2,17 @@ import request from "@/lib/request"
 import { IPermission, IQueryUserInfoParams, IUserInfo } from "./type"
 
 
+export function queryLogin(data: { username: string, password: string }) {
+  return request<IUserInfo>({
+    url: '/user/login',
+    method: 'post',
+    data,
+  })
+}
+
 export function queryUserInfo(data: IQueryUserInfoParams) {
   return request<IUserInfo>({
-    url: '/sso/v1/getUserByToken',
+    url: '/user/getUserByToken',
     method: 'get',
     data,
   })

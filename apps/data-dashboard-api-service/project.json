@@ -32,7 +32,7 @@
       "executor": "@nx/js:node",
       "options": {
         "buildTarget": "data-dashboard-api-service:build",
-        "port": 3001
+        "port": 3002
       },
       "configurations": {
         "production": {
@@ -42,4 +42,9 @@
     }
   },
   "tags": []
+,
+  "implicitDependencies": [
+    "shared-types",
+    "shared-utils"
+  ]
 }

@@ -5,7 +5,8 @@
   "description": "数据可视化接口服务",
   "license": "MIT",
   "scripts": {
-    "build": "cross-env BUILD=true NODE_ENV=production tsc",
+    "build": "cross-env BUILD=true NODE_ENV=production nest build",
+    "start": "cross-env NODE_ENV=development nest start",
     "dev": "cross-env NODE_ENV=development tsc -w & node ../../dist/apps/data-dashboard-api-service/src/main.js"
   },
   "dependencies": {

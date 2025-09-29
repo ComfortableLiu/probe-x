@@ -6,6 +6,7 @@ import { useQuery } from "@/hooks"
 import { Localstorage } from "@utils/storage"
 import { KEY_ACCESS_TOKEN } from "@/constant/storage"
 import { delay } from "@shared-utils"
+import { queryLogin } from "@/store/models/app/services"
 
 function Login() {
   const { clientId, responseType, redirectUri } = useQuery()
@@ -16,6 +17,10 @@ function Login() {
     setLoading(true)
     try {
       await delay(1000)
+      const res = await queryLogin({
+        username: values.username,
+        password: values.password,
+      })
       // TODO 模拟登录
       Localstorage.set(KEY_ACCESS_TOKEN, '12312312')
 

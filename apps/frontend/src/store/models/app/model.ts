@@ -52,7 +52,7 @@ export const appModel = createModel<RootModel>()({
         }
         // TODO 裸的api太暴力了，要优化
         // history.replace(`${location.pathname}?${queryString.stringify(query)}`)
-        window.location.replace(`${location.pathname}?${queryString.stringify(query)}`)
+        // window.location.replace(`${location.pathname}?${queryString.stringify(query)}`)
       }
 
       try {

@@ -30,6 +30,7 @@
     "build:shared-utils": "nx build shared-utils",
     "build:lib": "nx run-many --target=build --projects=shared-types,shared-utils --parallel",
     "dev": "nx run-many --target=serve --projects=frontend,receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",
+    "dev:frontend-system": "nx run-many --target=serve --projects=frontend,data-dashboard-api-service --parallel",
     "dev:frontend": "nx run-many --target=serve --projects=frontend --parallel",
     "dev:dashboard-api": "nx serve data-dashboard-api-service",
     "dev:backend": "nx run-many --target=serve --projects=receiving-point-service,data-dashboard-api-service,preliminary-data-processing-service,final-data-cleaning-service --parallel",

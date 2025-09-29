@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { generateNonce, generateSignature } from '@utils/signature'
-import ssoAuth from "@/lib/request/sso/ssoAuth"
 import { get } from "@config"
 
 // 密钥 - 在实际项目中应该从环境变量中获取
@@ -23,7 +22,7 @@ apiClient.interceptors.request.use(
 
     // 生成签名
     const signature = await generateSignature({
-      path: config.url,
+      path: `/api${config.url}`,
       method: config.method || '',
       body: config.data,
       query: config.params,
@@ -52,12 +51,12 @@ apiClient.interceptors.response.use(
   (error) => {
 
     const code = error?.response?.status
-    switch (code) {
-      case 400:
-      case 401:
-        ssoAuth.gotoLoginPage()
-        return error
-    }
+    // switch (code) {
+    //   case 400:
+    //   case 401:
+    //     ssoAuth.gotoLoginPage()
+    //     return error
+    // }
     console.warn(error)
     // 统一处理错误
     if (error.response) {

@@ -12,7 +12,7 @@
     }
   },
   "tags": [],
-  "dependencies": [
+  "implicitDependencies": [
     "shared-types",
     "shared-utils"
   ]

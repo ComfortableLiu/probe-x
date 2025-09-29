@@ -1,5 +1,5 @@
 export default () => ({
-  port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 3001,
+  port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 8101,
   client: {
     host: process.env.CLIENT_HOST || 'http://localhost',
     port: parseInt(process.env.CLIENT_POST, 10) || 8000,
@@ -7,15 +7,15 @@ export default () => ({
   services: {
     finalDataCleaning: {
       host: process.env.FINAL_DATA_CLEANING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_POST, 10) || 3002,
+      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_POST, 10) || 8102,
     },
     preliminaryDataProcessing: {
       host: process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_POST, 10) || 3003,
+      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_POST, 10) || 8103,
     },
     receivingPoint: {
       host: process.env.RECEIVING_POINT_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.RECEIVING_POINT_SERVICE_POST, 10) || 3004,
+      port: parseInt(process.env.RECEIVING_POINT_SERVICE_POST, 10) || 8104,
     },
   },
   database: {

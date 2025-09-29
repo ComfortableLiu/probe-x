@@ -1,4 +1,11 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor, UnauthorizedException } from "@nestjs/common"
+import {
+  BadRequestException,
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  UnauthorizedException,
+} from "@nestjs/common"
 import { Request } from 'express'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { Observable } from 'rxjs'
@@ -24,7 +31,7 @@ export class SignatureInterceptor implements NestInterceptor {
     // 验证时间有效性
     const now = Date.now()
     if (Math.abs(now - timestamp) > this.MAX_TIME_DIFF) {
-      throw new UnauthorizedException('Request expired')
+      throw new BadRequestException('Request expired')
     }
 
     // 生成服务端签名
@@ -32,7 +39,7 @@ export class SignatureInterceptor implements NestInterceptor {
 
     // 安全比较签名（防时序攻击）
     if (!this.safeCompare(receivedSignature, serverSignature)) {
-      throw new UnauthorizedException('Invalid signature')
+      throw new BadRequestException('Invalid signature')
     }
 
     return next.handle()

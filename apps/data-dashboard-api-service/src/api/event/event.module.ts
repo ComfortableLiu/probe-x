@@ -5,9 +5,13 @@ import { EventService } from './event.service'
 import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
+import { UserModule } from '../user/user.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity])],
+  imports: [
+    TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity]),
+    UserModule,
+  ],
   controllers: [EventController],
   providers: [EventService],
   exports: [EventService],

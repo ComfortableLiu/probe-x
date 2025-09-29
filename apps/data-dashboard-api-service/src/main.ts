@@ -2,7 +2,6 @@ import 'reflect-metadata'
 import { register } from 'tsconfig-paths'
 import * as path from 'path'
 import { NestFactory } from '@nestjs/core'
-import { ValidationPipe } from '@nestjs/common'
 
 // 在任何别名 import 之前注册运行时路径别名（指向编译后 dist 目录）
 register({
@@ -28,22 +27,24 @@ async function bootstrap() {
   // transform: true - 自动将请求数据转换为 DTO 类型实例
   // whitelist: true - 自动过滤掉 DTO 中未定义的属性
   // forbidNonWhitelisted: true - 当存在 DTO 中未定义的属性时抛出错误
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }))
+  // app.useGlobalPipes(new ValidationPipe({
+  //   transform: true,
+  //   whitelist: true,
+  //   forbidNonWhitelisted: true,
+  // }))
 
-  // 启用CORS
+  // 启用CORS并配置具体的跨域选项
   app.enableCors({
-    origin: true,
+    origin: '*',  // 允许所有来源
     credentials: true,
   })
 
   // 全局注册异常过滤器
   app.useGlobalFilters(new AllExceptionsFilter())
 
-  const port = process.env.SERVICE_POST || 3001
+  app.setGlobalPrefix('api')
+
+  const port = process.env.DATA_DASHBOARD_API_SERVICE_POST || 8101
   await app.listen(port)
   console.log(`数据仪表板API服务已启动，端口: ${port}`)
 }
