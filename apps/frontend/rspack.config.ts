@@ -12,7 +12,7 @@ const PORT = 8000
 // 由于在 ES 模块中没有 __dirname，所以我们需要创建它
 const __filename = fileURLToPath(import.meta.url)
 // 根目录路径
-const __dirname = path.dirname(path.dirname(path.dirname(path.dirname(__filename))))
+const __dirname = path.dirname(path.dirname(path.dirname(__filename)))
 const frontendPath = path.dirname(__filename)
 
 const sharedPath = path.resolve(path.dirname(path.dirname(path.dirname(__filename))), 'dist/libs')
@@ -43,7 +43,7 @@ const config: Configuration = {
     asyncChunks: true,
     clean: true,
     publicPath: isDev ? '/' : '/assets/',
-    path: path.resolve(__dirname, 'dist/frontend'),
+    path: path.resolve(__dirname, 'dist/apps/frontend'),
     filename: isDev ? 'js/[name].js' : 'js/[name].[contenthash:8].js',
   },
 
