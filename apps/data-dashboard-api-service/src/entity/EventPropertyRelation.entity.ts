@@ -60,11 +60,11 @@ export class EventPropertyRelationEntity {
   })
   status?: EventPropertyRelationStatus
 
-  @ManyToOne(() => MetaEventEntity, metaEvent => metaEvent.eventPropertyRelations, { primary: true })
+  @ManyToOne(() => MetaEventEntity, metaEvent => metaEvent.eventPropertyRelations)
   @JoinColumn({ name: 'event_name' })
   metaEvent?: MetaEventEntity
 
-  @ManyToOne(() => MetaPropertyEntity, metaProperty => metaProperty.eventPropertyRelations, { primary: true })
+  @ManyToOne(() => MetaPropertyEntity, metaProperty => metaProperty.eventPropertyRelations)
   @JoinColumn({ name: 'property_name' })
   metaProperty?: MetaPropertyEntity
 

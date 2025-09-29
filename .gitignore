@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 pubilsh.sh
 
 .nx
+tmp

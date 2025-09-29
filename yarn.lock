@@ -2932,12 +2932,35 @@
     tslib "^2.3.0"
     yargs-parser "21.1.1"
 
+"@nx/devkit@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/devkit/-/devkit-21.5.3.tgz#1d0d3781224e6c52470461f3d9a6ff3160b07a85"
+  integrity sha512-ETfoL+fsr7cHonRzI6mX0nsFU/Tna4sxP4rqlE/uix8QjXsp3fbalCS9gUyJ/M/eOQnrKcbSCbsS8E8lbY6tvg==
+  dependencies:
+    ejs "^3.1.7"
+    enquirer "~2.3.6"
+    ignore "^5.0.4"
+    minimatch "9.0.3"
+    semver "^7.5.3"
+    tmp "~0.2.1"
+    tslib "^2.3.0"
+    yargs-parser "21.1.1"
+
 "@nx/docker@21.5.2":
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/docker/-/docker-21.5.2.tgz"
   integrity sha512-oVpGt6X719rtuOqsaltROEHQsJsySLGDRLmFFceEHZ03wD6QYwNMbS/qI6nU03DeMVcO9tMjzKqgdd0UxcLv3g==
   dependencies:
     "@nx/devkit" "21.5.2"
+    enquirer "~2.3.6"
+    tslib "^2.3.0"
+
+"@nx/docker@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/docker/-/docker-21.5.3.tgz#568f096ed29b9fb63a168c245e5e8bbfbb061801"
+  integrity sha512-GAbQtqcl2eR0xmFimSH2bmCFNjEvSySj3JAjxPziwkyYVFofegaCBtpM5cOcg3lebizFiu/n8eUQb4T4tqGYUg==
+  dependencies:
+    "@nx/devkit" "21.5.3"
     enquirer "~2.3.6"
     tslib "^2.3.0"
 
@@ -2963,6 +2986,17 @@
     tslib "^2.3.0"
     typescript "~5.9.2"
 
+"@nx/eslint@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/eslint/-/eslint-21.5.3.tgz#e54c2d60d7a1accf3e0ed7a122b46d0aa1ccdc9c"
+  integrity sha512-WEq3/Ie/LNzuanf9tKH++okc6E7lNxL1l8PU9z7L0SnMcDNCtw0sE5EWRgSl68CEHuLRJqG6VUeJ9PXmVo4Ltw==
+  dependencies:
+    "@nx/devkit" "21.5.3"
+    "@nx/js" "21.5.3"
+    semver "^7.5.3"
+    tslib "^2.3.0"
+    typescript "~5.9.2"
+
 "@nx/jest@21.5.2":
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/jest/-/jest-21.5.2.tgz"
@@ -2972,6 +3006,27 @@
     "@jest/test-result" "^30.0.2"
     "@nx/devkit" "21.5.2"
     "@nx/js" "21.5.2"
+    "@phenomnomnominal/tsquery" "~5.0.1"
+    identity-obj-proxy "3.0.0"
+    jest-config "^30.0.2"
+    jest-resolve "^30.0.2"
+    jest-util "^30.0.2"
+    minimatch "9.0.3"
+    picocolors "^1.1.0"
+    resolve.exports "2.0.3"
+    semver "^7.5.3"
+    tslib "^2.3.0"
+    yargs-parser "21.1.1"
+
+"@nx/jest@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/jest/-/jest-21.5.3.tgz#4094aea05edbc96a36d44791e77377b5ac950b33"
+  integrity sha512-5jm6t+2+H9xLciauuYzUpYAZOhAV2tzdQsr7eoRdH9Slri9K1ImzCWcuE+d1AOtPF3ZBTY2AiQVUhERGUjSJ2g==
+  dependencies:
+    "@jest/reporters" "^30.0.2"
+    "@jest/test-result" "^30.0.2"
+    "@nx/devkit" "21.5.3"
+    "@nx/js" "21.5.3"
     "@phenomnomnominal/tsquery" "~5.0.1"
     identity-obj-proxy "3.0.0"
     jest-config "^30.0.2"
@@ -3054,6 +3109,41 @@
     tinyglobby "^0.2.12"
     tslib "^2.3.0"
 
+"@nx/js@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/js/-/js-21.5.3.tgz#ba3bab00d5b0c656e2df095cb5ea19c141130bab"
+  integrity sha512-968PG1gNf/ba2JwQNvHkNQBm1jhHCcuknKhSqZvr4tow6IM62z+rwvuLyW/fOMgh2K6Ix61JXUVvbwrKBWyerA==
+  dependencies:
+    "@babel/core" "^7.23.2"
+    "@babel/plugin-proposal-decorators" "^7.22.7"
+    "@babel/plugin-transform-class-properties" "^7.22.5"
+    "@babel/plugin-transform-runtime" "^7.23.2"
+    "@babel/preset-env" "^7.23.2"
+    "@babel/preset-typescript" "^7.22.5"
+    "@babel/runtime" "^7.22.6"
+    "@nx/devkit" "21.5.3"
+    "@nx/workspace" "21.5.3"
+    "@zkochan/js-yaml" "0.0.7"
+    babel-plugin-const-enum "^1.0.1"
+    babel-plugin-macros "^3.1.0"
+    babel-plugin-transform-typescript-metadata "^0.3.1"
+    chalk "^4.1.0"
+    columnify "^1.6.0"
+    detect-port "^1.5.1"
+    enquirer "~2.3.6"
+    ignore "^5.0.4"
+    js-tokens "^4.0.0"
+    jsonc-parser "3.2.0"
+    npm-package-arg "11.0.1"
+    npm-run-path "^4.0.1"
+    ora "5.3.0"
+    picocolors "^1.1.0"
+    picomatch "4.0.2"
+    semver "^7.5.3"
+    source-map-support "0.5.19"
+    tinyglobby "^0.2.12"
+    tslib "^2.3.0"
+
 "@nx/module-federation@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/module-federation/-/module-federation-21.3.11.tgz"
@@ -3098,6 +3188,20 @@
     tcp-port-used "^1.0.2"
     tslib "^2.3.0"
 
+"@nx/node@^21.3.10":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/node/-/node-21.5.3.tgz#bb77ee32b89fa0c846569a7743063dee19a82823"
+  integrity sha512-Pb9dCSiivwbJTzjsnaAEzFCjZirHza375W2TBuhFCsDyBxV80DBsu2i6442wSVjLSNgQ5W8FmBHee/r0a9eJIw==
+  dependencies:
+    "@nx/devkit" "21.5.3"
+    "@nx/docker" "21.5.3"
+    "@nx/eslint" "21.5.3"
+    "@nx/jest" "21.5.3"
+    "@nx/js" "21.5.3"
+    kill-port "^1.6.1"
+    tcp-port-used "^1.0.2"
+    tslib "^2.3.0"
+
 "@nx/nx-darwin-arm64@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-darwin-arm64/-/nx-darwin-arm64-21.3.11.tgz"
@@ -3107,6 +3211,11 @@
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/nx-darwin-arm64/-/nx-darwin-arm64-21.5.2.tgz"
   integrity sha512-PrfZbV2blRHoWLor+xDVwPY/dk46kbsmuTXCZRYlNAwko521Y9dCAJT0UOROic3zoUasQ+TwqsQextIcKCotIA==
+
+"@nx/nx-darwin-arm64@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-darwin-arm64/-/nx-darwin-arm64-21.5.3.tgz#6983dbf90a42c19a3e8fee085ca7f2aac8ee31ef"
+  integrity sha512-XKOaBpkBzPd5l9in1ax7KQrAiqm4hi46pzQ/qq4Jo20/RKTpc2ZZSFujjuI8wF75oZ6+iV+cvuxSbwbuX6AxQQ==
 
 "@nx/nx-darwin-x64@21.3.11":
   version "21.3.11"
@@ -3118,6 +3227,11 @@
   resolved "https://registry.npmmirror.com/@nx/nx-darwin-x64/-/nx-darwin-x64-21.5.2.tgz#7bcc3e9e5f3f8c883f3ccedbd950b98efc3401c3"
   integrity sha512-YaLY2Cqbjrl+pDddHV7GFtokn81GLvoqg+i9k0Eiid8B0dDLBZpJ3VQKr4RkTzxBX38UuHbJUwrZc8L9z8vqEw==
 
+"@nx/nx-darwin-x64@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-darwin-x64/-/nx-darwin-x64-21.5.3.tgz#7a845873505a7fcba5d1af6d0e89059613ffe3b7"
+  integrity sha512-auGY/gvB5B2In25gozlNV6lb4so14OIpIh/dPgXXrHL5YTuky2i6NFiTOq2D1RWtv5kkoK73rQXDbffDXUS6SA==
+
 "@nx/nx-freebsd-x64@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-freebsd-x64/-/nx-freebsd-x64-21.3.11.tgz#369e3f0d8ff4f4b8303822e0d3d3ac7c5bc8e6e9"
@@ -3127,6 +3241,11 @@
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/nx-freebsd-x64/-/nx-freebsd-x64-21.5.2.tgz#fc0fcd265d56355bcb8482578d07e43e27120aab"
   integrity sha512-2z/Wd42/KHFyT0zRVxWHlaRBQz12Fd1A0FCGJzuWI8G2meh9tYt4MN96gQ4q/rLQ0fmfFEEECq6pmOfCi8t9Mg==
+
+"@nx/nx-freebsd-x64@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-freebsd-x64/-/nx-freebsd-x64-21.5.3.tgz#28bd4c121eb5a07664a5c6089ecaa2ed39b49db5"
+  integrity sha512-IsPCC8CpIRd7dzcRQ+j1zAEZObKVkSLQ3GI7rqybEf0/vWZz6T7UbxGHNtFB7AlaecCbHshZ3Mg5mPVXYSR+iA==
 
 "@nx/nx-linux-arm-gnueabihf@21.3.11":
   version "21.3.11"
@@ -3138,6 +3257,11 @@
   resolved "https://registry.npmmirror.com/@nx/nx-linux-arm-gnueabihf/-/nx-linux-arm-gnueabihf-21.5.2.tgz#e3f62ae512a1cfdab443f9de904939c0989c3287"
   integrity sha512-lY2O1py8x+l39XAFFuplKlzouPC9K/gERYEB/b5jHGf7PGfNj0BX2MDmUztgTty6kKUnkRele39aSoQqWok0gA==
 
+"@nx/nx-linux-arm-gnueabihf@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-linux-arm-gnueabihf/-/nx-linux-arm-gnueabihf-21.5.3.tgz#df238c08fc3fa594bd6bfbf2cd5a95befd938242"
+  integrity sha512-IDW5wy2x7KNFK5u8v94KarJ0h4Fk49pVMKcAI6imeQOJnc0lh0TwID4cqVTCg73BLJXbIV3+Ok01jDKrDsTL/w==
+
 "@nx/nx-linux-arm64-gnu@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-linux-arm64-gnu/-/nx-linux-arm64-gnu-21.3.11.tgz#9edbf4df73881f6f616ee1d795ec4e6bdd4822ae"
@@ -3147,6 +3271,11 @@
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/nx-linux-arm64-gnu/-/nx-linux-arm64-gnu-21.5.2.tgz#5b6cb05a91dbaad59559cb30c7cb72a4c95e3d29"
   integrity sha512-gcpkXXPpWaf8wB0FZUaKmk8Jdv+QMHLiOcQuuXYi1X0vbgotVTl/y+dccwG1EZml6V5JIRGtg2YDM61a7Olp1Q==
+
+"@nx/nx-linux-arm64-gnu@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-linux-arm64-gnu/-/nx-linux-arm64-gnu-21.5.3.tgz#3af7524a8ba825cb868aaeb02c2a72f518706560"
+  integrity sha512-GQF/xjGeqt4tYWf9jT1D0GRPrcAjajTB1QpSavUaiT1jDkByuN11WvuWeTfBdPJpYWFxvH887+r+uMEg8zRE4A==
 
 "@nx/nx-linux-arm64-musl@21.3.11":
   version "21.3.11"
@@ -3158,6 +3287,11 @@
   resolved "https://registry.npmmirror.com/@nx/nx-linux-arm64-musl/-/nx-linux-arm64-musl-21.5.2.tgz#aee203dda934e57b52e3d4136f037c2cf2884e1e"
   integrity sha512-oCSUwT0hORgFJWIGjwl6x4/2mVusw+3YAcSrvDePAXadjPSEMLZlJEE+4HExzqLFFBTxc+ucvyOIk08P4BtNJg==
 
+"@nx/nx-linux-arm64-musl@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-linux-arm64-musl/-/nx-linux-arm64-musl-21.5.3.tgz#d2895587002547ae15705eed8f8025c34eb17752"
+  integrity sha512-C5j2pzfe0zoAJelHXzPdTGeU19VvvHVaoesiKPeH9EvJwLLb9FoeIn+6//x3jDUNUqIHdn4+63kMA6mdBQSpMQ==
+
 "@nx/nx-linux-x64-gnu@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-linux-x64-gnu/-/nx-linux-x64-gnu-21.3.11.tgz#9763d938ebea8ec8b11e4372aa9ec4c422daaf70"
@@ -3167,6 +3301,11 @@
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/nx-linux-x64-gnu/-/nx-linux-x64-gnu-21.5.2.tgz#eea78d35dc2d402c80d33fbadffc6d0688c1e82b"
   integrity sha512-rgJTQk0iaidxEIMOuRQJS36Sk4+qcpJP0uwymvgyoTpZyBdkX38NHH3D+E6sudPSFWsiVxJpkCzYE4ScSKF8Ew==
+
+"@nx/nx-linux-x64-gnu@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-linux-x64-gnu/-/nx-linux-x64-gnu-21.5.3.tgz#efbd47e8b13a4fc0c15e6729589b102b2bd0313d"
+  integrity sha512-HI+tdkvzFcnJQpU9m1FjvlxW7ZsJeF4os8OG4HSLRTQfFT8HCXXzp6b9sojTr+4Nfvp5r3T/J/UJM9tOJXW9Aw==
 
 "@nx/nx-linux-x64-musl@21.3.11":
   version "21.3.11"
@@ -3178,6 +3317,11 @@
   resolved "https://registry.npmmirror.com/@nx/nx-linux-x64-musl/-/nx-linux-x64-musl-21.5.2.tgz#f666bee01627e4c78b900ee713568ea2bd645cd0"
   integrity sha512-KeS36526VruYO9HzhFGqhE5tbps7e94DV0b4j5wfPr7V51EfPzvjAiMWllsQDARv67wdbQ80c0Wg516XTlekgA==
 
+"@nx/nx-linux-x64-musl@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-linux-x64-musl/-/nx-linux-x64-musl-21.5.3.tgz#d9b7a574a739617a6509ca327529e6cca6ed7920"
+  integrity sha512-ntlBqcO9wVajUjYwzBU5ru2iBORttO4nurKvjnpBbyCF1mOjSJ3uFcFMzktbp2cxpRE5JRAadGq9/pZisez1AQ==
+
 "@nx/nx-win32-arm64-msvc@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-win32-arm64-msvc/-/nx-win32-arm64-msvc-21.3.11.tgz#5460efcd7890442a2a7d34754d2b9e2cd638f594"
@@ -3188,6 +3332,11 @@
   resolved "https://registry.npmmirror.com/@nx/nx-win32-arm64-msvc/-/nx-win32-arm64-msvc-21.5.2.tgz#9cec65d033533fc341bef721a4feff6b47758c79"
   integrity sha512-jlRTycYKOiSqc0fcqvabOH/HZX9BOG0S8EGsLmqEr2OkJLZc25ByD1n22P486R2n+m8GQwL6pX+L1LPpOPmz0A==
 
+"@nx/nx-win32-arm64-msvc@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-win32-arm64-msvc/-/nx-win32-arm64-msvc-21.5.3.tgz#86dda694879bf0d6ee7365d41fad898a62620e64"
+  integrity sha512-VgX1VnKDRgWcjIMJ0V3zZ6OPuYkvA7rzgn8wbZWyBh2/1GFFffypJJsGeXRPCZBFHjF3UFYcwjzCMoStZ35b5g==
+
 "@nx/nx-win32-x64-msvc@21.3.11":
   version "21.3.11"
   resolved "https://registry.npmmirror.com/@nx/nx-win32-x64-msvc/-/nx-win32-x64-msvc-21.3.11.tgz#84ba2b4babb251cbff36472c747a327fc1adc242"
@@ -3197,6 +3346,11 @@
   version "21.5.2"
   resolved "https://registry.npmmirror.com/@nx/nx-win32-x64-msvc/-/nx-win32-x64-msvc-21.5.2.tgz#e1dec989cf4fe3ae530693b963d12ffb6fbb1bfb"
   integrity sha512-Ur8GPdz52kLS5uE9IQf0wBtGyvQm4Y3M1ZDjRkR+oGf26aVGNTK6C0+kMJPuggR4Z6lurmHYA34ViGi2hHPPpA==
+
+"@nx/nx-win32-x64-msvc@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/nx-win32-x64-msvc/-/nx-win32-x64-msvc-21.5.3.tgz#76e86d74191b5a36d00aff71962e045d294d0cb8"
+  integrity sha512-bEQxvsglGInSi51HJUJ7X1lqekzn5xAOddY4tpmOzBXVadx4fuMT8X/PLDLorAAShNZ36g/7sYbtWaBuJNz3tQ==
 
 "@nx/react@^21.3.10":
   version "21.3.11"
@@ -3291,6 +3445,21 @@
     chalk "^4.1.0"
     enquirer "~2.3.6"
     nx "21.5.2"
+    picomatch "4.0.2"
+    semver "^7.6.3"
+    tslib "^2.3.0"
+    yargs-parser "21.1.1"
+
+"@nx/workspace@21.5.3":
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/@nx/workspace/-/workspace-21.5.3.tgz#695a596bd865b9b0b98847f27a8d724c9249e1e4"
+  integrity sha512-lOiQ0uF8oOtoEcjtNTUer4BMCERLhdfSdoHYjfkt7SOIWepBSxTqN26dJXQQ0uBn4ZaHGhTlenYD4UZ1mN80OA==
+  dependencies:
+    "@nx/devkit" "21.5.3"
+    "@zkochan/js-yaml" "0.0.7"
+    chalk "^4.1.0"
+    enquirer "~2.3.6"
+    nx "21.5.3"
     picomatch "4.0.2"
     semver "^7.6.3"
     tslib "^2.3.0"
@@ -10346,6 +10515,58 @@ nx@21.5.2:
     "@nx/nx-win32-arm64-msvc" "21.5.2"
     "@nx/nx-win32-x64-msvc" "21.5.2"
 
+nx@21.5.3:
+  version "21.5.3"
+  resolved "https://registry.npmmirror.com/nx/-/nx-21.5.3.tgz#42d9ac2d83d2310b7df5ece91d8d0d51b0a3b696"
+  integrity sha512-+XwzK3OWZw/7zLdhNHBms9VdAA8F6w6QsX8qFQ3+3CnbqEy0IDmVxTXb8c711LDMbEtNn94EiWvSV6C00FKw9Q==
+  dependencies:
+    "@napi-rs/wasm-runtime" "0.2.4"
+    "@yarnpkg/lockfile" "^1.1.0"
+    "@yarnpkg/parsers" "3.0.2"
+    "@zkochan/js-yaml" "0.0.7"
+    axios "^1.8.3"
+    chalk "^4.1.0"
+    cli-cursor "3.1.0"
+    cli-spinners "2.6.1"
+    cliui "^8.0.1"
+    dotenv "~16.4.5"
+    dotenv-expand "~11.0.6"
+    enquirer "~2.3.6"
+    figures "3.2.0"
+    flat "^5.0.2"
+    front-matter "^4.0.2"
+    ignore "^5.0.4"
+    jest-diff "^30.0.2"
+    jsonc-parser "3.2.0"
+    lines-and-columns "2.0.3"
+    minimatch "9.0.3"
+    node-machine-id "1.1.12"
+    npm-run-path "^4.0.1"
+    open "^8.4.0"
+    ora "5.3.0"
+    resolve.exports "2.0.3"
+    semver "^7.5.3"
+    string-width "^4.2.3"
+    tar-stream "~2.2.0"
+    tmp "~0.2.1"
+    tree-kill "^1.2.2"
+    tsconfig-paths "^4.1.2"
+    tslib "^2.3.0"
+    yaml "^2.6.0"
+    yargs "^17.6.2"
+    yargs-parser "21.1.1"
+  optionalDependencies:
+    "@nx/nx-darwin-arm64" "21.5.3"
+    "@nx/nx-darwin-x64" "21.5.3"
+    "@nx/nx-freebsd-x64" "21.5.3"
+    "@nx/nx-linux-arm-gnueabihf" "21.5.3"
+    "@nx/nx-linux-arm64-gnu" "21.5.3"
+    "@nx/nx-linux-arm64-musl" "21.5.3"
+    "@nx/nx-linux-x64-gnu" "21.5.3"
+    "@nx/nx-linux-x64-musl" "21.5.3"
+    "@nx/nx-win32-arm64-msvc" "21.5.3"
+    "@nx/nx-win32-x64-msvc" "21.5.3"
+
 object-assign@^4, object-assign@^4.1.1:
   version "4.1.1"
   resolved "https://registry.npmmirror.com/object-assign/-/object-assign-4.1.1.tgz"
@@ -10605,10 +10826,19 @@ passport-jwt@^4.0.1:
     jsonwebtoken "^9.0.0"
     passport-strategy "^1.0.0"
 
-passport-strategy@^1.0.0:
+passport-strategy@1.x.x, passport-strategy@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmmirror.com/passport-strategy/-/passport-strategy-1.0.0.tgz#b5539aa8fc225a3d1ad179476ddf236b440f52e4"
   integrity sha512-CB97UUvDKJde2V0KDWWB3lyf6PC3FaZP7YxZ2G8OAtn9p4HI9j9JLP9qjOGZFvyl8uwNT8qM+hGnz/n16NI7oA==
+
+passport@^0.7.0:
+  version "0.7.0"
+  resolved "https://registry.npmmirror.com/passport/-/passport-0.7.0.tgz#3688415a59a48cf8068417a8a8092d4492ca3a05"
+  integrity sha512-cPLl+qZpSc+ireUvt+IzqbED1cHHkDoVYMo30jbJIdOOjQ1MQYZBPiNvmi8UM6lJuOpTPXJGZQk0DtC4y61MYQ==
+  dependencies:
+    passport-strategy "1.x.x"
+    pause "0.0.1"
+    utils-merge "^1.0.1"
 
 path-exists@^4.0.0:
   version "4.0.0"
@@ -10660,6 +10890,11 @@ path-type@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmmirror.com/path-type/-/path-type-4.0.0.tgz"
   integrity sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==
+
+pause@0.0.1:
+  version "0.0.1"
+  resolved "https://registry.npmmirror.com/pause/-/pause-0.0.1.tgz#1d408b3fdb76923b9543d96fb4c9dfd535d9cb5d"
+  integrity sha512-KG8UEiEVkR3wGEb4m5yZkVCzigAD+cVEJck2CzYZO37ZGJfctvVptVO192MwrtPhzONn6go8ylnOdMhKqi4nfg==
 
 picocolors@^1.0.0, picocolors@^1.1.0, picocolors@^1.1.1:
   version "1.1.1"
@@ -13405,7 +13640,7 @@ util-deprecate@^1.0.1, util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   resolved "https://registry.npmmirror.com/util-deprecate/-/util-deprecate-1.0.2.tgz"
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
 
-utils-merge@1.0.1:
+utils-merge@1.0.1, utils-merge@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmmirror.com/utils-merge/-/utils-merge-1.0.1.tgz"
   integrity sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==

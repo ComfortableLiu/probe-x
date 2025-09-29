@@ -6,8 +6,7 @@
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production tsc",
-    "dev": "cross-env NODE_ENV=development tsc -w & node dist/main.js",
-    "start": "node dist/main.js"
+    "dev": "cross-env NODE_ENV=development tsc -w & node ../../dist/apps/data-dashboard-api-service/src/main.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.5",
@@ -24,6 +23,7 @@
     "ioredis": "^5.7.0",
     "kafkajs": "^2.2.4",
     "mysql2": "^3.14.3",
+    "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",

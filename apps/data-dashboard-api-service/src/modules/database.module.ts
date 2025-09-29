@@ -4,6 +4,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
+import { UserEntity } from "@entity/User.entity"
+
+const entities = [
+  MetaEventEntity,
+  MetaPropertyEntity,
+  EventPropertyRelationEntity,
+  UserEntity,
+]
 
 @Module({
   imports: [
@@ -22,7 +30,7 @@ import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entit
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity]),
+    TypeOrmModule.forFeature(entities),
   ],
   exports: [TypeOrmModule],
 })

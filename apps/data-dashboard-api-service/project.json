@@ -10,7 +10,15 @@
       "options": {
         "outputPath": "dist/apps/data-dashboard-api-service",
         "main": "apps/data-dashboard-api-service/src/main.ts",
-        "tsConfig": "apps/data-dashboard-api-service/tsconfig.json"
+        "tsConfig": "apps/data-dashboard-api-service/tsconfig.json",
+        "assets": [
+          {
+            "input": "apps/data-dashboard-api-service/config",
+            "glob": "**/*",
+            "output": "config"
+          }
+          
+        ]
       },
       "configurations": {
         "production": {

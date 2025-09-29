@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "target": "ES2020",
     "sourceMap": true,
-    "outDir": "./dist",
+    "outDir": "../../dist/apps/data-dashboard-api-service",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,

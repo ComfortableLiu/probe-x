@@ -1,10 +1,28 @@
+import 'reflect-metadata'
+import { register } from 'tsconfig-paths'
+import * as path from 'path'
 import { NestFactory } from '@nestjs/core'
-import { AppModule } from './app.module'
 import { ValidationPipe } from '@nestjs/common'
-import { AllExceptionsFilter } from "@shared-utils/backend-common"
+
+// 在任何别名 import 之前注册运行时路径别名（指向编译后 dist 目录）
+register({
+  baseUrl: path.resolve(__dirname, '..'),
+  paths: {
+    '@src/*': ['src/*'],
+    '@entity/*': ['src/entity/*'],
+    '@modules/*': ['src/modules/*'],
+    '@shared-types': ['../../libs/shared-types'],
+    '@shared-utils': ['../../libs/shared-utils'],
+    '@shared-utils/backend-common': ['../../libs/shared-utils/lib/backend-common'],
+  },
+})
 
 async function bootstrap() {
+  const { AppModule } = await import('./app.module')
   const app = await NestFactory.create(AppModule)
+
+  // 动态导入，确保在路径注册之后再解析
+  const { AllExceptionsFilter } = require('@shared-utils/backend-common')
 
   // 启用全局验证管道，用于自动验证请求数据
   // transform: true - 自动将请求数据转换为 DTO 类型实例
