@@ -5,9 +5,8 @@
   "description": "数据可视化接口服务",
   "license": "MIT",
   "scripts": {
-    "build": "cross-env BUILD=true NODE_ENV=production nest build",
-    "start": "cross-env NODE_ENV=development nest start",
-    "dev": "cross-env NODE_ENV=development tsc -w & node ../../dist/apps/data-dashboard-api-service/src/main.js"
+    "build": "cross-env BUILD=true NODE_ENV=production rspack build",
+    "dev": "cross-env NODE_ENV=development rspack serve"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.5",
@@ -36,9 +35,12 @@
     "@nestjs/schematics": "^11.0.7",
     "@nx/js": "^21.3.10",
     "@nx/nest": "^21.3.10",
+    "@rspack/cli": "^1.1.8",
+    "@rspack/core": "^1.1.8",
     "@types/express": "^5.0.3",
+    "cross-env": "^7.0.3",
     "run-script-webpack-plugin": "^0.2.3",
     "tsconfig-paths": "^4.2.0",
-    "typescript-transform-paths": "^3.5.5"
+    "@probe-x/shared-utils": "workspace: *"
   }
 }

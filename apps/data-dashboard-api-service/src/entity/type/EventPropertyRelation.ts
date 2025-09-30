@@ -1,5 +1,5 @@
-import { IMetaEvent } from "@entity/type/MetaEvent"
-import { IMetaProperty } from "@entity/type/MetaProperty"
+import { IMetaEvent } from "./MetaEvent"
+import { IMetaProperty } from "./MetaProperty"
 
 export interface IEventPropertyRelation {
   id?: number

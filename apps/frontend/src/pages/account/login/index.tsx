@@ -5,7 +5,7 @@ import * as styles from './styles.module.scss'
 import { useQuery } from "@/hooks"
 import { Localstorage } from "@utils/storage"
 import { KEY_ACCESS_TOKEN } from "@/constant/storage"
-import { delay } from "@shared-utils"
+import { delay } from "@probe-x/shared-utils/src"
 import { queryLogin } from "@/store/models/app/services"
 
 function Login() {

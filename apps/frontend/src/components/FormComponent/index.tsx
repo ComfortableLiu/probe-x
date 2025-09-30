@@ -3,7 +3,7 @@ import { Button, Col, Form, Row, Space } from "antd"
 import { IFormComponentProps, IFormItem } from "./type"
 import { FormItemType } from "./constants"
 import { useQuery, useRouter } from "@/hooks"
-import { IAnyObj } from "@shared-types"
+import { IAnyObj } from "@probe-x/shared-types/src/index"
 import FormText from "@components/FormComponent/form-item/text"
 import * as styles from "./styles.module.scss"
 

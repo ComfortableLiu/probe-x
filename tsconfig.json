@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [], // 故意留空，不直接包含文件
+  "references": [
+    {
+      "path": "./libs/shared-types"
+    },
+    {
+      "path": "./libs/shared-utils"
+    },
+    {
+      "path": "./apps/data-dashboard-api-service"
+    },
+    {
+      "path": "./apps/ecommerce-demo"
+    },
+    {
+      "path": "./apps/final-data-cleaning-service"
+    },
+    {
+      "path": "./apps/frontend"
+    },
+    {
+      "path": "./apps/preliminary-data-processing-service"
+    },
+    {
+      "path": "./apps/receiving-point-service"
+    },
+    {
+      "path": "./apps/web-sdk"
+    },
+  ]
+}

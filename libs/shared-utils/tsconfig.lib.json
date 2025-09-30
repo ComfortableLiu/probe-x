@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "ES2020",
+    "module": "CommonJS",
+    "declaration": true,
+    // 生成 .d.ts 类型文件
+    "outDir": "../../dist/libs/shared-utils",
+    // 输出目录
+    "rootDir": "./src",
+    // 源代码目录
+    "strict": true,
+    // 严格模式
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "references": [
+    {
+      "path": "../shared-types/tsconfig.lib.json"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
-import { EventPropertyRelationStatus } from "@entity/type/EventPropertyRelation"
 import { MetaEventEntity } from './MetaEvent.entity'
 import { MetaPropertyEntity } from './MetaProperty.entity'
+import { EventPropertyRelationStatus } from "./type/EventPropertyRelation"
 
 @Entity('event_property_relation')
 export class EventPropertyRelationEntity {

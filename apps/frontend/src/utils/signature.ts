@@ -2,7 +2,7 @@
  * 签名验证工具函数
  */
 import { hmacSHA } from "@utils/encryption"
-import { IAnyObj } from "@shared-types"
+import { IAnyObj } from "@probe-x/shared-types/src/index"
 
 interface ISignatureData {
   method: string

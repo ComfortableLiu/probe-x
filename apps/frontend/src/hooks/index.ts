@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react"
 import { useLocation } from "react-router-dom"
-import { IAnyObj } from "@shared-types"
+import { IAnyObj } from "@probe-x/shared-types/src/index"
 import { useNavigate } from "react-router"
 import queryString from "query-string"
 import { useSelector } from "react-redux"

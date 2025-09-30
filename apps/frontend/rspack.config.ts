@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(path.dirname(path.dirname(__filename)))
 const frontendPath = path.dirname(__filename)
 
-const sharedPath = path.resolve(path.dirname(path.dirname(path.dirname(__filename))), 'dist/libs')
+const sharedPath = path.resolve(__dirname, 'libs')
 
 // 获取当前环境
 const env = process.env.NODE_ENV || 'development'
@@ -77,8 +77,6 @@ const config: Configuration = {
       "@components": path.resolve(frontendPath, 'src/components'),
       '@': path.resolve(frontendPath, 'src'),
       '@config': path.resolve(frontendPath, 'config/configuration'),
-      '@shared-types': path.resolve(sharedPath, 'shared-types'),
-      '@shared-utils': path.resolve(sharedPath, 'shared-utils'),
     },
   },
 

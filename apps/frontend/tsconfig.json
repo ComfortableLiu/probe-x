@@ -27,12 +27,6 @@
       ],
       "@config": [
         "config/configuration"
-      ],
-      "@shared-types": [
-        "../../dist/libs/shared-types"
-      ],
-      "@shared-utils": [
-        "../../dist/libs/shared-utils"
       ]
     }
   }

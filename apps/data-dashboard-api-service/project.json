@@ -5,44 +5,12 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/apps/data-dashboard-api-service",
-        "main": "apps/data-dashboard-api-service/src/main.ts",
-        "tsConfig": "apps/data-dashboard-api-service/tsconfig.json",
-        "assets": [
-          {
-            "input": "apps/data-dashboard-api-service/config",
-            "glob": "**/*",
-            "output": "config"
-          }
-          
-        ]
-      },
-      "configurations": {
-        "production": {
-          "optimization": true,
-          "extractLicenses": true,
-          "inspect": false
-        }
-      }
+      "command": "cd apps/data-dashboard-api-service && yarn run build"
     },
     "serve": {
-      "executor": "@nx/js:node",
-      "options": {
-        "buildTarget": "data-dashboard-api-service:build",
-        "port": 3002
-      },
-      "configurations": {
-        "production": {
-          "buildTarget": "data-dashboard-api-service:build:production"
-        }
-      }
+      "command": "cd apps/data-dashboard-api-service && yarn run dev"
     }
   },
-  "tags": []
-,
   "implicitDependencies": [
     "shared-types",
     "shared-utils"

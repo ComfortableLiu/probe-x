@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { MetaEventEntity } from "@entity/MetaEvent.entity"
-import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
-import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
-import { UserEntity } from "@entity/User.entity"
+import { MetaEventEntity } from "../entity/MetaEvent.entity"
+import { MetaPropertyEntity } from "../entity/MetaProperty.entity"
+import { EventPropertyRelationEntity } from "../entity/EventPropertyRelation.entity"
+import { UserEntity } from "../entity/User.entity"
 
 const entities = [
   MetaEventEntity,

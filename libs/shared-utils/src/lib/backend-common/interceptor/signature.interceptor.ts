@@ -9,7 +9,7 @@ import {
 import { Request } from 'express'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { Observable } from 'rxjs'
-import { IAnyObj } from "@shared-types"
+import { IAnyObj } from "@probe-x/shared-types/src/index"
 
 @Injectable()
 export class SignatureInterceptor implements NestInterceptor {

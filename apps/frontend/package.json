@@ -43,6 +43,8 @@
     "react-refresh": "^0.17.0",
     "sass-embedded": "^1.89.2",
     "sass-loader": "^16.0.5",
-    "style-loader": "^4.0.0"
+    "style-loader": "^4.0.0",
+    "@probe-x/shared-utils": "workspace: *",
+    "@probe-x/shared-types": "workspace: *"
   }
 }

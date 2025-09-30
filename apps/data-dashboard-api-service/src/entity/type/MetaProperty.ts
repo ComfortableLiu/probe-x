@@ -1,4 +1,4 @@
-import { IEventPropertyRelation } from "@entity/type/EventPropertyRelation"
+import { IEventPropertyRelation } from "./EventPropertyRelation"
 
 export interface IMetaProperty {
   propertyName?: string

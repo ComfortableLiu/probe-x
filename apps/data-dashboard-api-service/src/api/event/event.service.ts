@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { MetaEventEntity } from "@entity/MetaEvent.entity"
-import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "@src/api/event/type"
+import { MetaEventEntity } from "../../entity/MetaEvent.entity"
+import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
 
 @Injectable()
 export class EventService {

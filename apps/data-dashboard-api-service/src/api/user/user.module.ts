@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { UserController } from './user.controller'
 import { UserService } from './user.service'
-import { UserEntity } from "@entity/User.entity"
 import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { SsoAuthGuard } from "@src/api/user/SsoAuthGuard"
-import { JwtStrategy } from "@src/api/user/JwtStrategy"
-import { JwtAuthGuard } from "@src/api/user/JwtAuthGuard"
+import { UserEntity } from "../../entity/User.entity"
+import { JwtStrategy } from "./JwtStrategy"
+import { JwtAuthGuard } from "./JwtAuthGuard"
+import { SsoAuthGuard } from "./SsoAuthGuard"
 
 @Module({
   imports: [

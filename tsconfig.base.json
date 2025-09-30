@@ -1,9 +1,7 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
     "rootDir": ".",
     "sourceMap": true,
-    "declaration": false,
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -17,17 +15,20 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
+    // 必需：禁用项目引用相关选项（与路径别名方案冲突）
+    "composite": false,
+    "declaration": false,
+    // 定义库项目的路径别名（由 Nx 库生成器自动添加）
     "paths": {
-      "@shared-types": [
-        "dist/libs/shared-types"
-      ],
       "@shared-utils": [
-        "dist/libs/shared-utils"
+        "lib/shared-utils/src/index.ts"
       ],
+      "@shared-utils/backend-common": [
+        "lib/shared-utils/src/lib/backend-common/index.ts"
+      ],
+      "@shared-types": [
+        "lib/shared-types/src/index.ts"
+      ]
     }
-  },
-  "exclude": [
-    "node_modules",
-    "tmp"
-  ]
+  }
 }

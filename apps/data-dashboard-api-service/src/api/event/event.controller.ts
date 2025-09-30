@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common'
 import { EventService } from './event.service'
-import { EventFilterDto, PaginationDto, UpdateEventDto } from "@src/api/event/type"
-import { UserService } from "@src/api/user/user.service"
+import { UserService } from "../user/user.service"
+import { EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
 
 @Controller('/event')
 export class EventController {
