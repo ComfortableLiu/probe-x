@@ -2,7 +2,7 @@ import type { Configuration } from "@rspack/cli"
 import { CopyRspackPlugin, rspack } from "@rspack/core"
 import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
 import { fileURLToPath } from "node:url"
-import path from "node:path"
+import * as path from "node:path"
 
 const PORT = 3002
 
