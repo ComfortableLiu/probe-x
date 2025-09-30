@@ -1,28 +1,28 @@
-import React, { useCallback, useState } from "react"
+import React, { useCallback } from "react"
 import { Button, Card, Checkbox, Form, Input, message } from "antd"
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import * as styles from './styles.module.scss'
-import { useQuery } from "@/hooks"
-import { Localstorage } from "@utils/storage"
-import { KEY_ACCESS_TOKEN } from "@/constant/storage"
-import { delay } from "@probe-x/shared-utils/src"
-import { queryLogin } from "@/store/models/app/services"
+import { useLoading, useQuery } from "@/hooks"
+import { useDispatch } from "react-redux"
+import { Dispatch } from "@/store/storeContext"
+import { hmacSHA } from "@utils/encryption"
+import { get } from "@config"
 
 function Login() {
-  const { clientId, responseType, redirectUri } = useQuery()
+  const { redirectUri } = useQuery()
 
-  const [loading, setLoading] = useState(false)
+  const dispatch = useDispatch<Dispatch>()
+
+  const loading = useLoading()
 
   const onFinish = useCallback(async (values: any) => {
-    setLoading(true)
+    console.log('llll-', get('ssoPasswordSalt'))
+    const passwordHash = await hmacSHA(values.password, '512', get('ssoPasswordSalt'))
     try {
-      await delay(1000)
-      const res = await queryLogin({
+      await dispatch.userModel.login({
         username: values.username,
-        password: values.password,
+        password: passwordHash,
       })
-      // TODO 模拟登录
-      Localstorage.set(KEY_ACCESS_TOKEN, '12312312')
 
       // 这里应该调用登录API
       message.success('登录成功')
@@ -36,10 +36,8 @@ function Login() {
       }, 1000)
     } catch (e) {
       message.error('登录失败')
-    } finally {
-      setLoading(false)
     }
-  }, [redirectUri])
+  }, [dispatch.userModel, redirectUri])
 
   return (
     <div className={styles.loginContainer}>
@@ -51,7 +49,7 @@ function Login() {
           name="normal_login"
           initialValues={{ remember: true }}
           onFinish={onFinish}
-          disabled={loading}
+          disabled={loading.userModel.login}
         >
           <Form.Item
             name="username"
@@ -83,7 +81,7 @@ function Login() {
               type="primary"
               htmlType="submit"
               className={styles.loginButton}
-              loading={loading}
+              loading={loading.userModel.login}
             >
               登录
             </Button>

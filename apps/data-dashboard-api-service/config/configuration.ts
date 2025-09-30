@@ -4,6 +4,12 @@ export default () => ({
     host: process.env.CLIENT_HOST || 'http://localhost',
     port: parseInt(process.env.CLIENT_POST, 10) || 8000,
   },
+  jwt: {
+    secret: process.env.JWT_SECRET || '',
+    salt: process.env.SALT || '',
+    expiresIn: process.env.JWT_EXPIRES_IN || '86400',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '604800',
+  },
   services: {
     finalDataCleaning: {
       host: process.env.FINAL_DATA_CLEANING_SERVICE_HOST || 'http://localhost',

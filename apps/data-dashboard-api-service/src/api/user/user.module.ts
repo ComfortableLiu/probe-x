@@ -4,28 +4,29 @@ import { UserController } from './user.controller'
 import { UserService } from './user.service'
 import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { UserEntity } from "../../entity/User.entity"
+import { UserEntity } from "@entity/User.entity"
 import { JwtStrategy } from "./JwtStrategy"
 import { JwtAuthGuard } from "./JwtAuthGuard"
 import { SsoAuthGuard } from "./SsoAuthGuard"
+import { AuthService } from "@src/service/auth.service"
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity]),
-    // TODO 这里需要改一下JWT的相关配置
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'defaultSecret',
+        secret: configService.get<string>('jwt.secret') || 'defaultSecret',
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '3600s',
+          expiresIn: configService.get<string>('jwt.expiresIn') || '24h',
         },
       }),
       inject: [ConfigService],
     }),
   ],
   controllers: [UserController],
-  providers: [UserService, JwtStrategy, JwtAuthGuard, SsoAuthGuard],
+  providers: [UserService, AuthService, JwtStrategy, JwtAuthGuard, SsoAuthGuard],
   exports: [UserService, JwtAuthGuard, SsoAuthGuard],
 })
 export class UserModule {

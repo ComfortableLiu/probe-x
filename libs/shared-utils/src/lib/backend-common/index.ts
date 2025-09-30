@@ -1,5 +1,6 @@
 export * from "./entity/response.entity"
 export * from "./interceptor/response.interceptor"
 export * from "./interceptor/signature.interceptor"
+export * from "./interceptor/json-body.interceptor"
 export * from "./interceptor/exception.filter"
 export * from "./interceptor/business.exception"

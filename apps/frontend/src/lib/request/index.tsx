@@ -9,9 +9,8 @@ import { Localstorage } from "@utils/storage"
 import { IAnyObj } from "@probe-x/shared-types/src/index"
 import HoverBtn from "@/components/HoverBtn"
 import { clipboard, LoadingToast } from "@/utils"
-import { KEY_ACCESS_TOKEN, USER_INFO } from "@/constant/storage"
+import { KEY_ACCESS_TOKEN } from "@/constant/storage"
 import apiClient from "@/lib/request/request"
-import { IUserInfo } from "@/store/models/app/type"
 import { get } from "@config"
 
 const defaultTarget = '/'
@@ -28,8 +27,7 @@ const getConfig = async (options: IOption) => {
 
   const { baseURL = API_BASE_URL, target = defaultTarget, data = {}, params = {} } = options
 
-  const token = Localstorage.get<IUserInfo>(KEY_ACCESS_TOKEN)
-  const userInfo = Localstorage.get<IUserInfo>(USER_INFO)
+  const token = Localstorage.get<string>(KEY_ACCESS_TOKEN)
 
   const headers: { [key: string]: string } = {
     'content-type': 'application/json',
@@ -38,22 +36,6 @@ const getConfig = async (options: IOption) => {
   if (token && typeof token === 'string') {
     headers['authorization'] = `Bearer ${token}`
     headers['access_token'] = token
-  }
-  if (userInfo) {
-    const uid = userInfo?.staffId
-    // 如果是网关
-    if (options.target && options.target === '/api/sso') {
-      params.staffId = uid
-    } else {
-      if (!options?.headers?.noUid && uid) {
-        if (userInfo) {
-          headers['x-probe-x-staff-id'] = String(uid)
-          headers['x-probe-x-staff-name'] = userInfo.name
-        }
-        data.uid = uid
-        params.uid = uid
-      }
-    }
   }
   if (!whiteList.includes(options.url)) {
     options.cancelToken = source.token

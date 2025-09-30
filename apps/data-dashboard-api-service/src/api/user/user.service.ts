@@ -1,10 +1,21 @@
 import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+import { UserEntity } from "@entity/User.entity"
+import { timingSafeEqual } from "node:crypto"
+import { AuthService } from "@src/service/auth.service"
+import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common/index"
+import { ConfigService } from "@nestjs/config"
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
   ) {
   }
 
@@ -13,11 +24,10 @@ export class UserService {
    * @param id
    */
   async getUserById(id: number) {
-    // TODO 完善数据库
+    const user = await this.userRepository.findOne({ where: { userId: id } })
     return {
-      id,
-      username: 'admin',
-      password: 'password',
+      ...user,
+      passwordHash: '*******',
     }
   }
 
@@ -27,27 +37,28 @@ export class UserService {
    * @param password
    */
   async validateUser(username: string, password: string) {
-    // TODO: 从数据库获取用户信息
-    const user = {
-      id: 1,
-      username: 'admin',
-      password: '$2b$10$B8G0x4.6aVvD1746Z1B8hOuI7a4W7g5q4N3m2l1k9j8i7h6g5f4e3d2c1O', // password加密后的hash
-    }
+    const user = await this.userRepository.findOne({ where: { username } })
 
     // 检查用户是否存在且密码正确
-    if (user && (await this.checkPassword(password, user.password))) {
+    if (user && (this.checkPassword(password, user.passwordHash))) {
       // 生成JWT令牌
-      const payload = { username: user.username, sub: user.id }
+      console.log(';llll-123123123')
+      const accessToken = this.authService.generateAccessToken(user.userId, user.username)
+      console.log(';llll-', accessToken)
+      // 生成刷新令牌
+      const refreshToken = this.authService.generateRefreshToken(user.userId)
+      console.log(';llll-', refreshToken)
       return {
-        accessToken: this.jwtService.sign(payload),
-        user: {
+        accessToken,
+        refreshToken,
+        userInfo: {
           ...user,
-          password: '******',
+          passwordHash: '*******',
         },
       }
     }
 
-    return null
+    return ResponseData.error("用户名或密码错误")
   }
 
   /**
@@ -55,16 +66,30 @@ export class UserService {
    * @param token
    */
   async validateSsoToken(token: string) {
-    // TODO 这里应该调用SSO服务来验证token
-    // 为演示目的，我们假设token有效并返回用户信息
-    if (token) {
-      return {
-        id: 1,
-        username: 'admin',
-        email: 'admin@example.com',
+    try {
+      // 验证JWT token
+      const decoded = this.jwtService.verify(token)
+
+      // 根据username查找用户
+      const user = await this.userRepository.findOne({
+        where: { username: decoded.username },
+      })
+
+      // 检查用户是否存在
+      if (user) {
+        return {
+          userInfo: {
+            ...user,
+            passwordHash: '*******',
+          },
+        }
       }
+
+      return null
+    } catch (error) {
+      // token验证失败
+      return null
     }
-    return null
   }
 
   /**
@@ -81,10 +106,15 @@ export class UserService {
    * @param password
    * @param hash
    */
-  private async checkPassword(password: string, hash: string): Promise<boolean> {
-    // TODO 在实际应用中，应该使用bcrypt比较密码
-    // return bcrypt.compare(password, hash);
-    // 为了简化演示，直接比较密码
-    return password === 'password'
+  private checkPassword(password: string, hash: string): boolean {
+    // 使用bcrypt比较密码
+    return this.safeCompare(password, hash)
+  }
+
+  private safeCompare(a: string, b: string): boolean {
+    const bufferA = Buffer.from(a)
+    const bufferB = Buffer.from(b)
+    return bufferA.length === bufferB.length &&
+      timingSafeEqual(bufferA, bufferB)
   }
 }

@@ -1,10 +1,10 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
-import { AllExceptionsFilter } from "@probe-x/shared-utils/src/lib/backend-common"
-import { ValidationPipe } from "@nestjs/common"
+import { AppModule } from "@src/app.module"
+import { ValidationPipe } from '@nestjs/common'
+import { AllExceptionsFilter } from "@probe-x/shared-utils/src/lib/backend-common/index"
 
 async function bootstrap() {
-  const { AppModule } = await import('./app.module')
   const app = await NestFactory.create(AppModule)
 
   // 启用全局验证管道，用于自动验证请求数据
@@ -19,7 +19,7 @@ async function bootstrap() {
 
   // 启用CORS并配置具体的跨域选项
   app.enableCors({
-    origin: '*',  // 允许所有来源
+    origin: true,  // 允许所有来源
     credentials: true,
   })
 

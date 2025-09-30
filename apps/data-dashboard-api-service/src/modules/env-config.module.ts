@@ -6,7 +6,7 @@ import configuration from "../../config/configuration"
 const nodeEnv = process.env.NODE_ENV || 'development'
 
 // dist 环境（__dirname 指向 dist/apps/.../src/modules）
-const distRoot = path.resolve(__dirname, '..')
+const distRoot = __dirname
 // 源码环境（用于 ts-node / nx serve 时的 Fallback）
 const sourceRoot = path.resolve(process.cwd(), 'apps/data-dashboard-api-service')
 
@@ -22,7 +22,11 @@ const candidateEnvPaths = [
 ]
 
 const envFilePath = candidateEnvPaths.filter((p) => {
-  try { return fs.existsSync(p) } catch { return false }
+  try {
+    return fs.existsSync(p)
+  } catch {
+    return false
+  }
 })
 
 export default ConfigModule.forRoot({

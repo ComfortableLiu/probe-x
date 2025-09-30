@@ -60,6 +60,14 @@ const config: Configuration = {
         warnings: false,
       },
     },
+    proxy: [{
+      context: ['/api'],
+      target: 'http://localhost:8101',
+      changeOrigin: true,
+      secure: false,
+      cookieDomainRewrite: 'localhost',
+      ws: false,
+    }],
   },
 
   experiments: {

@@ -9,6 +9,7 @@ interface EnvironmentConfig {
 
   version: string;
   apiBaseUrl: string;
+  ssoPasswordSalt: string;
   environment: 'development' | 'production' | '';
 }
 
@@ -23,7 +24,11 @@ const getConfig = (): EnvironmentConfig => {
   const clientHost = process.env.CLIENT_HOST || 'http://localhost'
   const clientPort = parseInt(process.env.CLIENT_PORT || '3000', 10)
   const ssoUrl = process.env.SSO || `${clientHost}:${clientPort}`
-  const apiBaseUrl = `${serverHost}:${serverPort}/api`
+  const ssoPasswordSalt = process.env.SALT || ''
+  // 开发环境通过 devServer 代理到后端，直接使用相对路径避免跨域
+  const apiBaseUrl = environment === 'development'
+    ? '/api'
+    : `${serverHost}:${serverPort}/api`
   const version = packageJson.version
 
   return {
@@ -34,6 +39,7 @@ const getConfig = (): EnvironmentConfig => {
     clientPort,
     ssoUrl,
     apiBaseUrl,
+    ssoPasswordSalt,
     version,
     environment: environment as 'development' | 'production' | '',
   }

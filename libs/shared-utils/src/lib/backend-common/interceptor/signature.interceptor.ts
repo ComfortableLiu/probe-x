@@ -23,6 +23,11 @@ export class SignatureInterceptor implements NestInterceptor {
     const timestamp = parseInt(request.header('X-Timestamp') || '') || request.body.timestamp
     const nonce = request.header('X-Nonce') || request.body.nonce
 
+    const noSignature = request.body.noSignature
+    if (noSignature) {
+      return next.handle()
+    }
+
     // 基本头信息验证
     if (!receivedSignature || !timestamp || !nonce) {
       throw new UnauthorizedException('Missing required headers')

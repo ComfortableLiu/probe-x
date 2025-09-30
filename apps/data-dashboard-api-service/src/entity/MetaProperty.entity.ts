@@ -1,10 +1,11 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
 import { MetaPropertyStatus, MetaPropertyType } from "./type/MetaProperty"
 
 @Entity('meta_property')
 export class MetaPropertyEntity {
-  @PrimaryColumn({
+  @Column({
+    primary: true,
     name: 'property_name',
     type: 'varchar',
     length: 255,
