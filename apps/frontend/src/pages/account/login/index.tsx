@@ -16,8 +16,7 @@ function Login() {
   const loading = useLoading()
 
   const onFinish = useCallback(async (values: any) => {
-    console.log('llll-', get('ssoPasswordSalt'))
-    const passwordHash = await hmacSHA(values.password, '512', get('ssoPasswordSalt'))
+    const passwordHash = await hmacSHA(values.password + get('ssoPasswordSalt'), '512', get('ssoPasswordSecret'))
     try {
       await dispatch.userModel.login({
         username: values.username,

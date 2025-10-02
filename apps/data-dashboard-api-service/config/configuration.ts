@@ -4,9 +4,12 @@ export default () => ({
     host: process.env.CLIENT_HOST || 'http://localhost',
     port: parseInt(process.env.CLIENT_POST, 10) || 8000,
   },
+  login: {
+    secret: process.env.HMAC_SECRET || '',
+    salt: process.env.SALT || '',
+  },
   jwt: {
     secret: process.env.JWT_SECRET || '',
-    salt: process.env.SALT || '',
     expiresIn: process.env.JWT_EXPIRES_IN || '86400',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '604800',
   },

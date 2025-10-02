@@ -42,12 +42,9 @@ export class UserService {
     // 检查用户是否存在且密码正确
     if (user && (this.checkPassword(password, user.passwordHash))) {
       // 生成JWT令牌
-      console.log(';llll-123123123')
       const accessToken = this.authService.generateAccessToken(user.userId, user.username)
-      console.log(';llll-', accessToken)
       // 生成刷新令牌
       const refreshToken = this.authService.generateRefreshToken(user.userId)
-      console.log(';llll-', refreshToken)
       return {
         accessToken,
         refreshToken,

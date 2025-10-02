@@ -26,7 +26,7 @@ const entities = [
           password: configService.get('database.password', ''),
           database: configService.get('database.database', 'probe_x'),
           entities,
-          synchronize: configService.get('NODE_ENV') === 'development',
+          synchronize: configService.get('database.synchronize') === 'true',
           logging: configService.get('NODE_ENV') === 'development',
         }
       },

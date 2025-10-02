@@ -6,6 +6,7 @@ interface EnvironmentConfig {
   clientHost: string;
   clientPort: number;
   ssoUrl: string;
+  ssoPasswordSecret: string;
 
   version: string;
   apiBaseUrl: string;
@@ -25,6 +26,7 @@ const getConfig = (): EnvironmentConfig => {
   const clientPort = parseInt(process.env.CLIENT_PORT || '3000', 10)
   const ssoUrl = process.env.SSO || `${clientHost}:${clientPort}`
   const ssoPasswordSalt = process.env.SALT || ''
+  const ssoPasswordSecret = process.env.HMAC_SECRET || ''
   // 开发环境通过 devServer 代理到后端，直接使用相对路径避免跨域
   const apiBaseUrl = environment === 'development'
     ? '/api'
@@ -40,6 +42,7 @@ const getConfig = (): EnvironmentConfig => {
     ssoUrl,
     apiBaseUrl,
     ssoPasswordSalt,
+    ssoPasswordSecret,
     version,
     environment: environment as 'development' | 'production' | '',
   }
