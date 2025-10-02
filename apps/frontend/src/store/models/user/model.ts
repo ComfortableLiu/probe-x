@@ -29,6 +29,8 @@ export const userModel = createModel<RootModel>()({
       let refreshToken: string = Localstorage.get(KEY_REFRESH_TOKEN) || ''
       let userInfo = Localstorage.get<IUser>(USER_INFO)
 
+      // TODO 看一下token的过期时间
+
       // 如果没有登录态那就直接去登录
       if (!accessToken || !refreshToken || !userInfo?.userId) {
         ssoAuth.gotoLoginPage()
@@ -48,17 +50,12 @@ export const userModel = createModel<RootModel>()({
     },
 
     async login(payload: { username: string, password: string }) {
-      try {
-        const { data } = await queryLogin(payload)
-        const { userInfo, refreshToken, accessToken } = data
-        Localstorage.set(KEY_ACCESS_TOKEN, accessToken)
-        Localstorage.set(KEY_REFRESH_TOKEN, refreshToken)
-        Localstorage.set(USER_INFO, userInfo)
-        dispatch.userModel.updateItem({ userInfo })
-      } catch (e) {
-        return Promise.reject(e)
-      }
-      return true
+      const { data } = await queryLogin(payload)
+      const { userInfo, refreshToken, accessToken } = data
+      Localstorage.set(KEY_ACCESS_TOKEN, accessToken)
+      Localstorage.set(KEY_REFRESH_TOKEN, refreshToken)
+      Localstorage.set(USER_INFO, userInfo)
+      dispatch.userModel.updateItem({ userInfo })
     },
   }),
 })

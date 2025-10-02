@@ -46,11 +46,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // 可以根据需要处理响应数据
-    return response.data
+    return response
   },
   (error) => {
 
     const code = error?.response?.status
+    // TODO 完成登录态超时逻辑
     // switch (code) {
     //   case 400:
     //   case 401:

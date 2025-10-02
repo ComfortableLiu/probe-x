@@ -7,6 +7,8 @@ import { Me, MenuUnfoldOne } from "@icon-park/react"
 import { Link } from "react-router"
 import { useLocation } from "react-router-dom"
 import ssoAuth from "@/lib/request/sso/ssoAuth"
+import { useModel } from "@/hooks"
+import { IUserModel } from "@/store/models/user/type"
 
 const MenuView = () => {
 
@@ -15,6 +17,8 @@ const MenuView = () => {
   type MenuItem = Required<MenuProps>['items'][number];
 
   const location = useLocation()
+
+  const { userInfo } = useModel<IUserModel>('userModel')
 
   // 当前选择的选项，根据路由展示的
   const selectedKeys = useMemo(() => allRoutesWithAliasMap.get(location.pathname).key, [location.pathname])
@@ -55,7 +59,7 @@ const MenuView = () => {
           items={[{
             key: 'account',
             icon: <Me theme="outline" size="16" fill="#333" />,
-            label: <span className={classnames({ collapsed })}>用户名</span>,
+            label: <span className={classnames({ collapsed })}>{userInfo.nickname || userInfo.username}</span>,
             children: [{
               key: 'account-center',
               label: (

@@ -26,10 +26,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + expiresIn,
     }
 
-    return this.jwtService.sign(payload, {
-      secret: this.secret,
-      expiresIn,
-    })
+    return this.jwtService.sign(payload, { secret: this.secret })
   }
 
   // 生成登录用的 Access Token
@@ -44,11 +41,7 @@ export class AuthService {
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + expiresIn,
     }
-    console.log('-----', payload)
 
-    return this.jwtService.sign(payload, {
-      secret: this.secret,
-      expiresIn,
-    })
+    return this.jwtService.sign(payload, { secret: this.secret })
   }
 }

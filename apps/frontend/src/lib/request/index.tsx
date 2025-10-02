@@ -93,13 +93,9 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
 
     if (config.missError) return Promise.resolve(res.data)
 
-    if (res?.status !== 200) {
-      throw res
-    }
-
     const { code } = res.data
-    // 成功code，需要同时兼容 'SUCCESS' 和数字 100
-    if (code === successCode || code === 100) return Promise.resolve(res.data)
+
+    if (code === successCode || code === 200) return Promise.resolve(res.data)
     throw res.data
   } catch (e: any) {
     if (config.noCatch) {
