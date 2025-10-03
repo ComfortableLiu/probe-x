@@ -10,10 +10,11 @@ import { AuthService } from "@src/service/auth.service"
 import { JwtService } from "@nestjs/jwt"
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 import { Role } from "@entity/Role.entity"
+import { Permission } from "@entity/Permission.entity"
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, UserRoleRelation, Role]),
+    TypeOrmModule.forFeature([UserEntity, UserRoleRelation, Role, Permission]),
     ConfigModule,
   ],
   controllers: [UserController],

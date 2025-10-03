@@ -15,6 +15,10 @@ export class UserController {
 
   @Get('rolePermissionList')
   async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
+    // 超管特判
+    if (user.userId === 1) {
+      return await this.userService.getAllRoleAndPermission()
+    }
     return await this.userService.getUserRoleAndPermission(user.userId)
   }
 

@@ -10,6 +10,7 @@ import { IPermissionRes } from "@probe-x/shared-types/src"
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 import { Role } from "@entity/Role.entity"
 import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
+import { Permission } from "@entity/Permission.entity"
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,10 @@ export class UserService {
     private userRepository: Repository<UserEntity>,
     @InjectRepository(UserRoleRelation)
     private userRoleRepo: Repository<UserRoleRelation>,
+    @InjectRepository(Role)
+    private roleRepo: Repository<Role>,
+    @InjectRepository(Permission)
+    private permissionRepo: Repository<Permission>,
   ) {
   }
 
@@ -104,6 +109,16 @@ export class UserService {
       .filter((v, i, a) => a.findIndex(p => p.permissionKey === v.permissionKey) === i)
 
     return { roles, allPermissions }
+  }
+
+  /**
+   * 获取所有的角色和权限
+   */
+  async getAllRoleAndPermission(): Promise<IPermissionRes> {
+    return {
+      roles: await this.roleRepo.find(),
+      allPermissions: await this.permissionRepo.find(),
+    }
   }
 
   /**
