@@ -13,6 +13,9 @@ export class SsoAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>()
+    if (request.path === '/api/user/login') {
+      return true
+    }
 
     // 1. 从请求头中提取 JWT 令牌（格式：Bearer <token>）
     const token = this.extractTokenFromHeader(request)

@@ -23,7 +23,7 @@ export class SignatureInterceptor implements NestInterceptor {
     const timestamp = parseInt(request.header('X-Timestamp') || '') || request.body.timestamp
     const nonce = request.header('X-Nonce') || request.body.nonce
 
-    const noSignature = request.body.noSignature
+    const noSignature = (request.body || request.query)?.noSignature
     if (noSignature) {
       return next.handle()
     }

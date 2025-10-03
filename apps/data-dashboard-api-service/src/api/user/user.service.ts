@@ -6,14 +6,12 @@ import { UserEntity } from "@entity/User.entity"
 import { timingSafeEqual } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
 import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common/index"
-import { ConfigService } from "@nestjs/config"
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly authService: AuthService,
-    private readonly configService: ConfigService,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
   ) {

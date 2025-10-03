@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common"
 import { Request, Response } from 'express'
-import { BusinessException } from "./business.exception"
+import { BusinessException } from "../exception/business.exception"
 import { ResponseData } from "../entity/response.entity"
 import { isString } from "../../index"
 
@@ -45,6 +45,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code = -2 // 数据库错误
       }
     }
+
+    console.error(`[${request.method}] ${request.url}`, exception)
 
     // 返回统一格式的错误响应
     response.status(status).json(

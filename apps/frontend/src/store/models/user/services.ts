@@ -1,5 +1,6 @@
 import request from "@/lib/request"
-import { ILoginReq, ILoginRes, IPermission } from "./type"
+import { ILoginReq, ILoginRes } from "./type"
+import { IPermission } from "@probe-x/shared-types/src/index"
 
 export function queryLogin(data: ILoginReq) {
   return request<ILoginRes>({
