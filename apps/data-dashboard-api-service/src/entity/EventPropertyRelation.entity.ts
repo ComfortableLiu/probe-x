@@ -67,13 +67,4 @@ export class EventPropertyRelationEntity {
   @ManyToOne(() => MetaPropertyEntity, metaProperty => metaProperty.eventPropertyRelations)
   @JoinColumn({ name: 'property_name' })
   metaProperty?: MetaPropertyEntity
-
-  // 添加访问器属性，方便获取关联的event_name和property_name
-  get eventName(): string | undefined {
-    return this.metaEvent?.eventName
-  }
-
-  get propertyName(): string | undefined {
-    return this.metaProperty?.propertyName
-  }
 }

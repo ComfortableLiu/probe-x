@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { UserService } from './user.service'
-import { IPermission, IUser } from "@probe-x/shared-types/src/index"
+import type { IPermissionRes, IUser } from "@probe-x/shared-types/src/index"
 import { User } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Controller('user')
@@ -14,9 +14,8 @@ export class UserController {
   }
 
   @Get('rolePermissionList')
-  async rolePermissionList(@User() user: IUser): Promise<IPermission> {
-    console.log('llll---==-', user)
-    return {}
+  async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
+    return await this.userService.getUserRoleAndPermission(user.userId)
   }
 
   @Get('refresh-token')

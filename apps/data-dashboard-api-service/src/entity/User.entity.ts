@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 
 @Entity('user')
 export class UserEntity {
@@ -68,4 +69,11 @@ export class UserEntity {
     comment: '最后登录时间',
   })
   lastLogin?: Date
+
+  /** 角色关联的所有权限绑定记录 */
+  @OneToMany(() => UserRoleRelation, (relation) => relation.user, {
+    onDelete: 'CASCADE', // 角色删除时，自动删除关联的权限绑定
+    cascade: false,
+  })
+  roleRelations: UserRoleRelation[]
 }

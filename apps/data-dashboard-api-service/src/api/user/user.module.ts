@@ -8,10 +8,12 @@ import { JwtStrategy } from "./JwtStrategy"
 import { JwtAuthGuard } from "./JwtAuthGuard"
 import { AuthService } from "@src/service/auth.service"
 import { JwtService } from "@nestjs/jwt"
+import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
+import { Role } from "@entity/Role.entity"
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, UserRoleRelation, Role]),
     ConfigModule,
   ],
   controllers: [UserController],

@@ -5,12 +5,20 @@ import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
 import { UserEntity } from "@entity/User.entity"
+import { Role } from "@entity/Role.entity"
+import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
+import { Permission } from "@entity/Permission.entity"
+import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
 
 const entities = [
   MetaEventEntity,
   MetaPropertyEntity,
   EventPropertyRelationEntity,
   UserEntity,
+  Role,
+  UserRoleRelation,
+  Permission,
+  RolePermissionRelation,
 ]
 
 @Module({
@@ -26,7 +34,7 @@ const entities = [
           password: configService.get('database.password', ''),
           database: configService.get('database.database', 'probe_x'),
           entities,
-          synchronize: configService.get('database.synchronize') === 'true',
+          synchronize: configService.get('database.synchronize'),
           logging: configService.get('NODE_ENV') === 'development',
         }
       },

@@ -10,9 +10,17 @@ export interface IUser {
   lastLogin?: Date
 }
 
-export interface IPermission {
-  // 例：页面key:['子权限1','子权限2']
-  [pageKey: string]: string[]
+export interface IPermissionRes {
+  roles: {
+    id: number
+    roleName: string
+    roleKey: string
+  }[]
+  allPermissions: {
+    id: number
+    permissionKey: string
+    permissionName: string
+  }[]
 }
 
 /**

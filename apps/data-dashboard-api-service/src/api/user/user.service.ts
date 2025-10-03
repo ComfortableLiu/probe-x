@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from "@nestjs/typeorm"
-import { Repository } from "typeorm"
+import { Repository, SelectQueryBuilder } from "typeorm"
 import { UserEntity } from "@entity/User.entity"
 import { timingSafeEqual } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
-import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common/index"
+import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
+import { IPermissionRes } from "@probe-x/shared-types/src"
+import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
+import { Role } from "@entity/Role.entity"
+import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
 
 @Injectable()
 export class UserService {
@@ -14,6 +18,8 @@ export class UserService {
     private readonly authService: AuthService,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
+    @InjectRepository(UserRoleRelation)
+    private userRoleRepo: Repository<UserRoleRelation>,
   ) {
   }
 
@@ -54,6 +60,50 @@ export class UserService {
     }
 
     return ResponseData.error("用户名或密码错误")
+  }
+
+  /**
+   * 根据userId查询角色和权限
+   */
+  async getUserRoleAndPermission(userId: number): Promise<IPermissionRes> {
+    const queryBuilder: SelectQueryBuilder<UserRoleRelation> = this.userRoleRepo
+      .createQueryBuilder('user_role')
+      // 关联角色表：user_role → role
+      .leftJoinAndSelect(() => UserRoleRelation.prototype.role, 'role')
+      // .leftJoinAndSelect('user_role.role', 'role')
+
+      // 关联角色-权限关联表：role → role_permission
+      .leftJoinAndSelect(() => Role.prototype.permissionRelations, 'role_permission')
+      // .leftJoinAndSelect('role.permissionRelations', 'role_permission')
+
+      // 关联权限表：role_permission → permission
+      .leftJoinAndSelect(() => RolePermissionRelation.prototype.permission, 'permission')
+      // .leftJoinAndSelect('role_permission.permission', 'permission')
+
+      // 筛选条件：指定用户ID
+      .where('user_role.user_id = :userId', { userId })
+      // 只查询启用的权限（提前过滤，减少后续处理）
+      .andWhere('permission.is_enable = 1')
+    const relations = await queryBuilder.getMany()
+
+    // 7. 格式化结果
+    const roles = relations.map(rel => ({
+      id: rel.role.id,
+      roleName: rel.role.roleName,
+      roleKey: rel.role.roleKey,
+      permissions: rel.role.permissionRelations.map(rpr => ({
+        id: rpr.permission.id,
+        permissionKey: rpr.permission.permissionKey,
+        permissionName: rpr.permission.permissionName,
+      })),
+    }))
+
+    // 8. 提取所有权限（去重）
+    const allPermissions = roles
+      .flatMap(role => role.permissions)
+      .filter((v, i, a) => a.findIndex(p => p.permissionKey === v.permissionKey) === i)
+
+    return { roles, allPermissions }
   }
 
   /**

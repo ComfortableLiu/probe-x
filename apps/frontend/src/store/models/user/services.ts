@@ -1,6 +1,6 @@
 import request from "@/lib/request"
 import { ILoginReq, ILoginRes } from "./type"
-import { IPermission } from "@probe-x/shared-types/src/index"
+import { IPermissionRes } from "@probe-x/shared-types/src/index"
 
 export function queryLogin(data: ILoginReq) {
   return request<ILoginRes>({
@@ -11,7 +11,7 @@ export function queryLogin(data: ILoginReq) {
 }
 
 export function queryPermissionInfo() {
-  return request<IPermission>({
+  return request<IPermissionRes>({
     url: '/user/rolePermissionList',
     method: 'get',
   })

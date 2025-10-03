@@ -1,8 +1,8 @@
-import { IPermission, IUser } from "@probe-x/shared-types/src/index"
+import { IPermissionRes, IUser } from "@probe-x/shared-types/src/index"
 
 export interface IUserModel {
   userInfo?: IUser;
-  permissionInfo?: IPermission;
+  permissionInfo?: IPermissionRes;
 }
 
 export interface ILoginRes {
