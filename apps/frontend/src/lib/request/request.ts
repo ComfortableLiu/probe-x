@@ -1,6 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { generateNonce, generateSignature } from '@utils/signature'
 import { get } from "@config"
+import { ErrorCode } from "@probe-x/shared-utils/src"
+import ssoAuth from "@/lib/request/sso/ssoAuth"
+import { store } from "@/store/storeContext"
 
 // 密钥 - 在实际项目中应该从环境变量中获取
 const SECRET_KEY = get<string>("signatureSecret") || ''
@@ -50,14 +53,21 @@ apiClient.interceptors.response.use(
   },
   (error) => {
 
-    const code = error?.response?.status
-    // TODO 完成登录态超时逻辑
-    // switch (code) {
-    //   case 400:
-    //   case 401:
-    //     ssoAuth.gotoLoginPage()
-    //     return error
-    // }
+    // 业务Code码
+    const code = error?.response?.data?.code
+    switch (code) {
+      case ErrorCode.TOKEN_EXPIRED: {
+        // 重新请求登录token
+        store.dispatch.userModel.actionRefreshToken()
+        return
+      }
+      case ErrorCode.REFRESH_TOKEN_EXPIRED: {
+        // 刷新token过期，重走登录
+        ssoAuth.gotoLoginPage()
+        return
+      }
+    }
+
     console.warn(error)
     // 统一处理错误
     if (error.response) {

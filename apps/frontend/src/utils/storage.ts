@@ -7,6 +7,7 @@ export class Localstorage {
   }
 
   static set<T>(key: string, value: T): void {
+    if (!value) return
     if (localStorage) {
       localStorage.setItem(key, JSON.stringify(value))
     }
@@ -28,6 +29,7 @@ export class SessionStorage {
   }
 
   static set<T>(key: string, value: T): void {
+    if (!value) return
     if (sessionStorage) {
       sessionStorage.setItem(key, JSON.stringify(value))
     }

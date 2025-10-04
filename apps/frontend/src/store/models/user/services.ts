@@ -16,3 +16,16 @@ export function queryPermissionInfo() {
     method: 'get',
   })
 }
+
+/**
+ * 刷新登录token
+ */
+export function refreshToken(refreshToken: string) {
+  return request<ILoginRes>({
+    url: '/user/refreshToken',
+    method: 'get',
+    params: {
+      refreshToken,
+    },
+  })
+}

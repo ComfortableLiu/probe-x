@@ -6,16 +6,18 @@ import { UserEntity } from "@entity/User.entity"
 import { timingSafeEqual } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
 import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
-import { IPermissionRes } from "@probe-x/shared-types/src"
+import { IPermissionRes, IUser } from "@probe-x/shared-types/src"
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 import { Role } from "@entity/Role.entity"
 import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
 import { Permission } from "@entity/Permission.entity"
+import { ConfigService } from "@nestjs/config"
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly authService: AuthService,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
@@ -53,7 +55,7 @@ export class UserService {
       // 生成JWT令牌
       const accessToken = this.authService.generateAccessToken(user.userId, user.username)
       // 生成刷新令牌
-      const refreshToken = this.authService.generateRefreshToken(user.userId)
+      const refreshToken = this.authService.generateRefreshToken(user.userId, user.username)
       return {
         accessToken,
         refreshToken,
@@ -125,10 +127,11 @@ export class UserService {
    * 验证SSO token
    * @param token
    */
-  async validateSsoToken(token: string) {
+  async validateSsoToken(token: string): Promise<IUser> {
+    const secret = this.configService.get<string>('jwt.secret')
     try {
       // 验证JWT token
-      const decoded = this.jwtService.verify(token)
+      const decoded = await this.jwtService.verifyAsync(token, { secret })
 
       // 根据username查找用户
       const user = await this.userRepository.findOne({
@@ -138,27 +141,17 @@ export class UserService {
       // 检查用户是否存在
       if (user) {
         return {
-          userInfo: {
-            ...user,
-            passwordHash: '*******',
-          },
+          ...user,
+          passwordHash: '*******',
         }
       }
 
       return null
     } catch (error) {
       // token验证失败
+      console.error('e', error)
       return null
     }
-  }
-
-  /**
-   * 生成JWT token
-   * @param user
-   */
-  async generateJwtToken(user: any) {
-    const payload = { username: user.username, sub: user.id }
-    return this.jwtService.sign(payload)
   }
 
   /**

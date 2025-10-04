@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { v4 as uuidv4 } from 'uuid' // 需要安装 uuid 包
 import { ConfigService } from "@nestjs/config"
-import type { IAccessTokenPayload, IRefreshTokenPayload } from "@src/service/auth.service.type"
+import { ITokenPayload } from "@src/service/auth.service.type"
 
 @Injectable()
 export class AuthService {
@@ -15,10 +15,11 @@ export class AuthService {
   secret = this.configService.get<string>('jwt.secret') || ''
 
   // 生成刷新令牌
-  generateRefreshToken(userId: number, clientId: string = 'probe-x') {
+  generateRefreshToken(userId: number, username: string, clientId: string = 'probe-x') {
     const expiresIn = +this.configService.get<string>('jwt.refreshExpiresIn')
-    const payload: IRefreshTokenPayload = {
+    const payload: ITokenPayload = {
       userId,
+      username,
       tokenType: 'refresh',
       jti: uuidv4(),
       clientId,
@@ -32,7 +33,7 @@ export class AuthService {
   // 生成登录用的 Access Token
   generateAccessToken(userId: number, username: string, clientId: string = 'probe-x') {
     const expiresIn = +this.configService.get<string>('jwt.expiresIn')
-    const payload: IAccessTokenPayload = {
+    const payload: ITokenPayload = {
       userId,
       username,
       tokenType: 'access',

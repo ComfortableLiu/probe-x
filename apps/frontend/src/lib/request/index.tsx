@@ -80,7 +80,7 @@ const logError = (messageStr: string, data: IAnyObj) => {
 export default async function <T>(options: IOption): Promise<IResult<T>> {
   const config = await getConfig(options)
 
-  const { successCode = 'SUCCESS' } = config
+  const { successCode = 200 } = config
   try {
     if (config.loading) {
       LoadingToast.createLoading(config.loadingText)
@@ -113,17 +113,6 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
     const { status, data } = e.response
     logError(`${status} - [${config.baseURL}${config.url}]`, e)
 
-    if (status === 401) {
-      return Promise.reject({ msg: '登录超时', code: 401 })
-    }
-    if (status === 400 && data) {
-      if (data.msg && data.msg === 'Expect authentication ') {
-        return Promise.reject({ msg: '登录超时', code: 400 })
-      }
-    }
-    if (status === 500 && data && data.msg.includes('Token is null')) {
-      return Promise.reject({ msg: '登录超时', code: 500 })
-    }
     // 说明服务器有返回
     if (e.response && e.response.data) {
       return Promise.reject(e.response.data)

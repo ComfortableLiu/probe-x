@@ -31,6 +31,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
             message = exceptionResponse.message as string
           }
         }
+        if ('code' in exceptionResponse) {
+          code = exceptionResponse.code as number || -1
+        }
       }
       // 记录错误日志，这里先直接log了一下
       console.error(`[${request.method}] ${request.url}`, exception)

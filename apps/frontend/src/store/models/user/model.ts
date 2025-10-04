@@ -4,7 +4,7 @@ import { Localstorage } from "@utils/storage"
 import { KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN, USER_INFO } from "@/constant/storage"
 import { IUserModel } from "@/store/models/user/type"
 import ssoAuth from "@/lib/request/sso/ssoAuth"
-import { queryLogin, queryPermissionInfo } from "@/store/models/user/services"
+import { queryLogin, queryPermissionInfo, refreshToken } from "@/store/models/user/services"
 import { IUser } from "@probe-x/shared-types/src"
 
 const initState: IUserModel = {}
@@ -57,6 +57,17 @@ export const userModel = createModel<RootModel>()({
       Localstorage.set(KEY_REFRESH_TOKEN, refreshToken)
       Localstorage.set(USER_INFO, userInfo)
       dispatch.userModel.updateItem({ userInfo })
+    },
+    async actionRefreshToken() {
+      const refreshTokenStr = Localstorage.get<string>(KEY_REFRESH_TOKEN)
+      const { data } = await refreshToken(refreshTokenStr)
+      const { userInfo, refreshToken: newRefreshToken, accessToken } = data
+      Localstorage.set(KEY_ACCESS_TOKEN, accessToken)
+      Localstorage.set(KEY_REFRESH_TOKEN, newRefreshToken)
+      Localstorage.set(USER_INFO, userInfo)
+      dispatch.userModel.updateItem({ userInfo })
+      // TODO 这里直接刷新页面也有点暴力了，后续优化成无感请求
+      window.location.reload()
     },
   }),
 })

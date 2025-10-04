@@ -29,9 +29,11 @@ export const columns: TableProps<IMetaEvent>['columns'] = [{
   title: '创建时间',
   dataIndex: 'creatTime',
   key: 'creatTime',
+  // render: text => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
 }, {
   title: '更新时间',
   dataIndex: 'updateTime',
+  // render: text => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
 }, {
   title: '操作',
   key: 'action',
