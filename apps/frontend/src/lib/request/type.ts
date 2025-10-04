@@ -1,5 +1,4 @@
-import type { ResponseType } from 'axios';
-import type { CancelToken } from 'axios';
+import type { CancelToken, ResponseType } from 'axios'
 
 export interface IOption {
   responseType?: ResponseType; // 返回类型

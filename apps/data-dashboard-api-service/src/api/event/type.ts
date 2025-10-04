@@ -1,6 +1,5 @@
 export interface EventFilterDto {
   eventName?: string;
-  eventAliases?: string;
   status?: number;
 }
 

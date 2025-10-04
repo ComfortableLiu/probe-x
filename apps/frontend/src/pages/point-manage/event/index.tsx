@@ -1,28 +1,31 @@
 import React from "react"
-import { FormItemType } from "@components/FormComponent/constants"
-import { IFormItem } from "@components/FormComponent/type"
 import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
+import { columns, formItems } from "./config"
+import { IMetaEvent } from "@probe-x/shared-types/src"
+import { useHistoryListener, useLoading, useModel } from "@/hooks"
+import { useDispatch } from "react-redux"
+import { Dispatch } from "@/store/storeContext"
+import { IPointManageEventState } from "@pages/point-manage/event/type"
 
 function EventManage() {
 
-  const formItems: IFormItem[] = [{
-    key: 'a',
-    label: 'A',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'b',
-    label: 'B',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'c',
-    label: 'C',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'd',
-    label: 'D',
-    type: FormItemType.TEXT,
-  }]
+  const dispatch = useDispatch<Dispatch>()
+  const loading = useLoading()
+
+  const {
+    eventList,
+    pageSize,
+    page,
+    total,
+  } = useModel<IPointManageEventState>('pointManageEventModel')
+
+  useHistoryListener((location) => {
+    const { pathname } = location
+    if (pathname === '/point-manage/event') {
+      dispatch.pointManageEventModel.getEventList()
+    }
+  })
 
   return (
     <div>
@@ -30,13 +33,14 @@ function EventManage() {
       <FormComponent
         formItems={formItems}
       />
-      <TableComponent
-        dataSource={[]}
-        columns={[]}
+      <TableComponent<IMetaEvent>
+        dataSource={eventList}
+        columns={columns}
+        loading={loading.pointManageEventModel.getEventList}
         paginationData={{
-          total: 0,
-          current: 1,
-          pageSize: 20,
+          total: total,
+          current: page,
+          pageSize: pageSize,
         }}
       />
     </div>

@@ -8,7 +8,7 @@ import { routes } from "@/router"
 import Loading from "@/components/Loading"
 import "@public/main.css"
 import { ConfigProvider } from "antd"
-import { BrowserRouter, StaticRouter, useLocation } from "react-router-dom"
+import { BrowserRouter, StaticRouter } from "react-router-dom"
 import icon from "@public/icon.png"
 import RouteGuard from "@/layout/RouteGuard"
 import { StoreProvider } from "@/store/storeContext"
@@ -19,13 +19,9 @@ export interface AppProps {
 
 const AppContent = () => {
 
-  const location = useLocation()
-  // 假设登录页路径为 /login，根据实际情况调整
-  const isLoginPage = location.pathname === '/login'
-
   return (
     <div className={styles.appMainStyle}>
-      {isLoginPage ? null : <MenuView />}
+      <MenuView />
       <main className={styles.appRouterView}>
         <Routes>
           {routes.map((route) => (

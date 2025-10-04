@@ -1,5 +1,5 @@
 import React from 'react'
-import { store, StoreProvider } from "./store/storeContext"
+import { store } from "./store/storeContext"
 import { createRoot } from "react-dom/client"
 import App from "@/layout/App"
 
@@ -10,11 +10,7 @@ const render = async () => {
   const container = document.getElementById('app')
   if (container) {
     const root = createRoot(container)
-    root.render(
-      <StoreProvider>
-        <App />
-      </StoreProvider>,
-    )
+    root.render(<App />)
   } else {
     console.error('Root element not found')
   }

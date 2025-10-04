@@ -10,6 +10,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
     columns,
     virtual,
     paginationData,
+    loading = false,
   } = props
 
   const pagination = useMemo<TablePaginationConfig | false>(() => {
@@ -31,9 +32,10 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
         columns={columns}
         virtual={virtual}
         pagination={pagination}
+        loading={loading}
       />
     </div>
   )
 }
 
-export default memo(TableComponent)
+export default memo(TableComponent) as <T>(props: ITableComponentProps<T>) => React.ReactElement

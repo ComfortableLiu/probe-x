@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
 import { EventService } from './event.service'
 import { UserService } from "../user/user.service"
 import type { EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
+import { User } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Controller('/event')
 export class EventController {
@@ -17,7 +18,6 @@ export class EventController {
    * @param page
    * @param pageSize
    * @param eventName
-   * @param eventAliases
    * @param status
    */
   @Get('/list')
@@ -25,12 +25,10 @@ export class EventController {
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 20,
     @Query('eventName') eventName?: string,
-    @Query('eventAliases') eventAliases?: string,
     @Query('status') status?: number,
   ) {
     const filter: EventFilterDto = {
       eventName,
-      eventAliases,
       status,
     }
 
@@ -78,7 +76,7 @@ export class EventController {
   async updateEvent(
     @Param('eventName') eventName: string,
     @Body() updateEventDto: UpdateEventDto,
-    @Headers('x-probe-x-staff-id') userId: number,
+    @User('userId') userId: number,
   ) {
     const user = await this.userService.getUserById(userId)
     const result = await this.eventService.updateEventByName(eventName, updateEventDto, user)

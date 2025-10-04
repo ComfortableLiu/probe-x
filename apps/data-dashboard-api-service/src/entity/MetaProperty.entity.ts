@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
-import { MetaPropertyStatus, MetaPropertyType } from "./type/MetaProperty"
+import { MetaPropertyStatus, MetaPropertyType } from "@probe-x/shared-types/src"
 
 @Entity('meta_property')
 export class MetaPropertyEntity {

@@ -20,6 +20,9 @@ const MenuView = () => {
 
   const { userInfo } = useModel<IUserModel>('userModel')
 
+  // 假设登录页路径为 /login，根据实际情况调整
+  const isLoginPage = location.pathname === '/login'
+
   // 当前选择的选项，根据路由展示的
   const selectedKeys = useMemo(() => allRoutesWithAliasMap.get(location.pathname).key, [location.pathname])
 
@@ -36,6 +39,10 @@ const MenuView = () => {
 
   const switchCollapsed = () => {
     setCollapsed(!collapsed)
+  }
+
+  if (isLoginPage) {
+    return null
   }
 
   return (

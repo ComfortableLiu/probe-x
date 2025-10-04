@@ -34,7 +34,7 @@ export function useQuery<T = IAnyObj>() {
  */
 export function useHistoryListener(fn: (location: Location) => void) {
   const location = useLocation() as unknown as Location
-  useEffect(() => fn && fn(location), [fn, location])
+  useEffect(() => fn && fn(location), [location])
 }
 
 /**

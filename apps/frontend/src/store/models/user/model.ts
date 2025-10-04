@@ -2,9 +2,10 @@ import { createModel } from "@rematch/core"
 import { RootModel } from "@/store/models"
 import { Localstorage } from "@utils/storage"
 import { KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN, USER_INFO } from "@/constant/storage"
-import { IUser, IUserModel } from "@/store/models/user/type"
+import { IUserModel } from "@/store/models/user/type"
 import ssoAuth from "@/lib/request/sso/ssoAuth"
 import { queryLogin, queryPermissionInfo } from "@/store/models/user/services"
+import { IUser } from "@probe-x/shared-types/src"
 
 const initState: IUserModel = {}
 

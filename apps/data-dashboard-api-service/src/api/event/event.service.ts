@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { MetaEventEntity } from "../../entity/MetaEvent.entity"
+import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
 
 @Injectable()
@@ -17,7 +17,7 @@ export class EventService {
     pagination: PaginationDto,
   ): Promise<[MetaEventEntity[], number]> {
     const { page, pageSize } = pagination
-    const { eventName, eventAliases, status } = filter
+    const { eventName, status } = filter
 
     const queryBuilder = this.eventRepository.createQueryBuilder('event')
 
@@ -26,11 +26,8 @@ export class EventService {
       queryBuilder.andWhere('event.eventName LIKE :eventName', {
         eventName: `%${eventName}%`,
       })
-    }
-
-    if (eventAliases) {
-      queryBuilder.andWhere('event.eventAliases LIKE :eventAliases', {
-        eventAliases: `%${eventAliases}%`,
+      queryBuilder.andWhere('event.eventAliases LIKE :eventName', {
+        eventName: `%${eventName}%`,
       })
     }
 

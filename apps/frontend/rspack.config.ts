@@ -15,8 +15,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(path.dirname(path.dirname(__filename)))
 const frontendPath = path.dirname(__filename)
 
-const sharedPath = path.resolve(__dirname, 'libs')
-
 // 获取当前环境
 const env = process.env.NODE_ENV || 'development'
 

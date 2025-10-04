@@ -14,4 +14,6 @@ export interface ITableComponentProps<DataType> {
 
   // 是否开启虚拟列表
   virtual?: boolean
+
+  loading?: boolean
 }
