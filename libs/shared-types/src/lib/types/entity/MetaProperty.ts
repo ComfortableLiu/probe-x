@@ -3,8 +3,8 @@ import { IEventPropertyRelation } from "./EventPropertyRelation"
 export interface IMetaProperty {
   propertyName?: string
   propertyType?: MetaPropertyType
-  creatTime?: Date
-  creatUserId?: number
+  createTime?: Date
+  createUserId?: number
   updateTime?: Date
   updateUserId?: number
   status?: MetaPropertyStatus

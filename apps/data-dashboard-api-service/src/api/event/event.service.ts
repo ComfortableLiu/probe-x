@@ -20,6 +20,8 @@ export class EventService {
     const { eventName, status } = filter
 
     const queryBuilder = this.eventRepository.createQueryBuilder('event')
+      .leftJoinAndSelect('user', 'update', 'event.updateUserId = update.userId')
+      .leftJoinAndSelect('user', 'create', 'event.createUserId = create.userId')
 
     // 应用筛选条件
     if (eventName) {
@@ -38,7 +40,15 @@ export class EventService {
     // 应用分页
     queryBuilder.skip((page - 1) * pageSize).take(pageSize)
 
-    return await queryBuilder.getManyAndCount()
+    const raw = await queryBuilder.getRawMany()
+    const [data, total] = await queryBuilder.getManyAndCount()
+    return [data.map((item, index) => ({
+      ...item,
+      createUsername: raw[index].create_username,
+      createNickname: raw[index].create_nickname,
+      updateUsername: raw[index].update_username,
+      updateNickname: raw[index].update_nickname,
+    })), total]
   }
 
   async getEventDetailByEventName(eventName: string): Promise<EventDetailDto | null> {
@@ -56,8 +66,8 @@ export class EventService {
       eventName: event.eventName!,
       eventAliases: event.eventAliases!,
       eventRemark: event.eventRemark!,
-      creatTime: event.creatTime!,
-      creatUserId: event.creatUserId!,
+      createTime: event.createTime!,
+      createUserId: event.createUserId!,
       updateUserId: event.updateUserId!,
       updateTime: event.updateTime!,
       status: event.status!,
@@ -65,7 +75,7 @@ export class EventService {
         propertyName: relation.metaProperty?.propertyName!,
         propertyType: relation.metaProperty?.propertyType!,
         eventPropertyRemark: relation.eventPropertyRemark!,
-        creatTime: relation.creatTime!,
+        creatTime: relation.createTime!,
       })) || [],
     }
   }

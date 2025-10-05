@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
-import NProgress from 'nprogress';
-import * as styles from "./styles.module.scss";
-import { Spin } from "antd";
+import React, { useEffect } from 'react'
+import NProgress from 'nprogress'
+import * as styles from "./styles.module.scss"
+import { Spin } from "antd"
 
-export default () => {
-
+function Loading() {
   useEffect((): (() => void) => {
     NProgress.start()
     return () => NProgress.done()
@@ -12,7 +11,9 @@ export default () => {
 
   return (
     <div className={styles.loadingBox} style={{ paddingLeft: 220 }}>
-      <Spin size="default" style={{ zIndex: 4 }}/>
+      <Spin fullscreen size="default" style={{ zIndex: 4 }} />
     </div>
   )
 }
+
+export default Loading

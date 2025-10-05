@@ -25,22 +25,22 @@ export class MetaPropertyEntity {
   propertyType?: MetaPropertyType
 
   @CreateDateColumn({
-    name: 'creat_time',
+    name: 'create_time',
     comment: '创建时间',
     type: 'datetime',
     nullable: false,
     update: false,
     default: () => 'CURRENT_TIMESTAMP',
   })
-  creatTime?: Date
+  createTime?: Date
 
   @Column({
-    name: 'creat_user_id',
+    name: 'create_user_id',
     comment: '创建用户ID',
     type: 'int',
     nullable: false,
   })
-  creatUserId?: number
+  createUserId?: number
 
   @UpdateDateColumn({
     name: 'update_time',

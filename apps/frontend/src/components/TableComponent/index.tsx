@@ -33,6 +33,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
         virtual={virtual}
         pagination={pagination}
         loading={loading}
+        scroll={{ x: "max-content" }}
       />
     </div>
   )

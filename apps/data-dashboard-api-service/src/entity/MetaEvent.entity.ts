@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, OneToMany, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
 import { MetaEventStatus } from "@probe-x/shared-types/src"
+import { UserEntity } from "@entity/User.entity"
 
 @Entity('meta_event')
 export class MetaEventEntity {
@@ -32,19 +33,23 @@ export class MetaEventEntity {
   eventRemark?: string
 
   @CreateDateColumn({
-    name: 'creat_time',
+    name: 'create_time',
     comment: '创建时间',
     type: 'datetime',
     default: () => 'CURRENT_TIMESTAMP(3)',
   })
-  creatTime?: Date
+  createTime?: Date
 
   @Column({
-    name: 'creat_user_id',
+    name: 'create_user_id',
     type: 'int',
     comment: '创建用户ID',
   })
-  creatUserId?: number
+  createUserId?: number
+
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'create_user_id', referencedColumnName: 'userId' })
+  createUser?: UserEntity
 
   @Column({
     name: 'update_user_id',
@@ -52,6 +57,10 @@ export class MetaEventEntity {
     comment: '更新用户ID',
   })
   updateUserId?: number
+
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'update_user_id', referencedColumnName: 'userId' })
+  updateUser?: UserEntity
 
   @UpdateDateColumn({
     name: 'update_time',

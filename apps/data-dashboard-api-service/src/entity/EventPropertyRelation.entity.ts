@@ -18,21 +18,21 @@ export class EventPropertyRelationEntity {
   eventPropertyRemark?: string
 
   @CreateDateColumn({
-    name: 'creat_time',
+    name: 'create_time',
     type: 'datetime',
     comment: '创建时间',
     nullable: false,
     default: () => 'CURRENT_TIMESTAMP',
   })
-  creatTime?: Date
+  createTime?: Date
 
   @Column({
-    name: 'creat_user_id',
+    name: 'create_user_id',
     type: 'int',
     comment: '创建用户id',
     nullable: false,
   })
-  creatUserId?: number
+  createUserId?: number
 
   @Column({
     name: 'update_time',

@@ -13,8 +13,8 @@ export interface EventDetailDto {
   eventName: string;
   eventAliases: string;
   eventRemark: string;
-  creatTime: Date;
-  creatUserId: number;
+  createTime: Date;
+  createUserId: number;
   updateUserId: number;
   updateTime: Date;
   status: number;
