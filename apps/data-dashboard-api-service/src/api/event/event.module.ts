@@ -3,9 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { EventController } from './event.controller'
 import { EventService } from './event.service'
 import { UserModule } from '../user/user.module'
-import { MetaEventEntity } from "../../entity/MetaEvent.entity"
-import { MetaPropertyEntity } from "../../entity/MetaProperty.entity"
-import { EventPropertyRelationEntity } from "../../entity/EventPropertyRelation.entity"
+import { MetaEventEntity } from "@entity/MetaEvent.entity"
+import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
+import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
 
 @Module({
   imports: [

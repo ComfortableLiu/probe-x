@@ -1,8 +1,12 @@
-import { IMetaEvent } from "@probe-x/shared-types/src"
+import { IEventListItem as IReqEventListItem, IPropertyListItem } from "@probe-x/shared-types/src"
 
 export interface IPointManageEventState {
   total: number
   page: number
   pageSize: number
-  eventList: IMetaEvent[]
+  eventList: IEventListItem[]
+}
+
+export interface IEventListItem extends IReqEventListItem {
+  properties?: IPropertyListItem[]
 }

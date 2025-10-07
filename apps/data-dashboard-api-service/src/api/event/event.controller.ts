@@ -37,14 +37,7 @@ export class EventController {
       pageSize: Math.max(1, Math.min(100, pageSize || 10)), // 限制每页最多100条数据
     }
 
-    const [data, total] = await this.eventService.getEventsWithPagination(filter, pagination)
-
-    return {
-      data,
-      total,
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-    }
+    return await this.eventService.getEventsWithPagination(filter, pagination)
   }
 
   /**

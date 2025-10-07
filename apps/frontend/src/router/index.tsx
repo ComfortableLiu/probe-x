@@ -27,6 +27,12 @@ export const allRoutesWithAliasMap: Map<string, IRouteItem> = allRoutes.reduce((
     currentValue.children.forEach((route) => {
       previousValue.set(`${currentValue.path || ''}${route.path}`, route);
       (route.alias || []).forEach(alias => previousValue.set(`${currentValue.path || ''}${alias}`, currentValue))
+      if (route.children) {
+        route.children.forEach((route) => {
+          previousValue.set(`${currentValue.path || ''}${route.path}`, route);
+          (route.alias || []).forEach(alias => previousValue.set(`${currentValue.path || ''}${alias}`, currentValue))
+        })
+      }
     })
   }
   return previousValue
@@ -38,6 +44,11 @@ export const allRoutesMap: Map<string, IRouteItem> = allRoutes.reduce((previousV
   if (currentValue.children) {
     currentValue.children.forEach((route) => {
       previousValue.set(`${currentValue.path || ''}${route.path}`, route)
+      if (route.children) {
+        route.children.forEach((route) => {
+          previousValue.set(`${currentValue.path || ''}${route.path}`, route)
+        })
+      }
     })
   }
   return previousValue
@@ -52,6 +63,12 @@ export const flatRoutes = allRoutes.reduce((previousValue, currentValue) => {
     currentValue.children.forEach((route: IRouteItem) => {
       if (!route.component) return
       previousValue.set(`${currentValue.path || ''}${route.path}`, route)
+      if (route.children) {
+        route.children.forEach((route) => {
+          if (!route.component) return
+          previousValue.set(`${currentValue.path || ''}${route.path}`, route)
+        })
+      }
     })
   }
   return previousValue
@@ -85,6 +102,17 @@ export const routes: IRouteItem[] = allRoutes.reduce<IRouteItem[]>((previousValu
         path,
         alias: [...(route.alias || []), path + '.html'] as `/${string}`[],
       })
+      if (route.children) {
+        route.children.forEach((route) => {
+          if (!route.component) return
+          const path: `/${string}` = `${currentValue.path || ''}${route.path}`
+          list.push({
+            ...route,
+            path,
+            alias: [...(route.alias || []), path + '.html'] as `/${string}`[],
+          })
+        })
+      }
     })
   }
   return [...previousValue, ...list]

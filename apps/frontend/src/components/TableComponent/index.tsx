@@ -11,6 +11,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
     virtual,
     paginationData,
     loading = false,
+    style,
   } = props
 
   const pagination = useMemo<TablePaginationConfig | false>(() => {
@@ -26,7 +27,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
   }, [paginationData])
 
   return (
-    <div className={styles.tableGroup}>
+    <div className={styles.tableGroup} style={style}>
       <Table<DataType>
         dataSource={dataSource}
         columns={columns}
@@ -34,6 +35,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
         pagination={pagination}
         loading={loading}
         scroll={{ x: "max-content" }}
+        size="small"
       />
     </div>
   )

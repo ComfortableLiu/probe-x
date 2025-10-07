@@ -6,8 +6,8 @@ export interface IMetaEvent {
   eventRemark: string
   createTime: Date
   createUserId: number
-  updateUserId: number
   updateTime: Date
+  updateUserId: number
   status: MetaEventStatus
 
   // 当前事件包含的属性关联列表

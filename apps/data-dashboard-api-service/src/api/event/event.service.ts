@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Like, Repository } from 'typeorm'
 import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
+import { IQueryEventListRes } from "@probe-x/shared-types/src"
 
 @Injectable()
 export class EventService {
@@ -15,40 +16,46 @@ export class EventService {
   async getEventsWithPagination(
     filter: EventFilterDto,
     pagination: PaginationDto,
-  ): Promise<[MetaEventEntity[], number]> {
+  ): Promise<IQueryEventListRes> {
     const { page, pageSize } = pagination
     const { eventName, status } = filter
 
-    const queryBuilder = this.eventRepository.createQueryBuilder('event')
-      .leftJoinAndSelect('user', 'update', 'event.updateUserId = update.userId')
-      .leftJoinAndSelect('user', 'create', 'event.createUserId = create.userId')
+    const where = {}
 
-    // 应用筛选条件
+    if (status) {
+      where['status'] = status
+    }
+
     if (eventName) {
-      queryBuilder.andWhere('event.eventName LIKE :eventName', {
-        eventName: `%${eventName}%`,
-      })
-      queryBuilder.andWhere('event.eventAliases LIKE :eventName', {
-        eventName: `%${eventName}%`,
-      })
+      where['eventName'] = Like(`%${eventName}%`)
+      where['eventAliases'] = Like(`%${eventName}%`)
     }
 
-    if (status !== undefined) {
-      queryBuilder.andWhere('event.status = :status', { status })
+    const [data, total] = await this.eventRepository.findAndCount({
+      where,
+      relations: ['createUser', 'updateUser'],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    })
+    return {
+      data: data.map(event => ({
+        eventName: event.eventName,
+        eventAliases: event.eventAliases,
+        eventRemark: event.eventRemark,
+        createTime: event.createTime,
+        updateTime: event.updateTime,
+        status: event.status,
+        createUserId: event.createUser?.userId,
+        createUsername: event.createUser?.username,
+        createNickname: event.createUser?.nickname,
+        updateUserId: event.updateUser?.userId,
+        updateUsername: event.updateUser?.username,
+        updateNickname: event.updateUser?.nickname,
+      })),
+      total,
+      page,
+      pageSize,
     }
-
-    // 应用分页
-    queryBuilder.skip((page - 1) * pageSize).take(pageSize)
-
-    const raw = await queryBuilder.getRawMany()
-    const [data, total] = await queryBuilder.getManyAndCount()
-    return [data.map((item, index) => ({
-      ...item,
-      createUsername: raw[index].create_username,
-      createNickname: raw[index].create_nickname,
-      updateUsername: raw[index].update_username,
-      updateNickname: raw[index].update_nickname,
-    })), total]
   }
 
   async getEventDetailByEventName(eventName: string): Promise<EventDetailDto | null> {

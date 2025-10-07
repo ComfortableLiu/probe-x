@@ -13,14 +13,10 @@ import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"
 import { JwtModule } from "@nestjs/jwt"
 import { ConfigModule, ConfigService } from "@nestjs/config"
+import { PropertyModule } from "@src/api/ property/property.module"
 
 @Module({
   imports: [
-    EnvConfigModule,
-    DatabaseModule,
-    KafkaModule,
-    UserModule,
-    EventModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -28,6 +24,12 @@ import { ConfigModule, ConfigService } from "@nestjs/config"
       }),
       inject: [ConfigService],
     }),
+    EnvConfigModule,
+    DatabaseModule,
+    KafkaModule,
+    UserModule,
+    EventModule,
+    PropertyModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

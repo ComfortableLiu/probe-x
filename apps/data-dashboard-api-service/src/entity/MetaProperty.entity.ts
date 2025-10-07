@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, OneToMany, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
-import { MetaPropertyStatus, MetaPropertyType } from "@probe-x/shared-types/src"
+import { MetaPropertyBusinessType, MetaPropertyStatus, MetaPropertyType } from "@probe-x/shared-types/src"
+import { UserEntity } from "@entity/User.entity"
 
 @Entity('meta_property')
 export class MetaPropertyEntity {
@@ -42,6 +43,10 @@ export class MetaPropertyEntity {
   })
   createUserId?: number
 
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'create_user_id', referencedColumnName: 'userId' })
+  createUser?: UserEntity
+
   @UpdateDateColumn({
     name: 'update_time',
     comment: '更新时间',
@@ -58,6 +63,19 @@ export class MetaPropertyEntity {
     nullable: false,
   })
   updateUserId?: number
+
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'update_user_id', referencedColumnName: 'userId' })
+  updateUser?: UserEntity
+
+  @Column({
+    name: 'type',
+    comment: '属性类型',
+    type: 'enum',
+    enum: MetaPropertyBusinessType,
+    default: MetaPropertyBusinessType.BUSINESS,
+  })
+  type: MetaPropertyBusinessType
 
   @Column({
     name: 'status',

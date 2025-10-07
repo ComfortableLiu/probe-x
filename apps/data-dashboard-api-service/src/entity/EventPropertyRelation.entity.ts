@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { MetaEventEntity } from './MetaEvent.entity'
 import { MetaPropertyEntity } from './MetaProperty.entity'
 import { EventPropertyRelationStatus } from "@probe-x/shared-types/src"
+import { UserEntity } from "@entity/User.entity"
 
 @Entity('event_property_relation')
 export class EventPropertyRelationEntity {
@@ -34,6 +35,10 @@ export class EventPropertyRelationEntity {
   })
   createUserId?: number
 
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'create_user_id', referencedColumnName: 'userId' })
+  createUser?: UserEntity
+
   @Column({
     name: 'update_time',
     type: 'datetime',
@@ -50,6 +55,10 @@ export class EventPropertyRelationEntity {
     nullable: false,
   })
   updateUserId?: number
+
+  @ManyToOne(() => UserEntity, user => user.userId)
+  @JoinColumn({ name: 'update_user_id', referencedColumnName: 'userId' })
+  updateUser?: UserEntity
 
   @Column({
     name: 'status',

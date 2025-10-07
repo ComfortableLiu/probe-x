@@ -1,4 +1,5 @@
 import { TableProps } from "antd"
+import { CSSProperties } from "react"
 
 export interface ITableComponentProps<DataType> {
   dataSource: DataType[]
@@ -16,4 +17,6 @@ export interface ITableComponentProps<DataType> {
   virtual?: boolean
 
   loading?: boolean
+
+  style?: CSSProperties
 }

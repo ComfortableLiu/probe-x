@@ -9,12 +9,11 @@ import storage from "redux-persist/lib/storage"
 
 type FullModel = ExtraModelsFromLoading<RootModel>
 
-// const immer = immerPlugin<RootModel, FullModel>()
 const loading = loadingPlugin<RootModel, FullModel, LoadingConfig>()
 const persist = persistPlugin<any, RootModel, FullModel>({
   key: STORAGE_BASE_KEY,
   storage,
-  whitelist: [],
+  whitelist: ["staticModel"],
   version: 1,
 })
 

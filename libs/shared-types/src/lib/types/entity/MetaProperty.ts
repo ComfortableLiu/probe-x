@@ -3,6 +3,7 @@ import { IEventPropertyRelation } from "./EventPropertyRelation"
 export interface IMetaProperty {
   propertyName?: string
   propertyType?: MetaPropertyType
+  type?: MetaPropertyBusinessType
   createTime?: Date
   createUserId?: number
   updateTime?: Date
@@ -29,4 +30,14 @@ export enum MetaPropertyType {
 export enum MetaPropertyStatus {
   // 有效
   VALID = 1,
+}
+
+/**
+ * 元属性业务类型
+ */
+export enum MetaPropertyBusinessType {
+  // 公共属性
+  COMMON = 1,
+  // 业务属性
+  BUSINESS = 2,
 }

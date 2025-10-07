@@ -26,6 +26,8 @@ export const appModel = createModel<RootModel>()({
       await dispatch.userModel.initLoginInfo()
       // 初始化路由权限校验
       dispatch.appModel.initHistoryListener()
+      // 初始化静态数据
+      await dispatch.staticModel.init()
     },
 
     initHistoryListener() {
