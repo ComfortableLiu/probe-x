@@ -68,12 +68,21 @@ export class SignatureInterceptor implements NestInterceptor {
     delete body.timestamp
     delete body.nonce
 
+    const query: IAnyObj = {}
+    if (request.query) {
+      Object.keys(request.query)
+        .filter(key => !!request.query[key])
+        .forEach(key => {
+          query[key] = `${request.query[key]}`
+        })
+    }
+
     const params = {
       timestamp,
       nonce,
       method: request.method.toUpperCase(),
       path: request.path || '',
-      query: request.query || {},
+      query,
       body,
     }
 

@@ -1,4 +1,5 @@
 export interface EventFilterDto {
+  propertyName?: string;
   eventName?: string;
   status?: number;
 }

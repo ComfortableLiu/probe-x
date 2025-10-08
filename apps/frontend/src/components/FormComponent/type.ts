@@ -31,4 +31,5 @@ export interface IFormItemProps<T> {
   disabled?: boolean
   placeholder?: string
   style?: CSSProperties
+  submit?: () => void
 }

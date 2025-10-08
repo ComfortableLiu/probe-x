@@ -23,12 +23,21 @@ apiClient.interceptors.request.use(
     const timestamp = Date.now()
     const nonce = generateNonce()
 
+    const query = {}
+    if (config.params) {
+      Object.keys(config.params)
+        .filter(key => !!config.params[key])
+        .forEach(key => {
+          query[key] = `${config.params[key]}`
+        })
+    }
+
     // 生成签名
     const signature = await generateSignature({
       path: `/api${config.url}`,
       method: config.method || '',
       body: config.data,
-      query: config.params,
+      query,
     }, timestamp, nonce, SECRET_KEY)
 
     // 设置签名相关请求头

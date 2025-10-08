@@ -2,6 +2,7 @@ import React, { memo, useMemo } from "react"
 import { ITableComponentProps } from "@components/TableComponent/type"
 import { Table, TablePaginationConfig } from "antd"
 import * as styles from "./styles.module.scss"
+import { useRouter } from "@/hooks"
 
 function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
 
@@ -12,7 +13,10 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
     paginationData,
     loading = false,
     style,
+    onPaginationChange,
   } = props
+
+  const { refresh } = useRouter()
 
   const pagination = useMemo<TablePaginationConfig | false>(() => {
     if (!paginationData) return false
@@ -36,6 +40,22 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
         loading={loading}
         scroll={{ x: "max-content" }}
         size="small"
+        onChange={(pagination: TablePaginationConfig, filters, sorter, extra: {
+          currentDataSource,
+          // paginate | sort | filter
+          action,
+        }) => {
+          if (extra.action === 'paginate') {
+            if (onPaginationChange) {
+              onPaginationChange(pagination)
+            } else {
+              refresh({
+                page: pagination.current,
+                pageSize: pagination.pageSize,
+              }, true)
+            }
+          }
+        }}
       />
     </div>
   )

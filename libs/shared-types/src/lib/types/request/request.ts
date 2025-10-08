@@ -5,3 +5,9 @@ export interface IPageResult<T> {
   page: number
   pageSize: number
 }
+
+// 分页接口请求
+export interface IPageQuery {
+  page: number
+  pageSize: number
+}

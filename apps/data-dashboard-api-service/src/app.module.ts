@@ -13,7 +13,7 @@ import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"
 import { JwtModule } from "@nestjs/jwt"
 import { ConfigModule, ConfigService } from "@nestjs/config"
-import { PropertyModule } from "@src/api/ property/property.module"
+import { PropertyModule } from "@src/api/property/property.module"
 
 @Module({
   imports: [

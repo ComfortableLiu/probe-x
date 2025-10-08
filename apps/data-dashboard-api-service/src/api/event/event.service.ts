@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Like, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
 import { IQueryEventListRes } from "@probe-x/shared-types/src"
@@ -18,25 +18,37 @@ export class EventService {
     pagination: PaginationDto,
   ): Promise<IQueryEventListRes> {
     const { page, pageSize } = pagination
-    const { eventName, status } = filter
+    const { eventName, status, propertyName } = filter
 
-    const where = {}
 
+    // 使用 QueryBuilder 构建复杂查询
+    const queryBuilder = this.eventRepository.createQueryBuilder('event')
+      .leftJoinAndSelect('event.createUser', 'createUser')
+      .leftJoinAndSelect('event.updateUser', 'updateUser')
+
+    // 添加状态过滤条件
     if (status) {
-      where['status'] = status
+      queryBuilder.andWhere('event.status = :status', { status })
     }
 
+    // 根据事件名称筛选属性
+    if (propertyName) {
+      queryBuilder.innerJoin('event.eventPropertyRelations', 'relation')
+        .innerJoin('relation.metaProperty', 'metaProperty')
+        .andWhere('metaProperty.propertyName = :propertyName', { propertyName })
+    }
+
+    // 添加事件名称模糊匹配条件
     if (eventName) {
-      where['eventName'] = Like(`%${eventName}%`)
-      where['eventAliases'] = Like(`%${eventName}%`)
+      queryBuilder.andWhere('(event.eventName LIKE :eventName OR event.eventAliases LIKE :eventAliases)', { eventName: `%${eventName}%`, eventAliases: `%${eventName}%` })
     }
 
-    const [data, total] = await this.eventRepository.findAndCount({
-      where,
-      relations: ['createUser', 'updateUser'],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    })
+    // 添加分页
+    queryBuilder.skip((page - 1) * pageSize)
+      .take(pageSize)
+
+    const [data, total] = await queryBuilder.getManyAndCount()
+
     return {
       data: data.map(event => ({
         eventName: event.eventName,

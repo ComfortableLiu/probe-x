@@ -5,7 +5,7 @@ export enum FormItemType {
   // DATE_TIME = 'date_time',
   // TIME = 'time',
   // RADIO = 'radio',
-  // CHECKBOX = 'checkbox',
+  CHECKBOX = 'checkbox',
   // SWITCH = 'switch',
   // UPLOAD = 'upload',
   // NUMBER = 'number',

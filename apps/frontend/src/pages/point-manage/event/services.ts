@@ -2,8 +2,8 @@ import request from "@/lib/request"
 import {
   IQueryEventListReq,
   IQueryEventListRes,
-  IQueryPropertyListReq,
-  IQueryPropertyListRes,
+  IQueryEventPropertiesReq,
+  IQueryEventPropertiesRes,
 } from "@probe-x/shared-types/src"
 
 export function queryEventList(params: IQueryEventListReq) {
@@ -17,8 +17,8 @@ export function queryEventList(params: IQueryEventListReq) {
 /**
  * 获取事件的属性
  */
-export function queryEventProperties(params: IQueryPropertyListReq) {
-  return request<IQueryPropertyListRes>({
+export function queryEventProperties(params: IQueryEventPropertiesReq) {
+  return request<IQueryEventPropertiesRes>({
     url: '/property/list',
     method: 'get',
     params,

@@ -1,8 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
+import { Controller, Get, Query } from '@nestjs/common'
 import { EventService } from './event.service'
 import { UserService } from "../user/user.service"
-import type { EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
-import { User } from "@probe-x/shared-utils/src/lib/backend-common"
+import type { EventFilterDto, PaginationDto } from "./type"
 
 @Controller('/event')
 export class EventController {
@@ -18,6 +17,7 @@ export class EventController {
    * @param page
    * @param pageSize
    * @param eventName
+   * @param propertyName 如果传了这个字段，就表示需要查这个属性绑定的那些事件
    * @param status
    */
   @Get('/list')
@@ -25,9 +25,11 @@ export class EventController {
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 20,
     @Query('eventName') eventName?: string,
+    @Query('propertyName') propertyName?: string,
     @Query('status') status?: number,
   ) {
     const filter: EventFilterDto = {
+      propertyName,
       eventName,
       status,
     }
@@ -38,52 +40,5 @@ export class EventController {
     }
 
     return await this.eventService.getEventsWithPagination(filter, pagination)
-  }
-
-  /**
-   * 根据事件名获取事件详情
-   * @param eventName
-   */
-  @Get('/detail/:eventName')
-  async getEventDetail(@Param('eventName') eventName: string) {
-    const eventDetail = await this.eventService.getEventDetailByEventName(eventName)
-    if (!eventDetail) {
-      return {
-        statusCode: 404,
-        message: 'Event not found',
-      }
-    }
-
-    return {
-      data: eventDetail,
-    }
-  }
-
-  /**
-   * 更新事件的主属性，不包括关联的属性
-   * @param eventName
-   * @param updateEventDto
-   * @param userId
-   */
-  @Post('/update/:eventName')
-  async updateEvent(
-    @Param('eventName') eventName: string,
-    @Body() updateEventDto: UpdateEventDto,
-    @User('userId') userId: number,
-  ) {
-    const user = await this.userService.getUserById(userId)
-    const result = await this.eventService.updateEventByName(eventName, updateEventDto, user)
-
-    if (!result) {
-      return {
-        statusCode: 404,
-        message: 'Event not found or update failed',
-      }
-    }
-
-    return {
-      statusCode: 200,
-      message: 'Event updated successfully',
-    }
   }
 }

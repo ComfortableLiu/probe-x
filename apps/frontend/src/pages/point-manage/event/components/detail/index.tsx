@@ -7,7 +7,7 @@ import TableComponent from "@components/TableComponent"
 import * as styles from './styles.module.scss'
 import { ICommonPropertyListItem, IPropertyListItem } from "@probe-x/shared-types/src"
 import dayjs from "dayjs"
-import { useModel } from "@/hooks"
+import { useLoading, useModel } from "@/hooks"
 import { IStaticState } from "@/store/models/static/type"
 
 function EventDetail(props: IEventDetailProps) {
@@ -22,6 +22,7 @@ function EventDetail(props: IEventDetailProps) {
   } = useModel<IStaticState>('staticModel')
 
   const dispatch = useDispatch<Dispatch>()
+  const loading = useLoading()
 
   const show = useMemo(() => !!event, [event])
 
@@ -125,6 +126,7 @@ function EventDetail(props: IEventDetailProps) {
           style={{ padding: 0 }}
           dataSource={event?.properties || []}
           columns={columns}
+          loading={loading.pointManageEventModel.getEventProperties}
         />
         <h4 className={styles.title}>
           公共参数
@@ -138,6 +140,7 @@ function EventDetail(props: IEventDetailProps) {
                 style={{ padding: 0 }}
                 dataSource={commonPropertyList}
                 columns={commonPropertyColumns}
+                loading={loading.staticModel.getPointList}
               />,
           }]}
         />

@@ -1,4 +1,4 @@
-import { TableProps } from "antd"
+import { TablePaginationConfig, TableProps } from "antd"
 import { CSSProperties } from "react"
 
 export interface ITableComponentProps<DataType> {
@@ -19,4 +19,7 @@ export interface ITableComponentProps<DataType> {
   loading?: boolean
 
   style?: CSSProperties
+
+  // 分页改变回调，如果传了，就不会去修改url参数，不传就去修改url参数
+  onPaginationChange?: (pagination: TablePaginationConfig) => void
 }

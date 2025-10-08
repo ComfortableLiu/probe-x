@@ -4,8 +4,8 @@ import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entity"
 import { UserModule } from "@src/api/user/user.module"
-import { PropertyController } from "@src/api/ property/property.controller"
-import { PropertyService } from "@src/api/ property/property.service"
+import { PropertyController } from "@src/api/property/property.controller"
+import { PropertyService } from "@src/api/property/property.service"
 
 @Module({
   imports: [

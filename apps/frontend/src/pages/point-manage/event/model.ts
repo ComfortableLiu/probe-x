@@ -30,8 +30,15 @@ const pointManageEventModel = createModel<RootModel>()({
   },
   effects: (dispatch) => ({
     async getEventList() {
-      const payload: IQueryEventListReq = getParamsOrQuery()
-      const { data } = await queryEventList(payload)
+      const payload = getParamsOrQuery()
+
+      const params: IQueryEventListReq = {
+        eventName: payload.eventName,
+        status: payload.status,
+        page: payload.page || 1,
+        pageSize: payload.pageSize || 20,
+      }
+      const { data } = await queryEventList(params)
       dispatch.pointManageEventModel.updateItem({
         eventList: data.data,
         total: data.total,
@@ -43,7 +50,7 @@ const pointManageEventModel = createModel<RootModel>()({
     async getEventProperties({ eventName }: { eventName: string }, state) {
       const res = await queryEventProperties({ eventName })
       const { data } = res
-      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data })
+      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data.data })
     },
   }),
 })

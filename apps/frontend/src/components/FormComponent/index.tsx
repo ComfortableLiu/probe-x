@@ -6,6 +6,7 @@ import { useQuery, useRouter } from "@/hooks"
 import { IAnyObj } from "@probe-x/shared-types/src/index"
 import FormText from "@components/FormComponent/form-item/text"
 import * as styles from "./styles.module.scss"
+import FormCheckbox from "@components/FormComponent/form-item/checkbox"
 
 /**
  * 表单组件
@@ -35,7 +36,7 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
     if (onFinish) {
       onFinish(values)
     } else {
-      refresh(values)
+      refresh(values, true)
     }
   }, [onFinish, refresh])
 
@@ -43,8 +44,10 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
     switch (item.type) {
       case FormItemType.TEXT:
         return <FormText {...item} key={item.key} />
+      case FormItemType.CHECKBOX:
+        return <FormCheckbox {...item} key={item.key} submit={() => form.submit()} />
     }
-  }, [])
+  }, [form])
 
   const renderFormItems = useMemo(() => {
     return formItems.map(item => (

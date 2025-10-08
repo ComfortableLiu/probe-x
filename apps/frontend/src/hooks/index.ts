@@ -6,7 +6,7 @@ import queryString from "query-string"
 import { useSelector } from "react-redux"
 import { RootState } from "@/store/storeContext"
 
-export function useModel<T> (key: keyof RootState) {
+export function useModel<T>(key: keyof RootState) {
   return useSelector((store: RootState) => store[key] as T)
 }
 
@@ -46,10 +46,20 @@ export function useRouter() {
   return {
     location,
     navigate,
-    refresh: (query?: IAnyObj) => {
+    refresh: (query?: IAnyObj, retainOldQuery?: boolean) => {
+      let search: string
+      if (retainOldQuery) {
+        search = queryString.stringify({
+          ...queryString.parse(location.search),
+          ...(query || {}),
+        })
+      } else {
+        search = queryString.stringify(query || {})
+      }
+
       navigate({
         pathname: location.pathname,
-        search: query ? queryString.stringify(query) : location.search,
+        search,
       })
     },
     goBack: () => navigate(-1),

@@ -1,11 +1,13 @@
 import { MetaPropertyBusinessType, MetaPropertyStatus, MetaPropertyType } from "../entity"
+import { IQueryEventListRes } from "./event"
+import { IPageQuery, IPageResult } from "./request"
 
 export interface IPropertyListItem {
   propertyName: string
   propertyType: MetaPropertyType
   type: MetaPropertyBusinessType
   status: MetaPropertyStatus
-  eventPropertyRemark: string
+  eventPropertyRemark?: string
 
   createTime: Date
   createUserId: number
@@ -17,11 +19,14 @@ export interface IPropertyListItem {
   updateNickname: string
 }
 
-export interface IQueryPropertyListReq {
-  eventName: string
+// 请求所有属性列表入参
+export interface IQueryPropertyListReq extends IPageQuery{
+  propertyName?: string
+  type?: MetaPropertyBusinessType
 }
 
-export type IQueryPropertyListRes = IPropertyListItem[]
+// 请求所有属性列表返回值
+export type IQueryPropertyListRes = IPageResult<IPropertyListItem>
 
 /**
  * 公参数属性列表项
@@ -31,4 +36,13 @@ export interface ICommonPropertyListItem {
   propertyType: MetaPropertyType
 }
 
+// 所有公参的列表返回值
 export type IQueryCommonPropertyListRes = ICommonPropertyListItem[]
+
+// 属性关联事件请求参数
+export interface IQueryPropertyEventsReq {
+  propertyName: string
+}
+
+// 属性关联事件返回值
+export type IQueryPropertyEventsRes = IQueryEventListRes

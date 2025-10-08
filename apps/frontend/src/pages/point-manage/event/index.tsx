@@ -52,7 +52,7 @@ function EventManage() {
     dataIndex: 'eventName',
     width: 150,
     fixed: 'left',
-    render: text => <a onClick={() => openEventDetail(text)}>{text}</a>,
+    render: (text, record) => <a onClick={() => openEventDetail(record)}>{text}</a>,
   }, {
     title: '事件别名',
     dataIndex: 'eventAliases',

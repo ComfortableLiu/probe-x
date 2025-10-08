@@ -14,10 +14,10 @@ export default {
     key: 'point-manage-event',
     component: lazy(() => import('@pages/point-manage/event/index')),
   }, {
-    path: '/point-manage/attribute',
+    path: '/point-manage/property',
     name: '属性管理',
-    key: 'point-manage-attribute',
-    component: lazy(() => import('@pages/point-manage/attribute/index')),
+    key: 'point-manage-property',
+    component: lazy(() => import('@pages/point-manage/property/index')),
   }, {
     path: '/point-manage/spm',
     name: 'SPM管理',
