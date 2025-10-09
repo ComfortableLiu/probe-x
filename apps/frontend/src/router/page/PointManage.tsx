@@ -24,14 +24,30 @@ export default {
     key: 'point-manage-spm',
     component: lazy(() => import('@pages/point-manage/spm/index')),
   }, {
+    path: '/point-manage/spm/detail',
+    name: 'SPM详情',
+    key: 'point-manage-spm-detail',
+    component: lazy(() => import('@pages/point-manage/spm/components/detail/index')),
+    meta: {
+      isHidden: true,
+    },
+  }, {
     path: '/point-manage/scm',
     name: 'SCM管理',
     key: 'point-manage-scm',
     component: lazy(() => import('@pages/point-manage/scm/index')),
   }, {
-    path: '/point-manage/businessDomain',
-    name: '业务域管理',
-    key: 'point-manage-business-domain',
-    component: lazy(() => import('@pages/point-manage/business-domain/index')),
+    path: '/point-manage/scm/detail',
+    name: 'SCM详情',
+    key: 'point-manage-scm-detail',
+    component: lazy(() => import('@pages/point-manage/scm/components/detail/index')),
+    meta: {
+      isHidden: true,
+    },
+  }, {
+    path: '/point-manage/basic-coding',
+    name: '基础编码管理',
+    key: 'point-manage-basic-coding',
+    component: lazy(() => import('@pages/point-manage/basic-coding/index')),
   }],
 } as IRouteItem

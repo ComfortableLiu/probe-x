@@ -1,5 +1,6 @@
 import { FormItemType } from "./constants"
-import { type CSSProperties, ReactNode } from "react"
+import { ComponentType, type CSSProperties } from "react"
+import type { LabelTooltipType } from "antd/es/form/FormItemLabel"
 
 export interface IFormComponentProps<T> {
   // 表单元素列表
@@ -15,10 +16,12 @@ export interface IFormItem {
   // 表单label
   label: string
   // 自定义组件
-  customComponent?: ReactNode
+  customComponent?: ComponentType<any>
   disabled?: boolean
   placeholder?: string
   style?: CSSProperties
+  // 提示信息
+  tooltip?: LabelTooltipType
 }
 
 /**

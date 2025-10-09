@@ -46,6 +46,14 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
         return <FormText {...item} key={item.key} />
       case FormItemType.CHECKBOX:
         return <FormCheckbox {...item} key={item.key} submit={() => form.submit()} />
+      case FormItemType.CUSTOM:
+        if (item.customComponent) {
+          const CustomComponent = item.customComponent
+          return <CustomComponent {...item} key={item.key} />
+        }
+        return null
+      default:
+        return null
     }
   }, [form])
 
@@ -58,6 +66,7 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
         <Form.Item
           name={item.key}
           label={item.label}
+          tooltip={item.tooltip}
         >
           {renderFormItem(item)}
         </Form.Item>

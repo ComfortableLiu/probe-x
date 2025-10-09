@@ -4,7 +4,7 @@ import { IFormItem } from "@components/FormComponent/type"
 import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
 
-function BusinessDomainManage() {
+function BasicCodingManage() {
 
   const formItems: IFormItem[] = [{
     key: 'a',
@@ -26,7 +26,7 @@ function BusinessDomainManage() {
 
   return (
     <div>
-      <h2>业务域管理</h2>
+      <h2>基础编码管理</h2>
       <FormComponent
         formItems={formItems}
       />
@@ -43,4 +43,4 @@ function BusinessDomainManage() {
   )
 }
 
-export default BusinessDomainManage
+export default BasicCodingManage
