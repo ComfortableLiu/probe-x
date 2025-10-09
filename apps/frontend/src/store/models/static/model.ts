@@ -20,6 +20,9 @@ export const staticModel = createModel<RootModel>()({
   },
   effects: (dispatch) => ({
     async init() {
+      if (window.location.pathname === '/login') {
+        return
+      }
       await dispatch.staticModel.getPointList()
     },
     async getPointList() {

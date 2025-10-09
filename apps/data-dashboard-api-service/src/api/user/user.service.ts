@@ -31,23 +31,14 @@ export class UserService {
   }
 
   /**
-   * 根据uid获取用户信息
-   * @param id
-   */
-  async getUserById(id: number) {
-    const user = await this.userRepository.findOne({ where: { userId: id } })
-    return {
-      ...user,
-      passwordHash: '*******',
-    }
-  }
-
-  /**
    * 验证用户并生成JWT令牌
    * @param username
    * @param password
    */
   async validateUser(username: string, password: string) {
+    if (!username?.length || !password?.length) {
+      return ResponseData.error("用户名或密码不能为空")
+    }
     const user = await this.userRepository.findOne({ where: { username } })
 
     // 检查用户是否存在且密码正确
