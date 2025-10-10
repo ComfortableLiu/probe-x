@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
 import { MetaEventStatus } from "@probe-x/shared-types/src"
 import { UserEntity } from "@entity/User.entity"
@@ -13,6 +13,7 @@ export class MetaEventEntity {
     comment: '事件名称',
     unique: true,
   })
+  @Index()
   eventName?: string
 
   @Column({

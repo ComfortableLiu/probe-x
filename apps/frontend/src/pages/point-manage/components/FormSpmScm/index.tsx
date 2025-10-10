@@ -1,9 +1,9 @@
 import React, { memo } from "react"
-import { IFormSpmProps, ISpmInfo } from "./type"
+import { IFormSpmScmProps, ISpmScmInfo } from "./type"
 import { Input } from "antd"
 import * as styles from "./styles.module.scss"
 
-function FormSpm(props: IFormSpmProps) {
+function FormSpmScm(props: IFormSpmScmProps) {
 
   const {
     value,
@@ -12,7 +12,7 @@ function FormSpm(props: IFormSpmProps) {
     placeholder,
   } = props
 
-  const onChangeHandler = (key: keyof ISpmInfo, value: string) => {
+  const onChangeHandler = (key: keyof ISpmScmInfo, value: string) => {
     onChange && onChange({
       ...props.value,
       [key]: value,
@@ -56,4 +56,4 @@ function FormSpm(props: IFormSpmProps) {
   )
 }
 
-export default memo(FormSpm)
+export default memo(FormSpmScm)

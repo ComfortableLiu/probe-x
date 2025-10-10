@@ -1,6 +1,9 @@
 import { FormItemType } from "./constants"
 import { ComponentType, type CSSProperties } from "react"
 import type { LabelTooltipType } from "antd/es/form/FormItemLabel"
+import { IFormTextProps } from "@components/FormComponent/form-item/text/type"
+import { IFormCheckboxProps } from "@components/FormComponent/form-item/checkbox/type"
+import { IFormCascaderProps } from "@components/FormComponent/form-item/cascader/type"
 
 export interface IFormComponentProps<T> {
   // 表单元素列表
@@ -8,7 +11,7 @@ export interface IFormComponentProps<T> {
   onFinish?: (values: T) => void
 }
 
-export interface IFormItem {
+export interface IFormItem extends Partial<FormItem>{
   // 表单类型
   type: FormItemType
   // 表单key，同时是url上面的key
@@ -36,3 +39,5 @@ export interface IFormItemProps<T> {
   style?: CSSProperties
   submit?: () => void
 }
+
+export type FormItem = IFormTextProps & IFormCascaderProps & IFormCheckboxProps

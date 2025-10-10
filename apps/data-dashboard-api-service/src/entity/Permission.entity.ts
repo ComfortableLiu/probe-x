@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 import { RolePermissionRelation } from './RolePermissionRelation.entity'
 
 /**
@@ -9,6 +9,7 @@ import { RolePermissionRelation } from './RolePermissionRelation.entity'
 export class Permission {
   /** 权限唯一ID（自增） */
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
+  @Index()
   id: number
 
   /** 权限标识（格式：资源:操作，如 user:add），唯一不可重复 */
@@ -19,6 +20,7 @@ export class Permission {
     unique: true,
     comment: '权限标识（资源:操作）',
   })
+  @Index()
   permissionKey: string
 
   /** 权限显示名（如“新增用户”），用于前端页面展示 */

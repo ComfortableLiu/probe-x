@@ -1,44 +1,16 @@
 import React from "react"
-import { FormItemType } from "@components/FormComponent/constants"
-import { IFormItem } from "@components/FormComponent/type"
-import FormComponent from "@components/FormComponent"
-import TableComponent from "@components/TableComponent"
+import * as styles from "./styles.module.scss"
+import BusinessSite from "./components/business-site"
 
 function BasicCodingManage() {
-
-  const formItems: IFormItem[] = [{
-    key: 'a',
-    label: 'A',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'b',
-    label: 'B',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'c',
-    label: 'C',
-    type: FormItemType.TEXT,
-  }, {
-    key: 'd',
-    label: 'D',
-    type: FormItemType.TEXT,
-  }]
 
   return (
     <div>
       <h2>基础编码管理</h2>
-      <FormComponent
-        formItems={formItems}
-      />
-      <TableComponent
-        dataSource={[]}
-        columns={[]}
-        paginationData={{
-          total: 0,
-          current: 1,
-          pageSize: 20,
-        }}
-      />
+      <div className={styles.cell}>
+        <h3 className={styles.title}>业务线/站点</h3>
+        <BusinessSite />
+      </div>
     </div>
   )
 }

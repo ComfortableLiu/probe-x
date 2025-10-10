@@ -1,26 +1,17 @@
 import request from "@/lib/request"
-import {
-  IQueryEventListReq,
-  IQueryEventListRes,
-  IQueryEventPropertiesReq,
-  IQueryEventPropertiesRes,
-} from "@probe-x/shared-types/src"
+import { IQueryBusinessListRes, IQueryTrackingSpmListReq, IQueryTrackingSpmListRes } from "@probe-x/shared-types/src"
 
-export function queryEventList(params: IQueryEventListReq) {
-  return request<IQueryEventListRes>({
-    url: '/event/list',
+export function querySpmNodeList(params: IQueryTrackingSpmListReq) {
+  return request<IQueryTrackingSpmListRes>({
+    url: '/tracking/spm/list',
     method: 'get',
     params,
   })
 }
 
-/**
- * 获取事件的属性
- */
-export function queryEventProperties(params: IQueryEventPropertiesReq) {
-  return request<IQueryEventPropertiesRes>({
-    url: '/property/list',
+export function queryBusinessList() {
+  return request<IQueryBusinessListRes>({
+    url: '/tracking/spm/business/list',
     method: 'get',
-    params,
   })
 }

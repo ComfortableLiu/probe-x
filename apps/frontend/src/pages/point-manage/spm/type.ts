@@ -1,10 +1,12 @@
+import { IBusinessListItem, ITrackingListItem } from "@probe-x/shared-types/src"
+
 export interface IPointManageSpmState {
   total: number
   page: number
   pageSize: number
-  // eventList: IEventListItem[]
+  businessList?: IBusinessListItem[]
+  trackingSpmList: ITrackingSpmListItem[]
 }
 
-// export interface IEventListItem extends IReqEventListItem {
-//   properties?: IPropertyListItem[]
-// }
+export interface ITrackingSpmListItem extends ITrackingListItem {
+}

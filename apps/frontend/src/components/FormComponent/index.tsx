@@ -7,6 +7,7 @@ import { IAnyObj } from "@probe-x/shared-types/src/index"
 import FormText from "@components/FormComponent/form-item/text"
 import * as styles from "./styles.module.scss"
 import FormCheckbox from "@components/FormComponent/form-item/checkbox"
+import FormCascader from "@components/FormComponent/form-item/cascader"
 
 /**
  * 表单组件
@@ -43,9 +44,11 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
   const renderFormItem = useCallback((item: IFormItem) => {
     switch (item.type) {
       case FormItemType.TEXT:
-        return <FormText {...item} key={item.key} />
+        return <FormText {...item} key={item.key} submit={() => form.submit()} />
       case FormItemType.CHECKBOX:
         return <FormCheckbox {...item} key={item.key} submit={() => form.submit()} />
+      case FormItemType.CASCADER:
+        return <FormCascader options={item.options} {...item} key={item.key} submit={() => form.submit()} />
       case FormItemType.CUSTOM:
         if (item.customComponent) {
           const CustomComponent = item.customComponent

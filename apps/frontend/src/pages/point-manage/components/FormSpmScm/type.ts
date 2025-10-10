@@ -1,11 +1,11 @@
 import { IFormItemProps } from "@components/FormComponent/type"
 
-export interface ISpmInfo {
+export interface ISpmScmInfo {
   a: string
   b: string
   c: string
   d: string
 }
 
-export interface IFormSpmProps extends IFormItemProps<ISpmInfo> {
+export interface IFormSpmScmProps extends IFormItemProps<ISpmScmInfo> {
 }

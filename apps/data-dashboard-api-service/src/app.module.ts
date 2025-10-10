@@ -14,6 +14,7 @@ import { UserModule } from "@src/api/user/user.module"
 import { JwtModule } from "@nestjs/jwt"
 import { ConfigModule, ConfigService } from "@nestjs/config"
 import { PropertyModule } from "@src/api/property/property.module"
+import { TrackingNodeModule } from "@src/api/tracking-node/tracking-node.module"
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PropertyModule } from "@src/api/property/property.module"
     UserModule,
     EventModule,
     PropertyModule,
+    TrackingNodeModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

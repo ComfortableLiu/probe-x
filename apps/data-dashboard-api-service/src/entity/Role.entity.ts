@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 import { RolePermissionRelation } from './RolePermissionRelation.entity'
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 
@@ -6,6 +6,7 @@ import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 export class Role {
 
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
+  @Index()
   id: number
 
   /** 权限显示名（如“新增用户”），用于前端页面展示 */
@@ -15,6 +16,7 @@ export class Role {
     name: 'role_key',
     comment: '角色Key',
   })
+  @Index()
   roleKey: string
 
   @Column({

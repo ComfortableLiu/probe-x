@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 
 @Entity('user')
@@ -6,6 +6,7 @@ export class UserEntity {
   @PrimaryGeneratedColumn({
     name: 'user_id',
   })
+  @Index()
   userId?: number
 
   @Column({
@@ -15,6 +16,7 @@ export class UserEntity {
     unique: true,
     comment: '用户名',
   })
+  @Index()
   username?: string
 
   @Column({

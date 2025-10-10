@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
 import { MetaPropertyBusinessType, MetaPropertyStatus, MetaPropertyType } from "@probe-x/shared-types/src"
 import { UserEntity } from "@entity/User.entity"
@@ -14,6 +14,7 @@ export class MetaPropertyEntity {
     unique: true,
     comment: '属性名称',
   })
+  @Index()
   propertyName?: string
 
   @Column({

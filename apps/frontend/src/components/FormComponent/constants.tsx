@@ -1,6 +1,6 @@
 export enum FormItemType {
   TEXT = 'text',
-  // SELECT = 'select',
+  CASCADER = 'cascader',
   // DATE = 'date',
   // DATE_TIME = 'date_time',
   // TIME = 'time',

@@ -5,6 +5,7 @@ import { staticModel } from "@/store/models/static/model"
 import pointManageEventModel from "@pages/point-manage/event/model"
 import pointManagePropertyModel from "@pages/point-manage/property/model"
 import pointManageSpmModel from "@pages/point-manage/spm/model"
+import pointManageBasicCodingModel from "@pages/point-manage/basic-coding/model"
 
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
@@ -13,6 +14,7 @@ export interface RootModel extends Models<RootModel> {
   pointManageEventModel: typeof pointManageEventModel
   pointManagePropertyModel: typeof pointManagePropertyModel
   pointManageSpmModel: typeof pointManageSpmModel
+  pointManageBasicCodingModel: typeof pointManageBasicCodingModel
 }
 
 export const models: RootModel = {
@@ -22,4 +24,5 @@ export const models: RootModel = {
   pointManageEventModel,
   pointManagePropertyModel,
   pointManageSpmModel,
+  pointManageBasicCodingModel,
 }
