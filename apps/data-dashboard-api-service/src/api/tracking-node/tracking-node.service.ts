@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { TrackingNodeEntity } from "@entity/TrackingNode.entity"
-import {
+import type {
+  ICreateBusinessSiteReq,
+  ICreateBusinessSiteRes,
   IQueryBusinessListRes,
   IQueryTrackingSpmListRes,
-  TrackingNodeStatus,
-  TrackingNodeType,
+  IUpdateBusinessSiteReq,
+  IUpdateBusinessSiteRes,
+  IUser,
 } from "@probe-x/shared-types/src"
+import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 import { UserEntity } from "@entity/User.entity"
 
 @Injectable()
@@ -16,6 +20,20 @@ export class TrackingNodeService {
     @InjectRepository(TrackingNodeEntity)
     private trackingNodeRepository: Repository<TrackingNodeEntity>,
   ) {
+  }
+
+  /**
+   * 生成随机字符串，包含大小写字母与数字
+   * @param length
+   * @private
+   */
+  private generateRandomString(length: number = 8): string {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let result = ''
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length))
+    }
+    return result
   }
 
   async getTrackingNodeList(
@@ -150,5 +168,65 @@ export class TrackingNodeService {
       updateUsername: item.updateUser.username,
       updateNickname: item.updateUser.nickname,
     }))
+  }
+
+  async createBusiness({ name, description }: ICreateBusinessSiteReq, user: IUser): Promise<ICreateBusinessSiteRes> {
+    const businessSiteInfo = await this.trackingNodeRepository.save({
+      code: this.generateRandomString(),
+      name,
+      description,
+      type: TrackingNodeType.SPM,
+      level: TrackingNodeLevel.LEVEL1,
+      status: TrackingNodeStatus.VALID,
+      createUserId: user.userId,
+      updateUserId: user.userId,
+    })
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
+  }
+
+  async updateBusiness(req: IUpdateBusinessSiteReq, user: IUser): Promise<IUpdateBusinessSiteRes> {
+    const {
+      code,
+      name,
+      description,
+    } = req
+    const businessSiteInfo = await this.trackingNodeRepository.save({
+      code,
+      name,
+      description,
+      updateUserId: user.userId,
+      updateTime: new Date(),
+    })
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
   }
 }

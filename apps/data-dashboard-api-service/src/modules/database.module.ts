@@ -9,6 +9,7 @@ import { Role } from "@entity/Role.entity"
 import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
 import { Permission } from "@entity/Permission.entity"
 import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
+import { TrackingNodeEntity } from "@entity/TrackingNode.entity"
 
 const entities = [
   MetaEventEntity,
@@ -19,6 +20,7 @@ const entities = [
   UserRoleRelation,
   Permission,
   RolePermissionRelation,
+  TrackingNodeEntity,
 ]
 
 @Module({

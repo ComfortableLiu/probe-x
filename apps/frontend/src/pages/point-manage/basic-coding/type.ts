@@ -1,8 +1,7 @@
+import { IBusinessListItem } from "@probe-x/shared-types/src"
+
 export interface IPointManageBasicCodingState {
-  // total: number
-  // page: number
-  // pageSize: number
-  // eventList: IEventListItem[]
+  businessList?: IBusinessListItem[]
 }
 
 // export interface IEventListItem extends IReqEventListItem {

@@ -31,7 +31,7 @@ function ScmManage() {
   })
 
   useEffect(() => {
-    if (!businessList.length) return
+    if (!businessList?.length) return
     if (query.businessCode) return
     refresh({ businessCode: businessList[0].code }, true)
   }, [businessList, query.businessCode, refresh])

@@ -1,8 +1,13 @@
 .cell {
   display: flex;
   flex-direction: column;
+  margin: 24px;
+  gap: 8px;
 
   .title {
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    border-left: #1890ff 5px solid;
+    padding: 0 8px;
   }
 }

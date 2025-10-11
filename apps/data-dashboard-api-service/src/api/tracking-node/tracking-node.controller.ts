@@ -1,7 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { TrackingNodeService } from "@src/api/tracking-node/tracking-node.service"
+import type { ICreateBusinessSiteReq, IUpdateBusinessSiteReq, IUser } from "@probe-x/shared-types/src"
 import { TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
-import { BusinessException } from "@probe-x/shared-utils/src/lib/backend-common"
+import { BusinessException, User } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Controller('tracking')
 export class TrackingNodeController {
@@ -48,5 +49,21 @@ export class TrackingNodeController {
   @Get('spm/business/list')
   async getBusinessList() {
     return await this.trackingNodeService.getBusinessList()
+  }
+
+  @Post('spm/business/create')
+  async createBusiness(
+    @Body() data: ICreateBusinessSiteReq,
+    @User() user: IUser,
+  ) {
+    return await this.trackingNodeService.createBusiness(data, user)
+  }
+
+  @Post('spm/business/update')
+  async updateBusiness(
+    @Body() data: IUpdateBusinessSiteReq,
+    @User() user: IUser,
+  ) {
+    return await this.trackingNodeService.updateBusiness(data, user)
   }
 }

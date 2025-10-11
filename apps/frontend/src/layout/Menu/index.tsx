@@ -30,7 +30,7 @@ const MenuView = () => {
     key: route.key,
     icon: route.meta?.icon,
     label: route.path ? <Link to={route.path}>{route.name}</Link> : route.name,
-    children: route.children?.map(child => ({
+    children: (route.children || []).filter(route => !route.meta?.isHidden)?.map(child => ({
       key: child.key,
       icon: child.meta?.icon,
       label: <Link to={child.path}>{child.name}</Link>,

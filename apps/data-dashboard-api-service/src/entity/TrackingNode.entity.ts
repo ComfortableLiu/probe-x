@@ -86,7 +86,7 @@ export class TrackingNodeEntity {
    * 子节点关联
    */
   @OneToMany(() => TrackingNodeEntity, node => node.parent)
-  children: TrackingNodeEntity[]
+  children?: TrackingNodeEntity[]
 
   @Column({
     name: 'status',

@@ -12,6 +12,7 @@ import { BrowserRouter, StaticRouter } from "react-router-dom"
 import icon from "@public/icon.png"
 import RouteGuard from "@/layout/RouteGuard"
 import { StoreProvider } from "@/store/storeContext"
+import zhCN from 'antd/locale/zh_CN'
 
 export interface AppProps {
   location?: string;
@@ -64,7 +65,7 @@ const App = ({ location }: AppProps) => {
 
   return (
     <StoreProvider>
-      <ConfigProvider theme={themeConfig}>
+      <ConfigProvider locale={zhCN} theme={themeConfig}>
         <RouterComponent location={location}>
           <link rel="icon" href={icon} />
           <RouteGuard>

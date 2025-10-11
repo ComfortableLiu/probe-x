@@ -68,3 +68,29 @@ export interface IBusinessListItem {
 }
 
 export type IQueryBusinessListRes = IBusinessListItem[]
+
+/**
+ * 创建业务线/站点
+ */
+export interface ICreateBusinessSiteReq {
+  // 节点名称
+  name: string
+  // 节点描述
+  description?: string
+}
+
+export type ICreateBusinessSiteRes = IBusinessListItem
+
+/**
+ * 修改业务线/站点
+ */
+export interface IUpdateBusinessSiteReq {
+  // 节点Code
+  code: string
+  // 节点名称
+  name: string
+  // 节点描述
+  description?: string
+}
+
+export type IUpdateBusinessSiteRes = IBusinessListItem

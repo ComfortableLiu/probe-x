@@ -26,6 +26,7 @@ export class UserEntity {
     unique: true,
     comment: '邮箱地址',
   })
+  @Index()
   email?: string
 
   @Column({

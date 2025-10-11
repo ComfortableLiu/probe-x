@@ -24,14 +24,6 @@ export default {
     key: 'point-manage-spm',
     component: lazy(() => import('@pages/point-manage/spm/index')),
   }, {
-    path: '/point-manage/spm/detail',
-    name: 'SPM详情',
-    key: 'point-manage-spm-detail',
-    component: lazy(() => import('@pages/point-manage/spm/components/detail/index')),
-    meta: {
-      isHidden: true,
-    },
-  }, {
     path: '/point-manage/scm',
     name: 'SCM管理',
     key: 'point-manage-scm',
