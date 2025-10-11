@@ -13,6 +13,7 @@ import type {
 } from "@probe-x/shared-types/src"
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 import { UserEntity } from "@entity/User.entity"
+import { BusinessException } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class TrackingNodeService {
@@ -52,18 +53,19 @@ export class TrackingNodeService {
       .leftJoin(
         TrackingNodeEntity,
         'children',
-        'children.parentCode = node.code AND children.type = :type',
+        'children.parentCode = trackingNode.code AND children.type = :type',
         { type },
       )
+      // 修正用户表连接方式：使用实体类名的字符串形式
       .leftJoin(
-        UserEntity,
+        UserEntity,  // 这里使用实体类名的字符串形式
         'createUser',
-        'user.id = trackingNode.createUserId',
+        'createUser.userId = trackingNode.createUserId',
       )
       .leftJoin(
-        UserEntity,
+        UserEntity,  // 这里使用实体类名的字符串形式
         'updateUser',
-        'user.id = trackingNode.updateUserId',
+        'updateUser.userId = trackingNode.updateUserId',
       )
 
     if (parentCode) {
@@ -71,7 +73,7 @@ export class TrackingNodeService {
       countWhere['parentCode'] = parentCode
     }
     if (type) {
-      query.where('trackingNode.type = :type', { type })
+      query.andWhere('trackingNode.type = :type', { type })
       countWhere['type'] = type
     }
     if (name) {
@@ -93,7 +95,7 @@ export class TrackingNodeService {
     })
 
     // 按主节点分组
-    const result = await query.groupBy('trackingNode.id')
+    query.groupBy('trackingNode.code')
       // 选择主节点字段并统计子节点数量
       .select([
         'trackingNode.code as code',
@@ -105,42 +107,47 @@ export class TrackingNodeService {
         'trackingNode.status as status',
         'trackingNode.createTime as createTime',
         'trackingNode.createUserId as createUserId',
-        'createUser.name as createUsername as createUsername',
+        'createUser.username as createUsername',
         'createUser.nickname as createNickname',
         'trackingNode.updateTime as updateTime',
         'trackingNode.updateUserId as updateUserId',
-        'updateUser.name as updateUsername',
+        'updateUser.username as updateUsername',
         'updateUser.nickname as updateNickname',
-        'COUNT(children.id) AS childrenCount', // 统计子节点数量
+        'COUNT(children.code) AS childrenCount', // 统计子节点数量
       ])
       // 按编码排序
       .orderBy('trackingNode.updateTime', 'DESC')
       .skip((page - 1) * pageSize)
       .take(pageSize)
-      .getRawMany()
+    try {
+      const result = await query.getRawMany()
 
-    return {
-      total,
-      page,
-      pageSize,
-      data: result.map((item) => ({
-        code: item.code,
-        type: item.type,
-        level: item.level,
-        name: item.name,
-        description: item.description,
-        parentCode: item.parentCode,
-        status: item.status,
-        createTime: item.createTime,
-        createUserId: item.createUserId,
-        createUsername: item.createUsername,
-        createNickname: item.createNickname,
-        updateTime: item.updateTime,
-        childrenCount: item.childrenCount,
-        updateNickname: item.updateNickname,
-        updateUserId: item.updateUserId,
-        updateUsername: item.updateUsername,
-      })),
+      return {
+        total,
+        page,
+        pageSize,
+        data: result.map((item) => ({
+          code: item.code,
+          type: item.type,
+          level: Number(item.level),
+          name: item.name,
+          description: item.description,
+          parentCode: item.parentCode,
+          status: Number(item.status),
+          createTime: item.createTime,
+          createUserId: item.createUserId,
+          createUsername: item.createUsername,
+          createNickname: item.createNickname,
+          updateTime: item.updateTime,
+          childrenCount: Number(item.childrenCount),
+          updateNickname: item.updateNickname,
+          updateUserId: item.updateUserId,
+          updateUsername: item.updateUsername,
+        })),
+      }
+    } catch (e) {
+      console.error(e)
+      throw new BusinessException('查询失败')
     }
   }
 

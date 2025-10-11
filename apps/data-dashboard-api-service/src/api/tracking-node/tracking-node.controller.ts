@@ -30,7 +30,7 @@ export class TrackingNodeController {
     @Query('status') status?: TrackingNodeStatus,
   ) {
     if (!parentCode?.length) {
-      return new BusinessException('请选择业务线')
+      throw new BusinessException('请选择业务线')
     }
     return await this.trackingNodeService.getTrackingNodeList(
       page,

@@ -29,7 +29,7 @@ const pointManageSpmModel = createModel<RootModel>()({
       await dispatch.pointManageSpmModel.getSpmList(null)
     },
     async getSpmList(_, state) {
-      if (state.pointManageSpmModel?.businessList?.length) return
+      if (!state.pointManageSpmModel?.businessList?.length) return
 
       const query = getParamsOrQuery()
 
