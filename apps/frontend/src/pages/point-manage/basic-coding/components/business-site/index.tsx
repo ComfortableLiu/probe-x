@@ -1,14 +1,20 @@
 import React, { useCallback, useMemo, useState } from "react"
 import TableComponent from "@components/TableComponent"
-import EditBusinessSite from "./components/edit"
 import * as styles from "./styles.module.scss"
 import { Button, Space, TableProps, Tag, Typography } from "antd"
 import { AddOne } from "@icon-park/react"
-import { IBusinessListItem, TrackingNodeStatus } from "@probe-x/shared-types/src"
+import {
+  IBusinessListItem,
+  ICreateBusinessSiteReq,
+  ITrackingListItem,
+  IUpdateBusinessSiteReq,
+  TrackingNodeStatus,
+} from "@probe-x/shared-types/src"
 import { useHistoryListener, useLoading, useModel } from "@/hooks"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
-import { IPointManageBasicCodingState } from "@pages/point-manage/basic-coding/type"
+import { IPointManageBasicCodingState } from "../../type"
+import SpmScmEditPopup from "@pages/point-manage/components/SpmScmEditPopup"
 
 function BusinessSite() {
 
@@ -21,9 +27,8 @@ function BusinessSite() {
     businessList = [],
   } = useModel<IPointManageBasicCodingState>('pointManageBasicCodingModel')
 
-
   const [showEditBusinessSitePopup, setShowEditAddBusinessSitePopup] = useState(false)
-  const [selectedBusinessSite, setSelectedBusinessSite] = useState<IBusinessListItem | null>(null)
+  const [selectedBusinessSite, setSelectedBusinessSite] = useState<IBusinessListItem>()
 
   useHistoryListener((location) => {
     if (location.pathname === '/point-manage/basic-coding') {
@@ -99,6 +104,14 @@ function BusinessSite() {
     },
   ], [Paragraph, showEditPopup])
 
+  const handleSubmit = useCallback(async (value: ICreateBusinessSiteReq | IUpdateBusinessSiteReq) => {
+    if (!!selectedBusinessSite) {
+      await dispatch.pointManageBasicCodingModel.updateBusiness(value as IUpdateBusinessSiteReq)
+    } else {
+      await dispatch.pointManageBasicCodingModel.createBusiness(value as ICreateBusinessSiteReq)
+    }
+  }, [dispatch.pointManageBasicCodingModel, selectedBusinessSite])
+
   return (
     <div className={styles.container}>
       <Space>
@@ -117,11 +130,13 @@ function BusinessSite() {
         loading={loading.pointManageBasicCodingModel.getBusinessLines}
       />
 
-      {/* 新增/编辑业务线弹窗 */}
-      <EditBusinessSite
+
+      <SpmScmEditPopup
         open={showEditBusinessSitePopup}
-        businessSiteInfo={selectedBusinessSite}
         onClose={hideEditPopup}
+        nodeName="业务线/站点"
+        selectedNodeData={selectedBusinessSite as ITrackingListItem}
+        onSubmit={(value: ICreateBusinessSiteReq | IUpdateBusinessSiteReq) => handleSubmit(value)}
       />
     </div>
   )

@@ -41,7 +41,6 @@ export interface ITrackingListItem {
 
 export type IQueryTrackingSpmListRes = IPageResult<ITrackingListItem>
 
-
 export interface IBusinessListItem {
   // 节点编码，生成规则是0-9a-zA-Z随机16个
   code: string
