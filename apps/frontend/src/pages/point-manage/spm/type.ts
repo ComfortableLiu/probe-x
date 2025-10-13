@@ -9,4 +9,10 @@ export interface IPointManageSpmState {
 }
 
 export interface ITrackingSpmListItem extends ITrackingListItem {
+  child?: {
+    total: number,
+    page: number,
+    pageSize: number,
+    trackingSpmList: ITrackingSpmListItem[]
+  }
 }

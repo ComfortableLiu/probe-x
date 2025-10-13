@@ -1,5 +1,6 @@
 import { TablePaginationConfig, TableProps } from "antd"
 import { CSSProperties } from "react"
+import type { ExpandableConfig } from "rc-table/lib/interface"
 
 export interface ITableComponentProps<DataType> {
   dataSource: DataType[]
@@ -22,4 +23,7 @@ export interface ITableComponentProps<DataType> {
 
   // 分页改变回调，如果传了，就不会去修改url参数，不传就去修改url参数
   onPaginationChange?: (pagination: TablePaginationConfig) => void
+
+  // 展开配置
+  expandable?: ExpandableConfig<DataType>
 }

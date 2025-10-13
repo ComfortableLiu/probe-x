@@ -93,3 +93,26 @@ export interface IUpdateBusinessSiteReq {
 }
 
 export type IUpdateBusinessSiteRes = IBusinessListItem
+
+/**
+ * 创建SPM节点
+ */
+export interface ICreateSpmNodeReq {
+  // 节点名称
+  name: string
+  // 节点描述
+  description?: string
+  // 父节点Code
+  parentCode: string
+  // 当前层级
+  level: TrackingNodeLevel
+}
+
+export type ICreateSpmNodeRes = IBusinessListItem
+
+/**
+ * 修改业SPM节点
+ */
+export type IUpdateSpmNodeReq = IUpdateBusinessSiteReq
+
+export type IUpdateSpmNodeRes = IBusinessListItem

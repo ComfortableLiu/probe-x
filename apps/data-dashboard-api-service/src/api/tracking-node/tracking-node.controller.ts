@@ -1,6 +1,12 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { TrackingNodeService } from "@src/api/tracking-node/tracking-node.service"
-import type { ICreateBusinessSiteReq, IUpdateBusinessSiteReq, IUser } from "@probe-x/shared-types/src"
+import type {
+  ICreateBusinessSiteReq,
+  ICreateSpmNodeReq,
+  IUpdateBusinessSiteReq,
+  IUpdateSpmNodeReq,
+  IUser,
+} from "@probe-x/shared-types/src"
 import { TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 import { BusinessException, User } from "@probe-x/shared-utils/src/lib/backend-common"
 
@@ -65,5 +71,21 @@ export class TrackingNodeController {
     @User() user: IUser,
   ) {
     return await this.trackingNodeService.updateBusiness(data, user)
+  }
+
+  @Post('spm/node/create')
+  async createSpmNode(
+    @Body() data: ICreateSpmNodeReq,
+    @User() user: IUser,
+  ) {
+    return await this.trackingNodeService.createSpmNode(data, user)
+  }
+
+  @Post('spm/node/update')
+  async updateSpmNode(
+    @Body() data: IUpdateSpmNodeReq,
+    @User() user: IUser,
+  ) {
+    return await this.trackingNodeService.updateSpmNode(data, user)
   }
 }

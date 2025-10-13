@@ -61,10 +61,12 @@ function SpmScmEditPopup(props: ISpmScmEditPopupProps) {
         onFinish={handleSubmit}
         disabled={loading}
         initialValues={{
-          parentCode: selectedNodeData?.parentCode,
+          parentCode: parentNode?.code,
           code: selectedNodeData?.code,
+          level: selectedNodeData?.level || (parentNode?.level || 0) + 1,
         }}
       >
+        <Form.Item hidden name="level" />
         {parentNode ?
           <Form.Item
             label={parentNodeName || '所属节点'}

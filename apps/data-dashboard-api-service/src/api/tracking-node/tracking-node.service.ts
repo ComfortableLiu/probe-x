@@ -5,10 +5,14 @@ import { TrackingNodeEntity } from "@entity/TrackingNode.entity"
 import type {
   ICreateBusinessSiteReq,
   ICreateBusinessSiteRes,
+  ICreateSpmNodeReq,
+  ICreateSpmNodeRes,
   IQueryBusinessListRes,
   IQueryTrackingSpmListRes,
   IUpdateBusinessSiteReq,
   IUpdateBusinessSiteRes,
+  IUpdateSpmNodeReq,
+  IUpdateSpmNodeRes,
   IUser,
 } from "@probe-x/shared-types/src"
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
@@ -155,6 +159,7 @@ export class TrackingNodeService {
     const result = await this.trackingNodeRepository.createQueryBuilder('trackingNode')
       .leftJoinAndSelect('trackingNode.createUser', 'createUser')
       .leftJoinAndSelect('trackingNode.updateUser', 'updateUser')
+      .where({ level: TrackingNodeLevel.LEVEL1 })
       .orderBy('trackingNode.updateTime', 'DESC')
       .getMany()
 
@@ -235,5 +240,46 @@ export class TrackingNodeService {
       updateUsername: user.username,
       updateNickname: user.nickname,
     }
+  }
+
+  async createSpmNode(req: ICreateSpmNodeReq, user: IUser): Promise<ICreateSpmNodeRes> {
+    const {
+      name,
+      description,
+      parentCode,
+      level,
+    } = req
+    const data = {
+      code: this.generateRandomString(),
+      name,
+      description,
+      parentCode,
+      level,
+      type: TrackingNodeType.SPM,
+      createUserId: user.userId,
+      updateUserId: user.userId,
+    }
+    console.log('lllll-llll-', data)
+    const businessSiteInfo = await this.trackingNodeRepository.save(data)
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
+  }
+
+  async updateSpmNode(req: IUpdateSpmNodeReq, user: IUser): Promise<IUpdateSpmNodeRes> {
+    return this.updateBusiness(req, user)
   }
 }

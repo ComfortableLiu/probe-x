@@ -19,3 +19,10 @@ export function delay(time = 1000) {
     }, time)
   })
 }
+
+/**
+ * 深拷贝数组
+ */
+export function deepCopyArray<T>(arr: T[]): T[] {
+  return JSON.parse(JSON.stringify(arr))
+}

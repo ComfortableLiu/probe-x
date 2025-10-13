@@ -14,6 +14,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
     loading = false,
     style,
     onPaginationChange,
+    expandable,
   } = props
 
   const { refresh } = useRouter()
@@ -40,6 +41,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
         loading={loading}
         scroll={{ x: "max-content" }}
         size="small"
+        expandable={expandable}
         onChange={(pagination: TablePaginationConfig, filters, sorter, extra: {
           currentDataSource,
           // paginate | sort | filter
