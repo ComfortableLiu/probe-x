@@ -15,6 +15,7 @@
     "@nestjs/platform-express": "^11.1.5",
     "@nestjs/serve-static": "^5.0.3",
     "@nestjs/typeorm": "^11.0.0",
+    "@clickhouse/client": "^1.12.1",
     "mysql2": "^3.14.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",

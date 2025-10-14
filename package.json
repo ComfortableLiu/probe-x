@@ -60,8 +60,8 @@
   "devDependencies": {
     "@nx/devkit": "^21.3.10",
     "@nx/js": "^21.3.10",
-    "@nx/node": "^21.3.10",
     "@nx/nest": "^21.3.10",
+    "@nx/node": "^21.3.10",
     "@nx/rspack": "^21.3.10",
     "@nx/workspace": "^21.3.10",
     "@rspack/cli": "^1.4.11",
@@ -86,7 +86,6 @@
     "libs/*"
   ],
   "dependencies": {
-    "@clickhouse/client": "^1.12.1",
     "axios": "^1.12.2",
     "query-string": "^9.3.1"
   }

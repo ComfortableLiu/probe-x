@@ -4,6 +4,7 @@ import { KafkaModule } from './modules/kafka.module'
 import { PointModule } from './api/point/point.module'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import {
+  ClickHouseModule,
   JsonBodyInterceptor,
   ResponseInterceptor,
   SignatureInterceptor,
@@ -13,6 +14,7 @@ import {
 @Module({
   imports: [
     EnvConfigModule,
+    ClickHouseModule,
     // DatabaseModule,
     KafkaModule,
     PointModule,
