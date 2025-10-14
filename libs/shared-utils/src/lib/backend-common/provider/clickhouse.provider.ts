@@ -24,5 +24,5 @@ export const ClickHouseProvider: Provider = {
       },
     })
   },
-  inject: [ConfigService], // 注入配置服务
+  inject: [ConfigService],
 }

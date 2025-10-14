@@ -41,7 +41,7 @@ export class PointController {
     try {
       await this.pointService.saveBeaconData(eventData)
     } catch (e) {
-      return ResponseData.error((e as Error).message)
+      throw ResponseData.error((e as Error).message)
     }
     // 返回成功响应
     return true
