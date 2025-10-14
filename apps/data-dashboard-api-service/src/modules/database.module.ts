@@ -42,7 +42,6 @@ const entities = [
       },
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature(entities),
   ],
   exports: [TypeOrmModule],
 })

@@ -1,7 +1,7 @@
 import { Body, Controller, Headers, Post, Req } from '@nestjs/common'
 import { PointService } from './point.service'
 import { Request } from 'express'
-import { ResponseData } from "@shared-utils/lib/backend-common"
+import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Controller('/point')
 export class PointController {

@@ -42,6 +42,8 @@
     "kafkajs": "^2.2.4",
     "mqtt": "^5.14.0",
     "nats": "^2.29.3",
-    "utf-8-validate": "^6.0.5"
+    "utf-8-validate": "^6.0.5",
+    "@probe-x/shared-utils": "workspace: *",
+    "@probe-x/shared-types": "workspace: *"
   }
 }

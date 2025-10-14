@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common'
-import DatabaseModule from "./modules/database.module"
 import EnvConfigModule from "./modules/env-config.module"
 import { KafkaModule } from './modules/kafka.module'
-import { DataModule } from './api/data/data.module'
 import { PointModule } from './api/point/point.module'
-import { APP_INTERCEPTOR } from '@nestjs/core'
-import { ResponseInterceptor, SignatureInterceptor } from "@shared-utils/backend-common"
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
+import {
+  JsonBodyInterceptor,
+  ResponseInterceptor,
+  SignatureInterceptor,
+  SsoAuthGuard,
+} from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Module({
   imports: [
     EnvConfigModule,
-    DatabaseModule,
+    // DatabaseModule,
     KafkaModule,
-    DataModule,
     PointModule,
   ],
   providers: [{
@@ -21,6 +23,12 @@ import { ResponseInterceptor, SignatureInterceptor } from "@shared-utils/backend
   }, {
     provide: APP_INTERCEPTOR,
     useClass: SignatureInterceptor,
+  }, {
+    provide: APP_INTERCEPTOR,
+    useClass: JsonBodyInterceptor,
+  }, {
+    provide: APP_GUARD,
+    useClass: SsoAuthGuard,
   }],
 })
 export class AppModule {

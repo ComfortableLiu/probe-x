@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Event } from '@entity/event.entity'
-import { IAnyObj } from "@shared-types"
+import { IAnyObj } from "@probe-x/shared-types/src"
 
 @Injectable()
 export class PointService {
