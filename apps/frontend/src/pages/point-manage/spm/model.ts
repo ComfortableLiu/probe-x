@@ -79,7 +79,7 @@ const pointManageSpmModel = createModel<RootModel>()({
       dispatch.pointManageSpmModel.updateItem({ businessList: res.data })
     },
     // 获取SPM列表
-    async getSpmNodeList(payload: { parentCode: string, page?: number, pageSize?: number } | null) {
+    async getSpmNodeList(payload: { parentCode?: string, page?: number, pageSize?: number } | null) {
       const { parentCode, page = 1, pageSize = 20 } = payload || {}
 
       // 是否是页面
@@ -92,18 +92,15 @@ const pointManageSpmModel = createModel<RootModel>()({
       let params: IQueryTrackingSpmListReq
       if (!isPage) {
         params = {
+          parentCode,
           page,
           pageSize,
-          parentCode,
         }
       } else {
         params = {
-          name: query.name,
-          code: query.code,
           parentCode: query.businessCode,
-          status: query.status,
-          page: query.page || 1,
-          pageSize: query.pageSize || 20,
+          page,
+          pageSize,
         }
       }
       const { data } = await querySpmNodeList(params)
