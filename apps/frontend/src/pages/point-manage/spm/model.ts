@@ -9,7 +9,6 @@ import {
   ITrackingListItem,
   IUpdateSpmNodeReq,
 } from "@probe-x/shared-types/src"
-import { deepCopyArray } from "@probe-x/shared-utils/src"
 
 const initState: IPointManageSpmState = {
   page: 1,
@@ -43,7 +42,7 @@ const pointManageSpmModel = createModel<RootModel>()({
         state.trackingSpmList = payload.child
         return state
       }
-      const list = deepCopyArray(state.trackingSpmList)
+      const list = [...state.trackingSpmList]
       const q = []
       list.forEach(item => q.push(item))
       while (q.length) {
@@ -60,7 +59,6 @@ const pointManageSpmModel = createModel<RootModel>()({
           q.push(...(item.child?.trackingSpmList || []))
         }
       }
-      console.log([...list])
       return {
         ...state,
         trackingSpmList: list,

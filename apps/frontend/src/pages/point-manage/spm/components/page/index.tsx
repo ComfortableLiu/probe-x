@@ -32,9 +32,14 @@ function Page(props: IPageProps) {
 
   const isFinish = useMemo(() => total <= (page * pageSize) || trackingSpmList?.length, [page, pageSize, total, trackingSpmList?.length])
 
+  const listHeight = useMemo(() => {
+    // 因为页面这里没有详情内容，所以要将其高度加上去
+    return containerHeight + 156 + 24 + 2
+  }, [containerHeight])
+
   const onScrollPage = async (e: React.UIEvent<HTMLElement, UIEvent>) => {
     if (
-      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
+      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - listHeight) <= 1
     ) {
       if (isFinish) return
       setLoading(true)
@@ -60,15 +65,10 @@ function Page(props: IPageProps) {
 
       <List
         loading={loading}
-        header={(
-          <div>
-            这里是页面
-          </div>
-        )}
       >
         <VirtualList
           data={trackingSpmList}
-          height={containerHeight}
+          height={listHeight}
           onScroll={onScrollPage}
           itemKey="code"
         >

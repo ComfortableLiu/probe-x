@@ -11,8 +11,6 @@ import FormCascader from "@components/FormComponent/form-item/cascader"
 
 /**
  * 表单组件
- * @param props
- * @constructor
  */
 function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>) {
 

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from "react"
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { Button, Descriptions, DescriptionsProps, Empty, List, Popover, Space } from "antd"
 import { AddOne } from "@icon-park/react"
 import VirtualList from "rc-virtual-list"
@@ -51,7 +51,7 @@ function Module(props: IModuleProps) {
     })
   }, [dispatch.pointManageSpmModel, selectedPage])
 
-  const onScrollPage = async (e: React.UIEvent<HTMLElement, UIEvent>) => {
+  const onScrollPage = useCallback(async (e: React.UIEvent<HTMLElement, UIEvent>) => {
     if (
       Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
     ) {
@@ -62,7 +62,7 @@ function Module(props: IModuleProps) {
         pageSize,
       })
     }
-  }
+  }, [containerHeight, dispatch.pointManageSpmModel, isFinish, page, pageSize, selectedPage?.code])
 
   const borderedItems: DescriptionsProps['items'] = useMemo(() => [
     {
@@ -141,6 +141,7 @@ function Module(props: IModuleProps) {
             bordered
             title={selectedPage.name}
             size="small"
+            style={{ height: 156 }}
             extra={
               <Button
                 type="primary"

@@ -141,6 +141,7 @@ function Point(props: IPointProps) {
             bordered
             title={selectedModule.name}
             size="small"
+            style={{ height: 156 }}
             extra={
               <Button
                 type="primary"

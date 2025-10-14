@@ -13,8 +13,6 @@ import Module from "@pages/point-manage/spm/components/module"
 import Point from "@pages/point-manage/spm/components/point"
 import { Splitter } from "antd"
 
-const CONTAINER_HEIGHT = 400
-
 function ScmManage() {
 
   const {
@@ -31,6 +29,11 @@ function ScmManage() {
       dispatch.pointManageSpmModel.init()
     }
   })
+
+  const containerHeight = useMemo(() => {
+    // 窗口高度 - form高度 - 标题高度 - 内容边框 - 上下两个内边距 - 按钮高度 - 内容详情 - 内容详情上下边距 - 列表边框
+    return window.innerHeight - 150 - 47 - 2 - 24 - 32 - 156 - 24 - 2
+  }, [])
 
   const businessData = useMemo(() => {
     if (!businessList?.length) return null
@@ -126,15 +129,13 @@ function ScmManage() {
 
   return (
     <div>
-      <h2>SPM管理</h2>
-      <FormComponent
-        formItems={formItems}
-      />
+      <h2 style={{ height: 47, lineHeight: "47px" }}>SPM管理</h2>
+      <FormComponent formItems={formItems} />
 
-      <Splitter style={{ border: '1px solid #eee' }}>
-        <Splitter.Panel>
+      <Splitter style={{ border: '1px solid #eee', height: "calc(100vh - 47px - 150px)" }}>
+        <Splitter.Panel style={{ height: '100%' }}>
           <Page
-            containerHeight={CONTAINER_HEIGHT}
+            containerHeight={containerHeight}
             selectedPage={selectedPage}
             openPageAdd={() => openPageEdit()}
             openPageEdit={(page: ITrackingSpmListItem) => openPageEdit(page)}
@@ -145,9 +146,9 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel>
+        <Splitter.Panel style={{ height: '100%' }}>
           <Module
-            containerHeight={CONTAINER_HEIGHT}
+            containerHeight={containerHeight}
             selectedPage={selectedPage}
             selectedModule={selectedModule}
             openPageEdit={(page) => openPageEdit(page)}
@@ -159,9 +160,9 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel>
+        <Splitter.Panel style={{ height: '100%' }}>
           <Point
-            containerHeight={CONTAINER_HEIGHT}
+            containerHeight={containerHeight}
             selectedPage={selectedPage}
             selectedModule={selectedModule}
             selectedPoint={selectedPoint}
