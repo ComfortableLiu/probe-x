@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { ClickHouseClient, QueryResult } from '@clickhouse/client'
+import { ClickHouseClient } from '@clickhouse/client'
 import { CLICKHOUSE_CLIENT } from "../../provider/clickhouse.provider"
-import type { DataFormat } from "@clickhouse/client-common"
 
 @Injectable()
 export class ClickHouseService {
@@ -9,15 +8,16 @@ export class ClickHouseService {
   constructor(
     @Inject(CLICKHOUSE_CLIENT)
     private readonly clickhouseClient: ClickHouseClient,
-  ) {}
+  ) {
+  }
 
   /**
    * 执行查询（返回 JSON 格式结果）
    * @param query SQL 查询语句
    * @param params 查询参数（可选）
    */
-  async query<T extends DataFormat>(query: string, params?: Record<string, any>) {
-    const result: QueryResult<T> = await this.clickhouseClient.query({
+  async query(query: string, params?: Record<string, any>) {
+    const result = await this.clickhouseClient.query({
       query,
       params,
       format: 'JSONEachRow', // 返回每行作为 JSON 对象

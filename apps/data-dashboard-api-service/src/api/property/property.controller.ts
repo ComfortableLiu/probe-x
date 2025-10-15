@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from "@nestjs/common"
 import { PropertyService } from "@src/api/property/property.service"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
-import type { PaginationDto, PropertyFilterDto } from "@src/api/property/type"
+import type { PropertyFilterDto } from "@src/api/property/type"
 
 @Controller('property')
 export class PropertyController {
@@ -21,8 +21,6 @@ export class PropertyController {
    */
   @Get('list')
   async getProperties(
-    @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 20,
     @Query('eventName') eventName?: string,
     @Query('propertyName') propertyName?: string,
     @Query('type') type?: MetaPropertyBusinessType,
@@ -33,12 +31,7 @@ export class PropertyController {
       propertyName,
       type,
     }
-
-    const pagination: PaginationDto = {
-      page: Math.max(1, page),
-      pageSize: Math.max(1, Math.min(100, pageSize || 10)),
-    }
-    return await this.propertyService.getPropertyListWithPagination(filter, pagination)
+    return await this.propertyService.getPropertyListWithPagination(filter)
   }
 
   /**

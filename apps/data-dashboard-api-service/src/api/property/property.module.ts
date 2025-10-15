@@ -6,11 +6,13 @@ import { EventPropertyRelationEntity } from "@entity/EventPropertyRelation.entit
 import { UserModule } from "@src/api/user/user.module"
 import { PropertyController } from "@src/api/property/property.controller"
 import { PropertyService } from "@src/api/property/property.service"
+import { ClickHouseModule } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity]),
     UserModule,
+    ClickHouseModule,
   ],
   controllers: [PropertyController],
   providers: [PropertyService],

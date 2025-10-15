@@ -1,6 +1,6 @@
 import { MetaPropertyBusinessType, MetaPropertyStatus, MetaPropertyType } from "../entity"
 import { IQueryEventListRes } from "./event"
-import { IPageQuery, IPageResult } from "./request"
+import { IPageQuery } from "./request"
 
 export interface IPropertyListItem {
   propertyName: string
@@ -9,11 +9,11 @@ export interface IPropertyListItem {
   status: MetaPropertyStatus
   eventPropertyRemark?: string
 
-  createTime: Date
+  createTime: Date | null
   createUserId: number
   createUsername: string
   createNickname: string
-  updateTime: Date
+  updateTime: Date | null
   updateUserId: number
   updateUsername: string
   updateNickname: string
@@ -26,7 +26,7 @@ export interface IQueryPropertyListReq extends IPageQuery{
 }
 
 // 请求所有属性列表返回值
-export type IQueryPropertyListRes = IPageResult<IPropertyListItem>
+export type IQueryPropertyListRes = IPropertyListItem[]
 
 /**
  * 公参数属性列表项

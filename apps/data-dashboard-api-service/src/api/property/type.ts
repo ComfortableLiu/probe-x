@@ -6,8 +6,3 @@ export interface PropertyFilterDto {
   status?: number;
   type?: MetaPropertyBusinessType;
 }
-
-export interface PaginationDto {
-  page: number;
-  pageSize: number;
-}
