@@ -20,7 +20,6 @@ export class EventService {
     const { page, pageSize } = pagination
     const { eventName, status, propertyName } = filter
 
-
     // 使用 QueryBuilder 构建复杂查询
     const queryBuilder = this.eventRepository.createQueryBuilder('event')
       .leftJoinAndSelect('event.createUser', 'createUser')
