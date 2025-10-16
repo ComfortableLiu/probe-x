@@ -3,7 +3,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { IFormItem } from "@components/FormComponent/type"
 import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
-import { Space, TableProps } from "antd"
+import { Button, Space, TableProps } from "antd"
 import dayjs from "dayjs"
 import { IPointManagePropertyState, IPropertyListItem } from "@pages/point-manage/property/type"
 import { useHistoryListener, useLoading, useModel } from "@/hooks"
@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import PropertyDetail from "@pages/point-manage/property/components/detail"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
+import { AddOne } from "@icon-park/react"
 
 function PropertyManage() {
 
@@ -19,9 +20,6 @@ function PropertyManage() {
 
   const {
     propertyList,
-    pageSize,
-    page,
-    total,
   } = useModel<IPointManagePropertyState>('pointManagePropertyModel')
 
   const [selectedProperty, setSelectedProperty] = useState<IPropertyListItem | null>(null)
@@ -99,6 +97,10 @@ function PropertyManage() {
     },
   ], [openPropertyDetail])
 
+  const handleAddProperty = useCallback(() => {
+    // TODO 增加属性
+  }, [])
+
   return (
     <div>
       <h2>属性管理</h2>
@@ -106,14 +108,18 @@ function PropertyManage() {
         formItems={formItems}
       />
       <TableComponent<IPropertyListItem>
+        exButtons={(
+          <Button
+            type="primary"
+            onClick={() => handleAddProperty()}
+          >
+            新增属性
+            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+          </Button>
+        )}
         dataSource={propertyList}
         columns={columns}
         loading={loading.pointManagePropertyModel.getPropertyList}
-        paginationData={{
-          total,
-          current: page,
-          pageSize: pageSize,
-        }}
       />
       <PropertyDetail
         property={selectedProperty}

@@ -46,3 +46,14 @@ export interface IQueryPropertyEventsReq {
 
 // 属性关联事件返回值
 export type IQueryPropertyEventsRes = IQueryEventListRes
+
+// 创建属性
+export interface ICreatePropertyReq {
+  propertyName: string
+  propertyType: MetaPropertyType
+  type: MetaPropertyBusinessType
+  eventPropertyRemark?: string
+}
+
+// 属性关联事件返回值
+export type ICreatePropertyRes = IPropertyListItem

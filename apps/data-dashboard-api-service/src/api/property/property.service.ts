@@ -1,17 +1,21 @@
 import { Injectable } from "@nestjs/common"
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository } from "typeorm"
-import {
+import type {
+  ICreatePropertyReq,
+  ICreatePropertyRes,
   IQueryCommonPropertyListRes,
   IQueryPropertyListRes,
-  MetaPropertyBusinessType,
 } from "@probe-x/shared-types/src"
+import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { PropertyFilterDto } from "./type"
+import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class PropertyService {
   constructor(
+    private clickhouseService: ClickHouseService,
     @InjectRepository(MetaPropertyEntity)
     private propertyRepository: Repository<MetaPropertyEntity>,
   ) {
@@ -78,5 +82,29 @@ export class PropertyService {
       propertyName: item.propertyName,
       propertyType: item.propertyType,
     }))
+  }
+
+  async createProperty(data: ICreatePropertyReq): Promise<ICreatePropertyRes> {
+    // 先创建ClickHouse的列
+    // TODO 需要先处理一下同步两边的类型
+    await this.clickhouseService.executeDDL(`
+      ALTER TABLE event ADD COLUMN IF NOT EXISTS ${data.propertyName} ${data.propertyType}
+    `)
+    // 保存到自定义数据库中
+    const property = await this.propertyRepository.save(data)
+    return {
+      type: property.type,
+      propertyName: property.propertyName,
+      propertyType: property.propertyType,
+      status: property.status,
+      createTime: property.createTime,
+      updateTime: property.updateTime,
+      createUserId: property.createUser?.userId,
+      createUsername: property.createUser?.username,
+      createNickname: property.createUser?.nickname,
+      updateUserId: property.updateUser?.userId,
+      updateUsername: property.updateUser?.username,
+      updateNickname: property.updateUser?.nickname,
+    }
   }
 }

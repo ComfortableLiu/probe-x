@@ -1,15 +1,17 @@
 import { createModel } from "@rematch/core"
 import { IPointManagePropertyState } from "./type"
 import { RootModel } from "@/store/models"
-import { queryPropertyEvents, queryPropertyList } from "./services"
-import { IEventListItem, IQueryPropertyListReq, MetaPropertyBusinessType } from "@probe-x/shared-types/src"
+import { createProperty, queryPropertyEvents, queryPropertyList } from "./services"
+import {
+  ICreatePropertyReq,
+  IEventListItem,
+  IQueryPropertyListReq,
+  MetaPropertyBusinessType,
+} from "@probe-x/shared-types/src"
 import { getParamsOrQuery } from "@utils/router"
 
 const initState: IPointManagePropertyState = {
   propertyList: [],
-  page: 1,
-  total: 0,
-  pageSize: 1,
 }
 
 const pointManagePropertyModel = createModel<RootModel>()({
@@ -39,10 +41,7 @@ const pointManagePropertyModel = createModel<RootModel>()({
       }
       const { data } = await queryPropertyList(params)
       dispatch.pointManagePropertyModel.updateItem({
-        propertyList: data.data,
-        total: data.total,
-        page: data.page,
-        pageSize: data.pageSize,
+        propertyList: data,
       })
     },
     // 获取属性的关联事件
@@ -50,6 +49,10 @@ const pointManagePropertyModel = createModel<RootModel>()({
       const res = await queryPropertyEvents({ propertyName })
       const { data } = res
       dispatch.pointManagePropertyModel.updatePropertyEvents({ propertyName, events: data.data })
+    },
+    // 创建属性
+    async createProperty(payload: ICreatePropertyReq) {
+      await createProperty(payload)
     },
   }),
 })

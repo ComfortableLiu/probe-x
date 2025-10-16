@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react"
 import { ITableComponentProps } from "@components/TableComponent/type"
-import { Table, TablePaginationConfig } from "antd"
+import { Space, Table, TablePaginationConfig } from "antd"
 import * as styles from "./styles.module.scss"
 import { useRouter } from "@/hooks"
 
@@ -15,6 +15,7 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
     style,
     onPaginationChange,
     expandable,
+    exButtons,
   } = props
 
   const { refresh } = useRouter()
@@ -33,6 +34,11 @@ function TableComponent<DataType>(props: ITableComponentProps<DataType>) {
 
   return (
     <div className={styles.tableGroup} style={style}>
+      {exButtons ?
+        <Space direction="horizontal">
+          {exButtons}
+        </Space>
+        : null}
       <Table<DataType>
         dataSource={dataSource}
         columns={columns}

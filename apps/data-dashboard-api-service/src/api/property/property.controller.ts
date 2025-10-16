@@ -1,5 +1,6 @@
-import { Controller, Get, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { PropertyService } from "@src/api/property/property.service"
+import type { ICreatePropertyReq } from "@probe-x/shared-types/src"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
 import type { PropertyFilterDto } from "@src/api/property/type"
 
@@ -40,5 +41,15 @@ export class PropertyController {
   @Get('commonList')
   async getCommonProperties() {
     return await this.propertyService.getCommonProperties()
+  }
+
+  /**
+   * 获取所有公共属性
+   */
+  @Post('create')
+  async createProperty(
+    @Body() body: ICreatePropertyReq,
+  ) {
+    return await this.propertyService.createProperty(body)
   }
 }

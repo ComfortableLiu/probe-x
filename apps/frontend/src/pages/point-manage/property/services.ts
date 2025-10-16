@@ -1,5 +1,7 @@
 import request from "@/lib/request"
 import {
+  ICreatePropertyReq,
+  ICreatePropertyRes,
   IQueryPropertyEventsReq,
   IQueryPropertyEventsRes,
   IQueryPropertyListReq,
@@ -25,5 +27,16 @@ export function queryPropertyEvents(params: IQueryPropertyEventsReq) {
     url: '/event/list',
     method: 'get',
     params,
+  })
+}
+
+/**
+ * 新增属性
+ */
+export function createProperty(data: ICreatePropertyReq) {
+  return request<ICreatePropertyRes>({
+    url: '/property/create',
+    method: 'post',
+    data,
   })
 }

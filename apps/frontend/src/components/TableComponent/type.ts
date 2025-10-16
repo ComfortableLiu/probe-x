@@ -1,5 +1,5 @@
 import { TablePaginationConfig, TableProps } from "antd"
-import { CSSProperties } from "react"
+import { CSSProperties, ReactNode } from "react"
 import type { ExpandableConfig } from "rc-table/lib/interface"
 
 export interface ITableComponentProps<DataType> {
@@ -26,4 +26,7 @@ export interface ITableComponentProps<DataType> {
 
   // 展开配置
   expandable?: ExpandableConfig<DataType>
+
+  // 显示在表格左上角的按钮组
+  exButtons?: ReactNode
 }
