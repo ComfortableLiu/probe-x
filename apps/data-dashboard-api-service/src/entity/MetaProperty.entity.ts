@@ -79,6 +79,14 @@ export class MetaPropertyEntity {
   type: MetaPropertyBusinessType
 
   @Column({
+    name: 'comment',
+    comment: '属性备注',
+    type: 'text',
+    default: '',
+  })
+  comment?: string
+
+  @Column({
     name: 'status',
     comment: '状态，预留字段，前期还没有什么需要改变属性的功能',
     type: 'enum',

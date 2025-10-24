@@ -52,7 +52,7 @@ export interface ICreatePropertyReq {
   propertyName: string
   propertyType: MetaPropertyType
   type: MetaPropertyBusinessType
-  eventPropertyRemark?: string
+  comment?: string
 }
 
 // 属性关联事件返回值

@@ -18,10 +18,27 @@ export interface IMetaProperty {
  * 元属性类型枚举
  */
 export enum MetaPropertyType {
+  // 对应 ClickHouse String
   STRING = 'string',
+  // 对应 ClickHouse Int64
   NUMBER = 'number',
+  // 对应 ClickHouse Float64
+  FLOAT = 'float',
+  // 对应 ClickHouse UInt8，0-false 1-true
   BOOLEAN = 'boolean',
+  // 对应 ClickHouse Date64(3)，精确到毫秒
   DATE = 'date',
+}
+
+/**
+ * 业务中的原属性类型与 ClickHouse 类型映射
+ */
+export const MetaPropertyTypeMap = {
+  [MetaPropertyType.STRING]: 'String',
+  [MetaPropertyType.NUMBER]: 'Int64',
+  [MetaPropertyType.FLOAT]: 'Float64',
+  [MetaPropertyType.BOOLEAN]: 'UInt8',
+  [MetaPropertyType.DATE]: 'Date64(3)',
 }
 
 /**

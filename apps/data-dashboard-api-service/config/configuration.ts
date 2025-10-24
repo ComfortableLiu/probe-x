@@ -37,9 +37,9 @@ export default () => ({
   },
   clickhouse: {
     host: process.env.CLICKHOUSE_HOST || 'http://localhost:8123',
-    username: process.env.CLICKHOUSE_USER || 'default',
+    username: process.env.CLICKHOUSE_USER || 'admin',
     password: process.env.CLICKHOUSE_PASSWORD || '',
-    database: process.env.CLICKHOUSE_DATABASE || 'default',
+    database: process.env.CLICKHOUSE_DATABASE || 'probe_x',
     tls: process.env.CLICKHOUSE_TLS === 'true',
     rejectUnauthorized: process.env.CLICKHOUSE_REJECT_UNAUTHORIZED !== 'false',
     requestTimeout: parseInt(process.env.CLICKHOUSE_REQUEST_TIMEOUT, 10) || 30000,

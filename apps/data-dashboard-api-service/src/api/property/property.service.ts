@@ -1,13 +1,15 @@
 import { Injectable } from "@nestjs/common"
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository } from "typeorm"
-import type {
+import {
   ICreatePropertyReq,
   ICreatePropertyRes,
   IQueryCommonPropertyListRes,
   IQueryPropertyListRes,
+  MetaPropertyBusinessType,
+  MetaPropertyStatus,
+  MetaPropertyTypeMap,
 } from "@probe-x/shared-types/src"
-import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
 import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { PropertyFilterDto } from "./type"
 import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
@@ -25,6 +27,19 @@ export class PropertyService {
     filter: PropertyFilterDto,
   ): Promise<IQueryPropertyListRes> {
     const { propertyName, status, eventName, type } = filter
+
+    // 查询ClickHouse event_log的列
+    const clickhouseColumns: {
+      name: string,
+      type: string,
+      comment: string
+    } = await this.clickhouseService.executeDDL(`
+        SELECT name, type, comment
+        FROM system.columns
+        WHERE table = 'event_log'
+          AND database = currentDatabase()
+    `)
+    console.log('llll----', clickhouseColumns)
 
     // 使用 QueryBuilder 构建复杂查询
     const queryBuilder = this.propertyRepository.createQueryBuilder('property')
@@ -86,12 +101,17 @@ export class PropertyService {
 
   async createProperty(data: ICreatePropertyReq): Promise<ICreatePropertyRes> {
     // 先创建ClickHouse的列
-    // TODO 需要先处理一下同步两边的类型
     await this.clickhouseService.executeDDL(`
-      ALTER TABLE event ADD COLUMN IF NOT EXISTS ${data.propertyName} ${data.propertyType}
+        ALTER TABLE \`event_log\`
+            ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${MetaPropertyTypeMap[data.propertyType]} COMMENT '${data.comment}';
     `)
     // 保存到自定义数据库中
-    const property = await this.propertyRepository.save(data)
+    const property = await this.propertyRepository.save({
+      propertyName: data.propertyName,
+      propertyType: data.propertyType,
+      type: data.type,
+      status: MetaPropertyStatus.VALID,
+    })
     return {
       type: property.type,
       propertyName: property.propertyName,

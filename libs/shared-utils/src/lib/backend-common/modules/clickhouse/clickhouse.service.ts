@@ -44,8 +44,8 @@ export class ClickHouseService {
    * 执行 DDL 语句（建表、删表等）
    * @param query DDL 语句
    */
-  async executeDDL(query: string): Promise<void> {
-    await this.clickhouseClient.command({ query })
+  async executeDDL(query: string): Promise<any> {
+    return this.clickhouseClient.command({ query })
   }
 
   /**
