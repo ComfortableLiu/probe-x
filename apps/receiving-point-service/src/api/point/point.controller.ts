@@ -33,9 +33,9 @@ export class PointController {
     const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.connection.remoteAddress || req.ip
 
     const eventData = {
-      ...beaconData,
       ua,
       ip,
+      ...beaconData,
     }
 
     try {
