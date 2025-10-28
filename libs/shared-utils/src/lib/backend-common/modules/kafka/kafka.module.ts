@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Module } from '@nestjs/common'
+import { ClientsModule, Transport } from '@nestjs/microservices'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 
 @Module({
   imports: [
@@ -12,11 +12,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           transport: Transport.KAFKA,
           options: {
             client: {
-              clientId: 'preliminary-data-processing-service',
-              brokers: configService.get('KAFKA_BROKERS', 'localhost:9092').split(','),
+              clientId: configService.get('kafka.clientId', 'localhost:9092'),
+              brokers: configService.get('kafka.brokers', ['localhost:9092']),
             },
             consumer: {
-              groupId: 'preliminary-processing-group',
+              groupId: configService.get('kafka.groupId', 'localhost:9092'),
             },
           },
         }),
@@ -26,4 +26,5 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   exports: [ClientsModule],
 })
-export class KafkaModule {}
+export class KafkaModule {
+}

@@ -3,9 +3,13 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from "@src/app.module"
 import { ValidationPipe } from '@nestjs/common'
 import { AllExceptionsFilter } from "@probe-x/shared-utils/src/lib/backend-common/index"
+import { ConfigService } from "@nestjs/config"
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
+
+  // 从应用实例中获取 ConfigService
+  const configService = app.get(ConfigService)
 
   // 启用全局验证管道，用于自动验证请求数据
   // transform: true - 自动将请求数据转换为 DTO 类型实例
@@ -28,7 +32,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api')
 
-  const port = process.env.DATA_DASHBOARD_API_SERVICE_POST || 8101
+  const port = process.env.PORT || parseInt(configService.get('services.dataDashboardApi.port', '8101'))
   await app.listen(port)
   console.log(`数据仪表板API服务已启动，端口: ${port}`)
 }

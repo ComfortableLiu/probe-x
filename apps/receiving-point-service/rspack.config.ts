@@ -22,7 +22,7 @@ const config: Configuration = {
     ],
   },
   output: {
-    path: path.resolve(path.dirname(path.dirname(__dirname)), 'dist/backend'),
+    path: path.resolve(path.dirname(path.dirname(__dirname)), 'dist/apps/receiving-point-service'),
     clean: true,
   },
   resolve: {

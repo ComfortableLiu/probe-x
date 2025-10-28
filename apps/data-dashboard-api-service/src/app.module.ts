@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import {
+  envConfig,
   JsonBodyInterceptor,
+  KafkaModule,
   ResponseInterceptor,
   SignatureInterceptor,
   SsoAuthGuard,
 } from "@probe-x/shared-utils/src/lib/backend-common"
-import { KafkaModule } from "@modules/kafka.module"
-import EnvConfigModule from "./modules/env-config.module"
 import { DatabaseModule } from "@modules/database.module"
 import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"
@@ -15,6 +15,7 @@ import { JwtModule } from "@nestjs/jwt"
 import { ConfigModule, ConfigService } from "@nestjs/config"
 import { PropertyModule } from "@src/api/property/property.module"
 import { TrackingNodeModule } from "@src/api/tracking-node/tracking-node.module"
+import configuration from "../config/configuration"
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { TrackingNodeModule } from "@src/api/tracking-node/tracking-node.module"
       }),
       inject: [ConfigService],
     }),
-    EnvConfigModule,
+    envConfig(configuration),
     DatabaseModule,
     KafkaModule,
     UserModule,

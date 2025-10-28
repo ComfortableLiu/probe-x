@@ -4,6 +4,8 @@ import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
 import { fileURLToPath } from "node:url"
 import * as path from "node:path"
 
+const PORT = 3001
+
 // 由于在 ES 模块中没有 __dirname，所以我们需要创建它
 // @ts-ignore
 const __filename = fileURLToPath(import.meta.url)
@@ -91,7 +93,7 @@ const config: Configuration = {
     }),
   ].filter(Boolean),
   devServer: {
-    port: 3001,
+    port: PORT,
     devMiddleware: {
       writeToDisk: true,
     },

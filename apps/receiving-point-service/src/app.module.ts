@@ -1,19 +1,20 @@
 import { Module } from '@nestjs/common'
-import EnvConfigModule from "@modules/env-config.module"
-import { KafkaModule } from '@modules/kafka.module'
-import { PointModule } from './api/point/point.module'
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import {
   ClickHouseModule,
+  envConfig,
   JsonBodyInterceptor,
+  KafkaModule,
   ResponseInterceptor,
   SignatureInterceptor,
   SsoAuthGuard,
 } from "@probe-x/shared-utils/src/lib/backend-common"
+import { PointModule } from './api/point/point.module'
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
+import configuration from "../config/configuration"
 
 @Module({
   imports: [
-    EnvConfigModule,
+    envConfig(configuration),
     ClickHouseModule,
     KafkaModule,
     PointModule,

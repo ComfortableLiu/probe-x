@@ -1,5 +1,4 @@
 export default () => ({
-  port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 8101,
   client: {
     host: process.env.CLIENT_HOST || 'http://localhost',
     port: parseInt(process.env.CLIENT_POST, 10) || 8000,
@@ -14,6 +13,10 @@ export default () => ({
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '604800',
   },
   services: {
+    dataDashboardApi: {
+      host: process.env.DATA_DASHBOARD_API_SERVICE_HOST || 'http://localhost',
+      port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 8101,
+    },
     finalDataCleaning: {
       host: process.env.FINAL_DATA_CLEANING_SERVICE_HOST || 'http://localhost',
       port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_POST, 10) || 8102,
@@ -37,9 +40,9 @@ export default () => ({
   },
   clickhouse: {
     host: process.env.CLICKHOUSE_HOST || 'http://localhost:8123',
-    username: process.env.CLICKHOUSE_USER || 'default',
+    username: process.env.CLICKHOUSE_USER || 'admin',
     password: process.env.CLICKHOUSE_PASSWORD || '',
-    database: process.env.CLICKHOUSE_DATABASE || 'default',
+    database: process.env.CLICKHOUSE_DATABASE || 'probe_x',
     tls: process.env.CLICKHOUSE_TLS === 'true',
     rejectUnauthorized: process.env.CLICKHOUSE_REJECT_UNAUTHORIZED !== 'false',
     requestTimeout: parseInt(process.env.CLICKHOUSE_REQUEST_TIMEOUT, 10) || 30000,
@@ -80,12 +83,3 @@ export default () => ({
     clusterNodes: process.env.REDIS_CLUSTER_NODES?.split(',') || [],
   },
 })
-
-// export default () => ({
-//   host: process.env.DB_HOST || 'localhost',
-//   port: parseInt(process.env.DB_PORT || '', 10) || 3306,
-//   username: process.env.DB_USERNAME || 'root',
-//   password: process.env.DB_PASSWORD || '12341234',
-//   database: process.env.DB_DATABASE,
-//   synchronize: process.env.DB_SYNCHRONIZE === 'true',
-// })

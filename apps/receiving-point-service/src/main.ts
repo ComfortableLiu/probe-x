@@ -2,9 +2,13 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { AllExceptionsFilter } from "@probe-x/shared-utils/src/lib/backend-common"
 import { ValidationPipe } from "@nestjs/common"
+import { ConfigService } from "@nestjs/config"
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
+
+  // 从应用实例中获取 ConfigService
+  const configService = app.get(ConfigService)
 
   // 启用全局验证管道，用于自动验证请求数据
   // transform: true - 自动将请求数据转换为 DTO 类型实例
@@ -25,7 +29,9 @@ async function bootstrap() {
   // 全局注册异常过滤器
   app.useGlobalFilters(new AllExceptionsFilter())
 
-  await app.listen(3004)
+  const port = process.env.PORT || parseInt(configService.get('services.receivingPoint.port', '8104'))
+  await app.listen(port)
+  console.log(`埋点接受服务已启动，端口: ${port}`)
 }
 
 bootstrap()

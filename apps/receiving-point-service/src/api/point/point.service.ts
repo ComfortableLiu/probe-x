@@ -1,13 +1,21 @@
-import { Injectable } from '@nestjs/common'
-import { IAnyObj } from "@probe-x/shared-types/src"
+import { Inject, Injectable } from '@nestjs/common'
+import type { IAnyObj } from "@probe-x/shared-types/src"
+import { TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META } from "@probe-x/shared-types/src"
 import { IEvent } from "@entity/event.entity"
-import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
+import { ClientKafka } from "@nestjs/microservices"
+import { firstValueFrom } from "rxjs"
 
 @Injectable()
 export class PointService {
   constructor(
-    private readonly clickHouseService: ClickHouseService,
+    // private readonly clickHouseService: ClickHouseService,
+    @Inject('KAFKA_CLIENT')
+    private readonly kafkaClient: ClientKafka,
   ) {
+  }
+
+  async onModuleInit() {
+    await this.kafkaClient.connect()
   }
 
   private validateBeaconData(data: any): { isValid: boolean; errors: string[] } {
@@ -72,8 +80,15 @@ export class PointService {
     }
 
     // 保存到数据库
-    this.clickHouseService.insert<IEvent>('event', [event])
+    // this.clickHouseService.insert<IEvent>('event', [event])
     // TODO 用kafka通知初步清洗服务
+    firstValueFrom(
+      this.kafkaClient.emit(TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META, event),
+    ).then(() => {
+      console.log(`发送消息：${TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META}，数据：${JSON.stringify(event)}`)
+    }).catch((error) => {
+      console.error(`kafka错误 - ${TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META}:`, error)
+    })
     return true
   }
 }
