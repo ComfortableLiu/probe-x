@@ -1,0 +1,7 @@
+export interface RedisModuleOptions {
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  retryStrategy?: (times: number) => number;
+}
