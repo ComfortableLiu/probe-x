@@ -39,10 +39,6 @@
       }
     ]
   },
-  "include": [
-    "src/**/*",
-    "config/**/*"
-  ],
   "exclude": [
     "node_modules",
     "dist"

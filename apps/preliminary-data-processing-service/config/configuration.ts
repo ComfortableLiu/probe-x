@@ -62,7 +62,7 @@ export default () => ({
     requestTimeout: parseInt(process.env.KAFKA_REQUEST_TIMEOUT, 10) || 30000,
     retryCount: parseInt(process.env.KAFKA_RETRY_COUNT, 10) || 3,
     retryDelay: parseInt(process.env.KAFKA_RETRY_DELAY, 10) || 1000,
-    consumerAutoOffsetReset: process.env.KAFKA_CONSUMER_AUTO_OFFSET_RESET || 'latest',
+    consumerAutoOffsetReset: process.env.KAFKA_CONSUMER_AUTO_OFFSET_RESET || 'earliest',
     consumerEnableAutoCommit: process.env.KAFKA_CONSUMER_ENABLE_AUTO_COMMIT === 'true',
     consumerAutoCommitInterval: parseInt(process.env.KAFKA_CONSUMER_AUTO_COMMIT_INTERVAL, 10) || 5000,
     consumerBatchSize: parseInt(process.env.KAFKA_CONSUMER_BATCH_SIZE, 10) || 100,

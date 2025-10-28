@@ -51,8 +51,8 @@ export default () => ({
   },
   kafka: {
     brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
-    clientId: process.env.KAFKA_CLIENT_ID || 'data-dashboard-api-service',
-    groupId: process.env.KAFKA_CONSUMER_GROUP_ID || 'data-dashboard-api-group',
+    clientId: process.env.KAFKA_CLIENT_ID || 'probe-x-kafka-service',
+    groupId: process.env.KAFKA_CONSUMER_GROUP_ID || 'probe-x-kafka-service-group-v1',
     authType: process.env.KAFKA_AUTH_TYPE || 'none',
     saslUsername: process.env.KAFKA_SASL_USERNAME || '',
     saslPassword: process.env.KAFKA_SASL_PASSWORD || '',

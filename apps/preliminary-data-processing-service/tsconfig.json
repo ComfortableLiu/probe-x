@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "target": "ESNext",
     "sourceMap": true,
-    "outDir": "../../dist/preliminary-data-processing-service",
+    "outDir": "../../dist/apps/preliminary-data-processing-service",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
