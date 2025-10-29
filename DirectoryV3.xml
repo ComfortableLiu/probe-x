@@ -16,4 +16,5 @@
     <tree path="/libs/shared-utils" title="共用工具" extension="" presentableText="" tooltipTitle="" icon=""
           textColor="" backgroundColor=""/>
     <tree path="/apps/frontend/src/pages/point-manage/components/FormSpm" title="spm和scm用的筛选项" />
+    <tree path="/apps/data-dashboard-api-service/src/entity/TrackingNode.entity.ts" title="spm/scm统一节点实体" />
 </trees>

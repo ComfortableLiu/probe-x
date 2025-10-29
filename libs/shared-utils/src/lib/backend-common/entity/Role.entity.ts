@@ -1,13 +1,13 @@
 import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 import { RolePermissionRelation } from './RolePermissionRelation.entity'
-import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
+import { UserRoleRelation } from "./UserRoleRelation.entity"
 
 @Entity('role')
 export class Role {
 
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
   @Index()
-  id: number
+  id?: number
 
   /** 权限显示名（如“新增用户”），用于前端页面展示 */
   @Column({
@@ -17,7 +17,7 @@ export class Role {
     comment: '角色Key',
   })
   @Index()
-  roleKey: string
+  roleKey?: string
 
   @Column({
     type: 'varchar',
@@ -26,7 +26,7 @@ export class Role {
     unique: true,
     comment: '角色展示名',
   })
-  roleName: string
+  roleName?: string
 
   @Column({
     type: 'varchar',
@@ -43,28 +43,28 @@ export class Role {
     default: true,
     comment: '是否启用',
   })
-  isEnable: number
+  isEnable?: number
 
   @CreateDateColumn({
     type: 'datetime',
     name: 'created_at',
     comment: '创建时间',
   })
-  createdAt: Date
+  createdAt?: Date
 
   @UpdateDateColumn({
     type: 'datetime',
     name: 'updated_at',
     comment: '更新时间',
   })
-  updatedAt: Date
+  updatedAt?: Date
 
 
   /** 角色关联的所有权限绑定记录 */
   @OneToMany(() => RolePermissionRelation, (relation) => relation.role)
-  permissionRelations: RolePermissionRelation[]
+  permissionRelations?: RolePermissionRelation[]
 
   /** 角色关联的所有权限绑定记录 */
   @OneToMany(() => UserRoleRelation, (relation) => relation.role)
-  userRelations: UserRoleRelation[]
+  userRelations?: UserRoleRelation[]
 }

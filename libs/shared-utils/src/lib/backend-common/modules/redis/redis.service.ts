@@ -1,7 +1,6 @@
-// src/redis/redis.service.ts
 import { Injectable, OnModuleDestroy } from '@nestjs/common'
 import { Redis } from 'ioredis'
-import { RedisModuleOptions } from "./type"
+import { RedisModuleOptions } from "@probe-x/shared-types/src"
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
@@ -41,13 +40,13 @@ export class RedisService implements OnModuleDestroy {
     return this.client.set(key, strValue)
   }
 
-  async get(key: string) {
+  async get<T>(key: string): Promise<T | null> {
     const value = await this.client.get(key)
     if (!value) return null
     try {
       return JSON.parse(value) // 尝试解析为 JSON
     } catch {
-      return value // 非 JSON 直接返回字符串
+      return value as any
     }
   }
 

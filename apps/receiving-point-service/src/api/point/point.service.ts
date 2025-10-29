@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import type { IAnyObj, IEvent } from "@probe-x/shared-types/src"
+import type { IAnyObj, IEventLog } from "@probe-x/shared-types/src"
 import { TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META } from "@probe-x/shared-types/src"
 import { ClientKafka } from "@nestjs/microservices"
 import { firstValueFrom } from "rxjs"
@@ -17,7 +17,7 @@ export class PointService {
   }
 
   private validateBeaconData(data: any): { isValid: boolean; errors: string[] } {
-    const requiredList: Array<keyof IEvent> = ['$event_name', '$web_site', '$device_id', '$log_time', '$zoon']
+    const requiredList: Array<keyof IEventLog> = ['$event_name', '$web_site', '$device_id', '$log_time', '$zoon']
 
     const errors: string[] = requiredList.map(key => {
       if (!data[key] || typeof data.eventName !== 'string' || data.eventName.trim() === '') {
@@ -40,7 +40,7 @@ export class PointService {
     }
 
     // 创建Event实体实例
-    const event: IEvent = {
+    const event: IEventLog = {
       // 根据传入的数据填充实体字段，这里明确协定的目的是为了可精细化管理，去管理每一个公参的逻辑
       $event_name: data.eventName,
       $ip: data.ip,

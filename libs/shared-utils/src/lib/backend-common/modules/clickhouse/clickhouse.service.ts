@@ -19,7 +19,7 @@ export class ClickHouseService {
   async query(query: string, params?: Record<string, any>) {
     const result = await this.clickhouseClient.query({
       query,
-      params,
+      query_params: params,
       format: 'JSONEachRow', // 返回每行作为 JSON 对象
     })
     return result.json()

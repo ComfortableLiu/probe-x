@@ -10,7 +10,7 @@ export class Permission {
   /** 权限唯一ID（自增） */
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
   @Index()
-  id: number
+  id?: number
 
   /** 权限标识（格式：资源:操作，如 user:add），唯一不可重复 */
   @Column({
@@ -21,7 +21,7 @@ export class Permission {
     comment: '权限标识（资源:操作）',
   })
   @Index()
-  permissionKey: string
+  permissionKey?: string
 
   /** 权限显示名（如“新增用户”），用于前端页面展示 */
   @Column({
@@ -30,7 +30,7 @@ export class Permission {
     name: 'permission_name',
     comment: '权限显示名',
   })
-  permissionName: string
+  permissionName?: string
 
   /** 权限描述（如“允许新增系统用户，仅管理员可用”） */
   @Column({
@@ -49,7 +49,7 @@ export class Permission {
     default: true,
     comment: '是否启用',
   })
-  isEnable: number
+  isEnable?: number
 
   /** 权限创建时间（自动填充） */
   @CreateDateColumn({
@@ -57,7 +57,7 @@ export class Permission {
     name: 'created_at',
     comment: '创建时间',
   })
-  createdAt: Date
+  createdAt?: Date
 
   /** 权限更新时间（自动更新） */
   @UpdateDateColumn({
@@ -65,12 +65,12 @@ export class Permission {
     name: 'updated_at',
     comment: '更新时间',
   })
-  updatedAt: Date
+  updatedAt?: Date
 
   /**
    * 反向关联：当前权限被哪些角色绑定
    * 通过 RolePermissionRelation 与 Role 建立多对多关系
    */
   @OneToMany(() => RolePermissionRelation, (relation) => relation.permission)
-  roleRelations: RolePermissionRelation[]
+  roleRelations?: RolePermissionRelation[]
 }

@@ -12,15 +12,15 @@ import { Role } from './Role.entity'
 export class UserRoleRelation {
   /** 关联记录唯一ID（自增） */
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
-  id: number
+  id?: number
 
   /** 关联的用户ID（外键） */
   @Column({ type: 'bigint', name: 'user_id', comment: '用户ID' })
-  userId: number
+  userId?: number
 
   /** 关联的角色ID（外键） */
   @Column({ type: 'bigint', name: 'role_id', comment: '角色ID' })
-  roleId: number
+  roleId?: number
 
   /** 关联记录创建时间（自动填充） */
   @CreateDateColumn({
@@ -28,7 +28,7 @@ export class UserRoleRelation {
     name: 'created_at',
     comment: '创建时间',
   })
-  createdAt: Date
+  createdAt?: Date
 
   /** 关联的用户实体（多对一：多个关联记录对应一个用户） */
   @ManyToOne(() => UserEntity, (user) => user.roleRelations, {
@@ -36,7 +36,7 @@ export class UserRoleRelation {
     cascade: false,
   })
   @JoinColumn({ name: 'user_id' }) // 映射数据库字段 user_id
-  user: UserEntity
+  user?: UserEntity
 
   /** 关联的角色实体（多对一：多个关联记录对应一个角色） */
   @ManyToOne(() => Role, (role) => role.userRelations, {
@@ -44,5 +44,5 @@ export class UserRoleRelation {
     cascade: false,
   })
   @JoinColumn({ name: 'role_id' }) // 映射数据库字段 role_id
-  role: Role
+  role?: Role
 }

@@ -3,14 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { UserController } from './user.controller'
 import { UserService } from './user.service'
 import { ConfigModule } from '@nestjs/config'
-import { UserEntity } from "@entity/User.entity"
 import { JwtStrategy } from "./JwtStrategy"
 import { JwtAuthGuard } from "./JwtAuthGuard"
 import { AuthService } from "@src/service/auth.service"
 import { JwtService } from "@nestjs/jwt"
-import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
-import { Role } from "@entity/Role.entity"
-import { Permission } from "@entity/Permission.entity"
+import { Permission, Role, UserEntity, UserRoleRelation } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Module({
   imports: [

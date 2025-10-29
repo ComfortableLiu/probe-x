@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { MetaEventEntity } from './MetaEvent.entity'
 import { MetaPropertyEntity } from './MetaProperty.entity'
 import { EventPropertyRelationStatus } from "@probe-x/shared-types/src"
-import { UserEntity } from "@entity/User.entity"
+import { UserEntity } from "./User.entity"
 
 @Entity('event_property_relation')
 export class EventPropertyRelationEntity {

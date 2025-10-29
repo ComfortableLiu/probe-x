@@ -2,15 +2,17 @@ import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository, SelectQueryBuilder } from "typeorm"
-import { UserEntity } from "@entity/User.entity"
 import { timingSafeEqual } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
-import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
+import {
+  Permission,
+  ResponseData,
+  Role,
+  RolePermissionRelation,
+  UserEntity,
+  UserRoleRelation,
+} from "@probe-x/shared-utils/src/lib/backend-common"
 import { IPermissionRes, IUser } from "@probe-x/shared-types/src"
-import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
-import { Role } from "@entity/Role.entity"
-import { RolePermissionRelation } from "@entity/RolePermissionRelation.entity"
-import { Permission } from "@entity/Permission.entity"
 import { ConfigService } from "@nestjs/config"
 
 @Injectable()

@@ -4,11 +4,11 @@ import {
   envConfig,
   JsonBodyInterceptor,
   KafkaModule,
+  MysqlModule,
   ResponseInterceptor,
   SignatureInterceptor,
   SsoAuthGuard,
 } from "@probe-x/shared-utils/src/lib/backend-common"
-import { DatabaseModule } from "@modules/database.module"
 import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"
 import { JwtModule } from "@nestjs/jwt"
@@ -27,7 +27,7 @@ import configuration from "../config/configuration"
       inject: [ConfigService],
     }),
     envConfig(configuration),
-    DatabaseModule,
+    MysqlModule.forRoot(),
     KafkaModule,
     UserModule,
     EventModule,

@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn } from 'typeorm'
 import { EventPropertyRelationEntity } from './EventPropertyRelation.entity'
 import { MetaPropertyBusinessType, MetaPropertyStatus, MetaPropertyType } from "@probe-x/shared-types/src"
-import { UserEntity } from "@entity/User.entity"
+import { UserEntity } from "./User.entity"
 
 @Entity('meta_property')
 export class MetaPropertyEntity {
@@ -76,7 +76,7 @@ export class MetaPropertyEntity {
     enum: MetaPropertyBusinessType,
     default: MetaPropertyBusinessType.BUSINESS,
   })
-  type: MetaPropertyBusinessType
+  type?: MetaPropertyBusinessType
 
   @Column({
     name: 'comment',

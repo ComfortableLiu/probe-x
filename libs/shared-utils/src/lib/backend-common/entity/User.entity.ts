@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
-import { UserRoleRelation } from "@entity/UserRoleRelation.entity"
+import { UserRoleRelation } from "./UserRoleRelation.entity"
 
 @Entity('user')
 export class UserEntity {
@@ -78,5 +78,5 @@ export class UserEntity {
     onDelete: 'CASCADE', // 角色删除时，自动删除关联的权限绑定
     cascade: false,
   })
-  roleRelations: UserRoleRelation[]
+  roleRelations?: UserRoleRelation[]
 }

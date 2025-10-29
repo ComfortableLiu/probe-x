@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { TrackingNodeEntity } from "@entity/TrackingNode.entity"
 import type {
   ICreateBusinessSiteReq,
   ICreateBusinessSiteRes,
@@ -16,8 +15,7 @@ import type {
   IUser,
 } from "@probe-x/shared-types/src"
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
-import { UserEntity } from "@entity/User.entity"
-import { BusinessException } from "@probe-x/shared-utils/src/lib/backend-common"
+import { BusinessException, TrackingNodeEntity, UserEntity } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class TrackingNodeService {

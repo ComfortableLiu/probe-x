@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { MetaEventEntity } from "@entity/MetaEvent.entity"
 import { EventDetailDto, EventFilterDto, PaginationDto, UpdateEventDto } from "./type"
 import { IQueryEventListRes } from "@probe-x/shared-types/src"
+import { MetaEventEntity } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class EventService {
@@ -39,7 +39,10 @@ export class EventService {
 
     // 添加事件名称模糊匹配条件
     if (eventName) {
-      queryBuilder.andWhere('(event.eventName LIKE :eventName OR event.eventAliases LIKE :eventAliases)', { eventName: `%${eventName}%`, eventAliases: `%${eventName}%` })
+      queryBuilder.andWhere('(event.eventName LIKE :eventName OR event.eventAliases LIKE :eventAliases)', {
+        eventName: `%${eventName}%`,
+        eventAliases: `%${eventName}%`,
+      })
     }
 
     // 添加分页

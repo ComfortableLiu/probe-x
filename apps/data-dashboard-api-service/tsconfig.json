@@ -23,9 +23,6 @@
       "@src/*": [
         "src/*"
       ],
-      "@entity/*": [
-        "src/entity/*"
-      ],
       "@modules/*": [
         "src/modules/*"
       ]

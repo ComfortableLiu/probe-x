@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { TrackingNodeService } from './tracking-node.service'
 import { UserModule } from '../user/user.module'
 import { TrackingNodeController } from "@src/api/tracking-node/tracking-node.controller"
-import { TrackingNodeEntity } from "@entity/TrackingNode.entity"
+import { TrackingNodeEntity } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Module({
   imports: [

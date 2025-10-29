@@ -29,7 +29,6 @@ const config: Configuration = {
     extensions: ['...', 'js', '.ts', '.tsx', '.jsx'],
     alias: {
       "@src": path.resolve(dataDashboardServicePath, 'src'),
-      '@entity': path.resolve(dataDashboardServicePath, 'src/entity'),
       '@modules': path.resolve(dataDashboardServicePath, 'src/modules'),
     },
   },

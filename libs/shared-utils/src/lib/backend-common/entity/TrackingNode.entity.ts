@@ -9,7 +9,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm'
-import { UserEntity } from "@entity/User.entity"
+import { UserEntity } from "./User.entity"
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 
 /**
@@ -28,7 +28,7 @@ export class TrackingNodeEntity {
     length: 16,
   })
   @Index()
-  code: string
+  code?: string
 
   /**
    * 节点类型 (SPM或SCM)
@@ -39,7 +39,7 @@ export class TrackingNodeEntity {
     comment: '节点类型: spm或scm',
   })
   @Index()
-  type: TrackingNodeType
+  type?: TrackingNodeType
 
   /**
    * 节点层级 (1-4)
@@ -50,13 +50,13 @@ export class TrackingNodeEntity {
     comment: '节点层级: 1-4',
   })
   @Index()
-  level: TrackingNodeLevel
+  level?: TrackingNodeLevel
 
   /**
    * 节点名称
    */
   @Column({ length: 100, comment: '节点名称' })
-  name: string
+  name?: string
 
   /**
    * 节点描述

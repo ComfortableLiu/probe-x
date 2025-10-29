@@ -10,9 +10,8 @@ import {
   MetaPropertyStatus,
   MetaPropertyTypeMap,
 } from "@probe-x/shared-types/src"
-import { MetaPropertyEntity } from "@entity/MetaProperty.entity"
 import { PropertyFilterDto } from "./type"
-import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
+import { ClickHouseService, MetaPropertyEntity } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class PropertyService {

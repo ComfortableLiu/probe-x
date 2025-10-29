@@ -13,15 +13,15 @@ import { Role } from './Role.entity'
 export class RolePermissionRelation {
   /** 关联记录唯一ID（自增） */
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id' })
-  id: number
+  id?: number
 
   /** 关联的角色ID（外键） */
   @Column({ type: 'bigint', name: 'role_id', comment: '角色ID' })
-  roleId: number
+  roleId?: number
 
   /** 关联的权限ID（外键） */
   @Column({ type: 'bigint', name: 'permission_id', comment: '权限ID' })
-  permissionId: number
+  permissionId?: number
 
   /** 关联记录创建时间（自动填充） */
   @CreateDateColumn({
@@ -29,7 +29,7 @@ export class RolePermissionRelation {
     name: 'created_at',
     comment: '创建时间',
   })
-  createdAt: Date
+  createdAt?: Date
 
   /** 关联的角色实体（多对一：多个关联记录对应一个角色） */
   @ManyToOne(() => Role, (role) => role.permissionRelations, {
@@ -37,7 +37,7 @@ export class RolePermissionRelation {
     cascade: false,
   })
   @JoinColumn({ name: 'role_id' }) // 映射数据库字段 role_id
-  role: Role
+  role?: Role
 
   /** 关联的权限实体（多对一：多个关联记录对应一个权限） */
   @ManyToOne(() => Permission, (permission) => permission.roleRelations, {
@@ -45,5 +45,5 @@ export class RolePermissionRelation {
     cascade: false,
   })
   @JoinColumn({ name: 'permission_id' }) // 映射数据库字段 permission_id
-  permission: Permission
+  permission?: Permission
 }
