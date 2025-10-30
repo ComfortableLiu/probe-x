@@ -1,42 +1,31 @@
 import { NestFactory } from '@nestjs/core'
 import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { AppModule } from './app.module'
-import { ValidationPipe } from '@nestjs/common'
-import { ConfigService } from "@nestjs/config"
+import { ComputeNodeService } from "@src/service/node.service"
+import { fileURLToPath } from "node:url"
+import path from "node:path"
+import { AppModule } from "@src/app.module"
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  const port = process.env.PORT || 10000
 
-  // 从应用实例中获取 ConfigService
-  const configService = app.get(ConfigService)
+  // @ts-ignore
+  const __filename = fileURLToPath(import.meta.url)
+  const finalDataCleaningServicePath = path.dirname(__filename)
 
-  // 启用全局验证管道
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }))
-
-  // 连接Kafka微服务
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.KAFKA,
+  // 计算节点作为 gRPC 服务端启动
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+    transport: Transport.GRPC,
     options: {
-      client: {
-        clientId: configService.get('kafka.clientId', 'localhost:9092'),
-        brokers: configService.get('kafka.brokers', ['localhost:9092']),
-      },
-      consumer: {
-        groupId: configService.get('kafka.groupId', 'localhost:9092'),
-      },
+      package: 'final_data_cleaning_control_bi_stream',
+      protoPath: path.resolve(finalDataCleaningServicePath, '../proto/final_data_cleaning_control_bi_stream.proto'),
+      url: `0.0.0.0:${port}`,
     },
   })
 
-  await app.startAllMicroservices()
+  await app.listen()
 
-  const port = process.env.PORT || parseInt(configService.get('services.finalDataCleaning.port', '8102'))
-  await app.listen(port)
-  console.log(`最终数据清洗服务已启动，端口: ${port}`)
-  console.log('Kafka消费者已启动，等待消息...')
+  const nodeService = app.get(ComputeNodeService)
+  console.log(`计算节点 ${nodeService.nodeId} 启动，监听 ${port} 端口`)
 }
 
 bootstrap()

@@ -11,10 +11,19 @@ import {
 import { PointModule } from './api/point/point.module'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import configuration from "../config/configuration"
+import { JwtModule } from "@nestjs/jwt"
+import { ConfigModule, ConfigService } from "@nestjs/config"
 
 @Module({
   imports: [
     envConfig(configuration),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.secret') || 'defaultSecret',
+      }),
+      inject: [ConfigService],
+    }),
     ClickHouseModule,
     KafkaModule,
     PointModule,

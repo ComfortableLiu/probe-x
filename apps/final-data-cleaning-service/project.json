@@ -5,33 +5,14 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/apps/final-data-cleaning-service",
-        "main": "apps/final-data-cleaning-service/src/main.ts",
-        "tsConfig": "apps/final-data-cleaning-service/tsconfig.json"
-      },
-      "configurations": {
-        "production": {
-          "optimization": true,
-          "extractLicenses": true,
-          "inspect": false
-        }
-      }
+      "command": "cd apps/final-data-cleaning-service && yarn run build"
     },
     "serve": {
-      "executor": "@nx/js:node",
-      "options": {
-        "buildTarget": "final-data-cleaning-service:build",
-        "port": 3003
-      },
-      "configurations": {
-        "production": {
-          "buildTarget": "final-data-cleaning-service:build:production"
-        }
-      }
+      "command": "cd apps/final-data-cleaning-service && yarn run dev"
     }
   },
-  "tags": []
+  "implicitDependencies": [
+    "shared-types",
+    "shared-utils"
+  ]
 }

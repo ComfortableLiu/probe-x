@@ -1,38 +1,31 @@
-import type { Configuration } from "@rspack/cli";
-import { rspack } from "@rspack/core";
+import type { Configuration } from "@rspack/cli"
+import { CopyRspackPlugin, rspack } from "@rspack/core"
 import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import * as path from "node:path"
 
 const PORT = 3002
 
-// 由于在 ES 模块中没有 __dirname，所以我们需要创建它
-// @ts-ignore
-const __filename = fileURLToPath(import.meta.url);
+const finalDataCleaningServicePath = path.dirname(__filename)
 // 根目录路径
-const __dirname = path.dirname(path.dirname(path.dirname(path.dirname(__filename))));
-const servicePath = path.dirname(__filename)
-
-const sharedPath = path.resolve(path.dirname(path.dirname(path.dirname(__filename))), 'dist/libs')
+const rootDir = path.resolve(finalDataCleaningServicePath, '../..')
 
 const config: Configuration = {
-  context: __dirname,
+  context: rootDir,
   target: 'node',
   entry: {
     main: [
-      path.resolve(servicePath, './src/main.ts')
+      path.resolve(finalDataCleaningServicePath, './src/main.ts'),
     ],
   },
   output: {
-    path: path.resolve(path.dirname(path.dirname(__dirname)), 'dist/backend'),
+    path: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service'),
     clean: true,
   },
   resolve: {
     extensions: ['...', 'js', '.ts', '.tsx', '.jsx'],
     alias: {
-      "@src": path.resolve(servicePath, 'src'),
-      '@shared-types': path.resolve(sharedPath, 'shared-types'),
-    }
+      "@src": path.resolve(finalDataCleaningServicePath, 'src'),
+    },
   },
   module: {
     rules: [
@@ -73,7 +66,24 @@ const config: Configuration = {
     ],
   },
   externalsType: 'commonjs',
+  externals: {
+    typeorm: 'commonjs typeorm',
+    'reflect-metadata': 'commonjs reflect-metadata',
+    mysql2: 'commonjs mysql2',
+  },
   plugins: [
+    new CopyRspackPlugin({
+      patterns: [
+        {
+          from: path.resolve(finalDataCleaningServicePath, 'config'),
+          to: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service/config'),
+        },
+        {
+          from: path.resolve(finalDataCleaningServicePath, 'proto'),
+          to: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service/proto'),
+        },
+      ],
+    }),
     !process.env.BUILD &&
     new RunScriptWebpackPlugin({
       name: 'main.js',
@@ -89,11 +99,28 @@ const config: Configuration = {
   ignoreWarnings: [
     (warning) => {
       const list = [
-        'Critical dependency: the request of a dependency is an expression'
+        'Critical dependency: the request of a dependency is an expression',
+        "Module not found: Can't resolve 'react-native-sqlite-storage' in '/Users/a58/Documents/probe-x/node_modules/typeorm/driver/react-native'",
+        "Module not found: Can't resolve '@google-cloud/spanner' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'mongodb' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve '@sap/hana-client' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve '@sap/hana-client/extension/Stream' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'mysql' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'oracledb' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'pg' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'pg-native' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'pg-query-stream' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'typeorm-aurora-data-api-driver' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'redis' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'better-sqlite3' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'sqlite3' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'sql.js' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'mssql' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
+        "Module not found: Can't resolve 'react-native-sqlite-storage' in '/Users/a58/Documents/probe-x/node_modules/typeorm/platform'",
       ]
       return list.some((item) => warning.message.includes(item))
-    }
-  ]
-};
+    },
+  ],
+}
 
-export default config;
+export default config

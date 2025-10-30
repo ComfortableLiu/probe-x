@@ -9,6 +9,8 @@
     "dev": "cross-env NODE_ENV=development rspack serve"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0",
     "@nestjs/common": "^11.1.5",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.5",
@@ -35,13 +37,13 @@
     "@nestjs/schematics": "^11.0.7",
     "@nx/js": "^21.3.10",
     "@nx/nest": "^21.3.10",
+    "@probe-x/shared-types": "workspace: *",
+    "@probe-x/shared-utils": "workspace: *",
     "@rspack/cli": "^1.1.8",
     "@rspack/core": "^1.1.8",
     "@types/express": "^5.0.3",
     "cross-env": "^7.0.3",
     "run-script-webpack-plugin": "^0.2.3",
-    "tsconfig-paths": "^4.2.0",
-    "@probe-x/shared-utils": "workspace: *",
-    "@probe-x/shared-types": "workspace: *"
+    "tsconfig-paths": "^4.2.0"
   }
 }

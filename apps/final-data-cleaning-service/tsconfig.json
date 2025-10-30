@@ -1,17 +1,15 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "NodeNext",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "target": "ES2020",
+    "target": "ESNext",
     "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
+    "outDir": "../../dist/apps/final-data-cleaning-service",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -19,12 +17,28 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "downlevelIteration": true,
     "useDefineForClassFields": false,
     "paths": {
-      "@src/*": ["src/*"],
-      "@shared-types": ["../../libs/shared-types/src/index.ts"]
-    }
+      "@src/*": [
+        "src/*"
+      ]
+    },
+    "baseUrl": ".",
+    "rootDir": ".",
+    "plugins": [
+      {
+        "transform": "typescript-transform-paths",
+        "afterDeclarations": true
+      }
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*",
+    "config/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
