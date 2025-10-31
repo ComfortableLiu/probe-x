@@ -8,6 +8,8 @@ message ComputeTask {
     string task_id = 1;
     // 需要计算的 SessionId，未来支持线程池复用后可以传个数组
     string session_id = 2;
+    // 需要计算的日期
+    string date = 3;
 }
 
 // 进度更新指令

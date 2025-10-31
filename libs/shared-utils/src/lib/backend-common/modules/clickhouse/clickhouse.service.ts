@@ -13,12 +13,12 @@ export class ClickHouseService {
 
   /**
    * 执行查询（返回 JSON 格式结果）
-   * @param query SQL 查询语句
+   * @param sql SQL 查询语句
    * @param params 查询参数（可选）
    */
-  async query(query: string, params?: Record<string, any>) {
+  async query(sql: string, params?: Record<string, any>) {
     const result = await this.clickhouseClient.query({
-      query,
+      query: sql,
       query_params: params,
       format: 'JSONEachRow', // 返回每行作为 JSON 对象
     })

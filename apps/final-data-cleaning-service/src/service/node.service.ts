@@ -2,27 +2,39 @@ import { Injectable } from '@nestjs/common'
 import { GrpcStreamMethod } from '@nestjs/microservices'
 import { interval, Observable, Subject, takeWhile } from 'rxjs'
 import { map, tap } from 'rxjs/operators'
+import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
 
 // 类型定义
 export interface ComputeTask {
   task_id: string;
-  payload: string;
-  priority: number;
+  session_id: string;
+  date: string;
 }
 
 export interface ProgressUpdate {
+  // 关联的任务ID
   task_id: string;
+  // 进度百分比（0-100）
   progress: number;
+  // 节点唯一标识
   node_id: string;
+  // 附加信息（如“正在处理第3个分片”）
   message: string;
+  // 是否完成
   completed: boolean;
+  // 是否失败
+  failed: boolean;
+  // 失败信息
+  error: string;
 }
 
 @Injectable()
 export class ComputeNodeService {
   nodeId: string
 
-  constructor() {
+  constructor(
+    private readonly clickhouseService: ClickHouseService,
+  ) {
     this.nodeId = `node-${Math.random().toString(36).slice(2, 8)}` // 节点唯一标识
   }
 
@@ -59,6 +71,8 @@ export class ComputeNodeService {
           progress: p,
           message: `处理中（${p}%）`,
           completed: p === 100,
+          error: '',
+          failed: false,
         })
       },
       complete: () => progressSubject.complete(),

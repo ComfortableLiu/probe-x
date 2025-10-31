@@ -186,6 +186,7 @@ export class KafkaConsumerService {
         ...utmInfo,
         $sessionId: sessionId,
       }
+      // TODO 这里字段名没有转下划线格式
       // 保存到数据库
       await this.clickhouseService.insert('event_log', [data])
       // TODO 通知在线清洗服务，一期不实现
