@@ -184,7 +184,7 @@ export class KafkaConsumerService {
         ...event,
         ...scmSpmInfo,
         ...utmInfo,
-        $sessionId: sessionId,
+        $session_id: sessionId,
       }
       // TODO 这里字段名没有转下划线格式
       // 保存到数据库

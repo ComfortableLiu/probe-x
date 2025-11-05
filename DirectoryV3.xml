@@ -17,4 +17,9 @@
           textColor="" backgroundColor=""/>
     <tree path="/apps/frontend/src/pages/point-manage/components/FormSpm" title="spm和scm用的筛选项" />
     <tree path="/apps/data-dashboard-api-service/src/entity/TrackingNode.entity.ts" title="spm/scm统一节点实体" />
+    <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/Attribution.ts" title="归因数据结构" />
+    <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/EventLog.ts" title="元数据事件" extension=""
+          presentableText="" tooltipTitle="" icon="" textColor="" backgroundColor="" />
+    <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/PreEventLog.ts" title="初次补充事件" />
+    <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/FinalEventLog.ts" title="最终事件数据结构" />
 </trees>

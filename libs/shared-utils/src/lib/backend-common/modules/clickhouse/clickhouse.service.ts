@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ClickHouseClient } from '@clickhouse/client'
 import { CLICKHOUSE_CLIENT } from "../../provider/clickhouse.provider"
+import { InsertResult } from "@clickhouse/client-common/dist/client"
 
 @Injectable()
 export class ClickHouseService {
@@ -16,13 +17,13 @@ export class ClickHouseService {
    * @param sql SQL 查询语句
    * @param params 查询参数（可选）
    */
-  async query(sql: string, params?: Record<string, any>) {
+  async query<T>(sql: string, params?: Record<string, any>) {
     const result = await this.clickhouseClient.query({
       query: sql,
       query_params: params,
       format: 'JSONEachRow', // 返回每行作为 JSON 对象
     })
-    return result.json()
+    return result.json<T>()
   }
 
   /**
@@ -30,10 +31,8 @@ export class ClickHouseService {
    * @param table 表名
    * @param data 要插入的数据数组
    */
-  async insert<T>(table: string, data: T[]): Promise<void> {
-    if (data.length === 0) return
-
-    await this.clickhouseClient.insert({
+  async insert<T>(table: string, data: T[]): Promise<InsertResult> {
+    return this.clickhouseClient.insert({
       table,
       values: data,
       format: 'JSONEachRow', // 数据格式

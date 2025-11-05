@@ -8,7 +8,7 @@ message ComputeTask {
     string task_id = 1;
     // 需要计算的 SessionId，未来支持线程池复用后可以传个数组
     string session_id = 2;
-    // 需要计算的日期
+    // 需要计算的日期，格式为 YYYY-MM-DD
     string date = 3;
 }
 
@@ -16,18 +16,20 @@ message ComputeTask {
 message ProgressUpdate {
     // 关联的任务ID
     string task_id = 1;
-    // 进度百分比（0-100）
-    int32 progress = 2;
+    // 目标进度
+    int32 target = 2;
+    // 总进度
+    int32 progress = 3;
     // 节点唯一标识
-    string node_id = 3;
+    string node_id = 4;
     // 附加信息（如“正在处理第3个分片”）
-    string message = 4;
+    string message = 5;
     // 是否完成
-    bool completed = 5;
+    bool completed = 6;
     // 是否失败
-    bool failed = 6;
+    bool failed = 7;
     // 失败信息
-    string error = 7;
+    string error = 8;
 }
 
 // 计算服务

@@ -20,7 +20,7 @@ export interface IPreEventLog extends IEventLog {
   $scm_c_description: string
   $scm_d_description: string
 
-  $sessionId: string
+  $session_id: string
 }
 
 // 创建event_log表的sql语句，仅包含公参
@@ -53,6 +53,8 @@ export const createPreEventLogTableSQL = `
         \`$device_pixel_ratio\` Float64 comment '设备像素比（如 Retina 屏为 2）',
         \`$scroll_height\`      Int32 comment '页面滚动高度（用户浏览深度）',
         \`$element_id\`         String comment '触发事件的前端元素选择器',
+        \`$page_id\`            String comment '当前页面id',
+        \`$source_page_id\`     String comment '上一个页面的id',
         \`$spm\`                String comment 'SPM信息',
         \`$scm\`                String comment 'SCM信息',
         \`$spm_a\`              LowCardinality(String) comment 'SPM位置信息A段',
@@ -70,7 +72,8 @@ export const createPreEventLogTableSQL = `
         \`$scm_a_description\`  String comment 'SCM位置信息A段详情',
         \`$scm_b_description\`  String comment 'SCM位置信息B段详情',
         \`$scm_c_description\`  String comment 'SCM位置信息C段详情',
-        \`$scm_d_description\`  String comment 'SCM位置信息D段详情'
+        \`$scm_d_description\`  String comment 'SCM位置信息D段详情',
+        \`$session_id\`         String comment '会话ID'
     )
         engine = ReplacingMergeTree PARTITION BY toDate(\`$service_time\`)
             ORDER BY (\`$service_time\`, \`$log_time\`)

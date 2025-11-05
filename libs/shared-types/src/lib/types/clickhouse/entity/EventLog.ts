@@ -60,4 +60,8 @@ export interface IEventBase {
   $element_id: string
   $spm: string
   $scm: string
+  // 当前页面id
+  $page_id: string
+  // 上一个页面id
+  $source_page_id: string
 }

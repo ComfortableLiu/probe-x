@@ -26,3 +26,17 @@ export function delay(time = 1000) {
 export function deepCopyArray<T>(arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr))
 }
+
+/**
+ * 小驼峰转下划线
+ */
+export function camelToUnderline(str: string): string {
+  return str.replace(/([A-Z])/g, '_$1').toLowerCase()
+}
+
+/**
+ * 下划线转小驼峰
+ */
+export function underlineToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+}
