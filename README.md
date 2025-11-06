@@ -3,7 +3,7 @@
 > 一款现代化的Web数据分析解决方案，基于微服务架构的埋点与数据分析系统
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.12.0-brightgreen.svg)](https://nodejs.org/)
 [![Yarn Version](https://img.shields.io/badge/yarn-%3E%3D1.22.0-blue.svg)](https://yarnpkg.com/)
 
 ## ✨ 功能特性
@@ -12,49 +12,50 @@
 - **全埋点**: 页面PV、PL事件、点击事件自动收集
 - **自定义埋点**: 业务自定义事件埋点
 - **实时上报**: 支持实时和批量数据上报
-- **多端支持**: Web端、移动端埋点支持
+- **多端支持**: Web 端埋点支持，未来会支持到移动端
 
 ### 🔧 数据处理管道
-- **初步处理**: 数据清洗、增强、异常检测
-- **深度清洗**: 数据标准化、质量评估、验证
-- **实时处理**: 基于Kafka的流式数据处理
-- **数据质量**: 自动质量评分和异常检测
+- **初步处理**: 数据 Session 切割、UTM 相关参数补充
+- **深度清洗**: 补充元数据的归因数据
+- **实时处理**: 适用于实时性要求高并需要归因数据的场景，如推荐服务（暂时没有）
 
 ### 📊 数据分析与可视化
-- **实时仪表板**: 实时数据统计和监控
-- **漏斗分析**: 用户转化路径分析
-- **留存分析**: 用户留存率分析
-- **用户行为**: 用户行为路径分析
-- **设备统计**: 设备类型和浏览器统计
-- **地理位置**: 用户地理位置分布
+- **事件分析**: 基于事件的指标统计、筛选、分组等功能，来追踪用户行为或业务过程
+- **漏斗分析**: 用于分析一个多步骤过程中每一步的转化与流失情况
+- **用户路径分析**: 主要用于分析用户在使用产品时的路径分布情况
+- **归因分析**: 通过结果反向分析各个触电对于结果的贡献程度
 
 ## 🏗️ 系统架构
 
 ### 微服务组件
 - **前端服务**: React + TypeScript 数据可视化界面
-- **Web SDK**: 原生JavaScript埋点数据收集SDK
-- **电商Demo**: 简化的电商网站演示项目
-- **埋点接收服务**: 接收和存储原始埋点数据
-- **数据仪表板API服务**: 提供数据分析和API接口
-- **初步数据处理服务**: 数据清洗和增强处理
-- **最终数据清洗服务**: 深度数据清洗和质量评估
+- **Web SDK**: 原生 JavaScript 埋点数据收集SDK，框架无关
+- **电商 Demo**: 简化的电商网站演示项目
+- **数据仪表板API服务**: 提供前端管理页面的 API 接口，包括数分、埋点管理、SSO 登录等
+- **埋点接收服务**: 接收和存储原始埋点数据，然后通过 kafka 转发给数据处理服务
+- **初步数据处理服务**: 数据初步补充数据，包括 session 切割、utm 参数补充、SPM/SCM 翻译等
+- **最终数据清洗服务**: 数据最终清洗，主要清洗归因数据
 
 ### 技术栈
-- **前端**: React, TypeScript, Rspack
+- **前端**: React19, Redux, Rematch, Ant Design, TypeScript, Rspack
 - **Web SDK**: 原生JavaScript, Rollup, TypeScript
-- **后端**: NestJS, TypeORM, MySQL
+- **后端**: NestJS, TypeORM, gRPC, Redis
+- **数据储存**: MySQL
+- **大数据**: ClickHouse
+- **缓存**: Redis（用于实时清洗服务，暂时没用上）
 - **消息队列**: Kafka
-- **缓存**: Redis
+- **服务通信**: gRPC
 - **构建工具**: Nx, Rspack
 
 ## 🚀 快速开始
 
 ### 环境要求
-- Node.js >= 16.0.0
+- Node.js >= 18.12.0（暂定，Rspack限制）
 - Yarn >= 1.22.0
 - MySQL >= 5.7
 - Kafka >= 2.8.0
 - Redis >= 6.0
+- ClickHouse >= 25.9
 
 ### 安装和启动
 
@@ -64,11 +65,16 @@ git clone https://github.com/ComfortableLiu/probe-x.git
 cd probe-x
 
 # 2. 安装依赖
-yarn install
+yarn
 
 # 3. 启动所有服务
 yarn dev
 ```
+
+---
+
+---
+# 以下废弃
 
 ### 访问应用
 - 前端界面: http://localhost:8000

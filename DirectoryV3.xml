@@ -3,7 +3,8 @@
      <tree path="/apps/data-dashboard-api-service" title="前端系统提供api的服务" extension="" presentableText=""
            tooltipTitle="" icon="" textColor="" backgroundColor="" />
      <tree path="/apps/ecommerce-demo" title="电商Demo" />
-     <tree path="/apps/final-data-cleaning-service" title="最终清洗服务" />
+     <tree path="/apps/final-data-cleaning-service" title="！核心！最终清洗服务" extension="" presentableText=""
+           tooltipTitle="" icon="" textColor="" backgroundColor="" />
      <tree path="/apps/frontend" title="前端项目" />
      <tree path="/apps/preliminary-data-processing-service" title="初步数据补充服务" extension="" presentableText=""
            tooltipTitle="" icon="" textColor="" backgroundColor="" />
