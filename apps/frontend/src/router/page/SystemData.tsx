@@ -6,7 +6,7 @@ export default {
   name: '系统数据',
   key: 'system-data',
   meta: {
-    icon: <InternalData theme="outline" size="16" fill="#333" />,
+    icon: <InternalData theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
   },
   children: [{
     path: '/system-data/overview',

@@ -1,5 +1,5 @@
 import React, { useCallback } from "react"
-import { Button, Card, Checkbox, Form, Input, message } from "antd"
+import { Button, Card, Form, Input, message } from "antd"
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import * as styles from './styles.module.scss'
 import { useLoading, useQuery } from "@/hooks"
@@ -69,11 +69,11 @@ function Login() {
               placeholder="密码"
             />
           </Form.Item>
-          <Form.Item>
-            <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>30天免登录</Checkbox>
-            </Form.Item>
-          </Form.Item>
+          {/*<Form.Item>*/}
+          {/*  <Form.Item name="remember" valuePropName="checked" noStyle>*/}
+          {/*    <Checkbox>30天免登录</Checkbox>*/}
+          {/*  </Form.Item>*/}
+          {/*</Form.Item>*/}
 
           <Form.Item>
             <Button

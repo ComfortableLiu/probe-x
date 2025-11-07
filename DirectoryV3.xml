@@ -23,4 +23,8 @@
           presentableText="" tooltipTitle="" icon="" textColor="" backgroundColor="" />
     <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/PreEventLog.ts" title="初次补充事件" />
     <tree path="/libs/shared-types/src/lib/types/clickhouse/entity/FinalEventLog.ts" title="最终事件数据结构" />
+    <tree path="/apps/frontend/src/pages/data-analysis" title="数据分析模块" />
+    <tree path="/apps/frontend/src/pages/point-manage" title="埋点管理" />
+    <tree path="/apps/frontend/src/pages/data-analysis/attribution" title="归因分析" />
+    <tree path="/apps/frontend/src/pages/data-analysis/event" title="事件分析" />
 </trees>

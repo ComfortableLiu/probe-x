@@ -6,7 +6,7 @@ export default {
   name: '数据分析',
   key: 'data-analysis',
   meta: {
-    icon: <ChartPieOne theme="outline" size="16" fill="#333" />,
+    icon: <ChartPieOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
   },
   children: [{
     path: '/data-analysis/event',

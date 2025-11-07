@@ -6,7 +6,7 @@ export default {
   name: '埋点管理',
   key: 'point-manage',
   meta: {
-    icon: <PageTemplate theme="outline" size="16" fill="#333" />,
+    icon: <PageTemplate theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
   },
   children: [{
     path: '/point-manage/event',

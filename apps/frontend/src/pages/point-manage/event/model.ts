@@ -50,7 +50,7 @@ const pointManageEventModel = createModel<RootModel>()({
     async getEventProperties({ eventName }: { eventName: string }, state) {
       const res = await queryEventProperties({ eventName })
       const { data } = res
-      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data.data })
+      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data })
     },
   }),
 })

@@ -1,0 +1,26 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  gap: 32px;
+
+  * {
+    font-size: 12px;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: #F4F4F4;
+    height: 40px;
+    padding: 0 4px;
+
+    .title {
+      flex: 1;
+      font-size: 18px;
+      line-height: 40px;
+      font-weight: bold;
+    }
+  }
+}

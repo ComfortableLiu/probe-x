@@ -30,11 +30,11 @@ const MenuView = () => {
     key: route.key,
     icon: route.meta?.icon,
     label: route.path ? <Link to={route.path}>{route.name}</Link> : route.name,
-    children: (route.children || []).filter(route => !route.meta?.isHidden)?.map(child => ({
+    children: route.children ? route.children.filter(route => !route.meta?.isHidden).map(child => ({
       key: child.key,
       icon: child.meta?.icon,
       label: <Link to={child.path}>{child.name}</Link>,
-    })),
+    })) : null,
   }))
 
   const switchCollapsed = () => {
@@ -55,6 +55,7 @@ const MenuView = () => {
         className={styles.menu}
         inlineCollapsed={collapsed}
         mode="inline"
+        theme="dark"
         selectedKeys={[selectedKeys]}
         items={items}
       />
@@ -63,9 +64,10 @@ const MenuView = () => {
           className={styles.menu}
           inlineCollapsed={collapsed}
           mode="vertical"
+          theme="dark"
           items={[{
             key: 'account',
-            icon: <Me theme="outline" size="16" fill="#333" />,
+            icon: <Me theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
             label: <span className={classnames({ collapsed })}>{userInfo.nickname || userInfo.username}</span>,
             children: [{
               key: 'account-center',
@@ -81,7 +83,7 @@ const MenuView = () => {
             }],
           }, {
             key: 'collapse',
-            icon: <MenuUnfoldOne theme="outline" size="16" fill="#333" />,
+            icon: <MenuUnfoldOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
             label: <span className={classnames({ collapsed })}>收起</span>,
             onClick: () => switchCollapsed(),
           }]}
