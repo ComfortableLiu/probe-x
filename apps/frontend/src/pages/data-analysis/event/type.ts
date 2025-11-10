@@ -5,7 +5,7 @@ export interface IQuery {
   // 时间范围
   timeRange: [Date, Date]
   // 指标维度，属性
-  dimension: string[]
+  dimension: IDimension[]
   // 图表类型
   chartType: ChartType
 }
@@ -15,7 +15,7 @@ export interface IEventInfo {
   // 事件名
   eventName: string
   // 过滤条件
-  filters: IAttributionFilter[]
+  filters?: IAttributionFilter[]
   // 查看的数据指标
   metrics: Metrics
 }
@@ -30,6 +30,13 @@ export interface IAttributionFilter {
   compareType: CompareType
 }
 
+// 指标维度
+export interface IDimension {
+  // 属性名
+  propertyName: string
+  // 属性值
+  propertyKey: string
+}
 
 // 筛选条件类型
 export enum CompareType {

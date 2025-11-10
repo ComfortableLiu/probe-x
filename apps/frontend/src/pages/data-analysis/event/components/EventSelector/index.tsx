@@ -76,7 +76,7 @@ function EventSelector() {
         <div className={styles.title}>事件维度</div>
         <div className={styles.content}>
           {dimension.map(item => (
-            <div key={item}>{item}</div>
+            <div key={item.propertyKey}>{item.propertyName}</div>
           ))}
 
           <Button

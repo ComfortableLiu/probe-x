@@ -22,10 +22,19 @@ export function useQuery<T = IAnyObj>() {
   const location = useLocation()
 
   return useMemo<T>(() => {
-    return (queryString.parse(location.search, {
+    const obj = (queryString.parse(location.search, {
       parseBooleans: true,
       parseNumbers: true,
-    }) || {}) as T
+    }) || {})
+    const query = {}
+    Object.keys(obj).forEach(key => {
+      try {
+        query[key] = JSON.parse(obj[key])
+      } catch (e) {
+        query[key] = obj[key]
+      }
+    })
+    return query as T
   }, [location.search])
 }
 
@@ -48,14 +57,24 @@ export function useRouter() {
     navigate,
     refresh: (query?: IAnyObj, retainOldQuery?: boolean) => {
       let search: string
+      const obj = {}
+      Object.keys(query || {}).forEach(key => {
+        if (typeof query[key] === 'object') {
+          obj[key] = JSON.stringify(query[key])
+        } else {
+          obj[key] = query[key]
+        }
+      })
       if (retainOldQuery) {
         search = queryString.stringify({
           ...queryString.parse(location.search),
-          ...(query || {}),
+          ...(obj || {}),
         })
       } else {
-        search = queryString.stringify(query || {})
+        search = queryString.stringify(obj || {})
       }
+
+      console.log(search)
 
       navigate({
         pathname: location.pathname,
