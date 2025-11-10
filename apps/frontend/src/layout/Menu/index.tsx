@@ -68,7 +68,7 @@ const MenuView = () => {
           items={[{
             key: 'account',
             icon: <Me theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
-            label: <span className={classnames({ collapsed })}>{userInfo.nickname || userInfo.username}</span>,
+            label: <span className={classnames({ collapsed })}>{userInfo?.nickname || userInfo?.username || '未知'}</span>,
             children: [{
               key: 'account-center',
               label: (

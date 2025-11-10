@@ -97,8 +97,8 @@ function EventSelector() {
         <div className={styles.content}>
           <RangePicker
             allowClear
-            maxDate={dayjs()}
-            defaultValue={[dayjs(timeRange[0]), dayjs(timeRange[1])]}
+            // maxDate={dayjs()}
+            // defaultValue={[dayjs(timeRange[0]), dayjs(timeRange[1])]}
           />
         </div>
       </div>

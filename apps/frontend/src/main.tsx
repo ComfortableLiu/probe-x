@@ -1,11 +1,10 @@
 import React from 'react'
-import { store } from "./store/storeContext"
 import { createRoot } from "react-dom/client"
 import App from "@/layout/App"
 
 const render = async () => {
   // 初始化一些东西
-  await store.dispatch.appModel.init()
+  // await store.dispatch.appModel.init()
 
   const container = document.getElementById('app')
   if (container) {
