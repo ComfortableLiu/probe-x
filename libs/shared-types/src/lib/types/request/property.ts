@@ -57,3 +57,20 @@ export interface ICreatePropertyReq {
 
 // 属性关联事件返回值
 export type ICreatePropertyRes = IPropertyListItem
+
+// 简化事件列表项
+export interface IPropertyListItemSimple {
+  propertyName: string
+  propertyType: MetaPropertyType
+  type: MetaPropertyBusinessType
+}
+
+// 简化事件列表
+export type IPropertyListSimple = IPropertyListItemSimple[]
+
+// 简化事件列表请求参数
+export interface IQueryPropertyListSimpleReq {
+}
+
+// 简化事件列表返回值
+export type IQueryPropertyListSimpleRes = IPropertyListSimple

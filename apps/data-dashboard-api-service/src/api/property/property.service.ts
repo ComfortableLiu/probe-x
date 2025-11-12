@@ -6,6 +6,7 @@ import {
   ICreatePropertyRes,
   IQueryCommonPropertyListRes,
   IQueryPropertyListRes,
+  IQueryPropertyListSimpleRes,
   MetaPropertyBusinessType,
   MetaPropertyStatus,
   MetaPropertyTypeMap,
@@ -82,6 +83,20 @@ export class PropertyService {
       updateUserId: temp.updateUser?.userId,
       updateUsername: temp.updateUser?.username,
       updateNickname: temp.updateUser?.nickname,
+    }))
+  }
+
+  async getPropertyList(): Promise<IQueryPropertyListSimpleRes> {
+    const data = await this.propertyRepository.find({
+      where: {
+        status: MetaPropertyStatus.VALID,
+      },
+    })
+
+    return data.map(temp => ({
+      propertyName: temp.propertyName,
+      propertyType: temp.propertyType,
+      type: temp.type,
     }))
   }
 

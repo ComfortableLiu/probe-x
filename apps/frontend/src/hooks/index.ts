@@ -29,7 +29,7 @@ export function useQuery<T = IAnyObj>() {
     const query = {}
     Object.keys(obj).forEach(key => {
       try {
-        query[key] = JSON.parse(obj[key])
+        query[key] = JSON.parse(`${obj[key]}`)
       } catch (e) {
         query[key] = obj[key]
       }
@@ -43,7 +43,7 @@ export function useQuery<T = IAnyObj>() {
  */
 export function useHistoryListener(fn: (location: Location) => void) {
   const location = useLocation() as unknown as Location
-  useEffect(() => fn && fn(location), [location])
+  useEffect(() => fn && fn(location), [fn, location])
 }
 
 /**
@@ -55,6 +55,11 @@ export function useRouter() {
   return {
     location,
     navigate,
+    /**
+     * 刷新路由
+     * @param query 参数
+     * @param retainOldQuery 是否保留旧字段，但是相同的key还是会覆盖的，如果不想覆盖，需要在自行处理
+     */
     refresh: (query?: IAnyObj, retainOldQuery?: boolean) => {
       let search: string
       const obj = {}
@@ -73,8 +78,6 @@ export function useRouter() {
       } else {
         search = queryString.stringify(obj || {})
       }
-
-      console.log(search)
 
       navigate({
         pathname: location.pathname,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from "react"
-import EventSelector from "./components/EventSelector"
+import DataFilterConfigArea from "./components/DataFilterConfigArea"
 import DataChat from "./components/DataChat"
 import DataTable from "./components/DataTable"
 import { useDispatch } from "react-redux"
@@ -8,7 +8,6 @@ import * as styles from "./styles.module.scss"
 import { Button } from "antd"
 import { Download } from "@icon-park/react"
 import { useRouter } from "@/hooks"
-import { ChartType, IQuery, Metrics } from "@pages/data-analysis/event/type"
 
 function EventAnalysis() {
 
@@ -18,34 +17,13 @@ function EventAnalysis() {
   } = useRouter()
 
   useEffect(() => {
-    // dispatch.pointModel.getEventList()
+    dispatch.pointModel.getEventList()
+    dispatch.pointModel.getPropertyList()
   }, [dispatch.pointModel])
 
   const download = useCallback(() => {
-    const q: IQuery = {
-      timeRange: [new Date('2025-11-03'), new Date('2025-11-09')],
-      dimension: [{
-        propertyKey: 'aa',
-        propertyName: '页面',
-      }, {
-        propertyKey: 'bb',
-        propertyName: '延时',
-      }],
-      eventInfoList: [{
-        eventName: 'goods-exposure',
-        metrics: Metrics.COUNT,
-      }, {
-        eventName: 'goods-click',
-        metrics: Metrics.SESSIONS,
-      }, {
-        eventName: 'goods-favor',
-        metrics: Metrics.USERS,
-      }],
-      chartType: ChartType.LINE,
-    }
-    console.log(q)
-    refresh(q)
-  }, [refresh])
+    console.log('download')
+  }, [])
 
   return (
     <div className={styles.container}>
@@ -60,8 +38,10 @@ function EventAnalysis() {
           下载
         </Button>
       </div>
-      <EventSelector />
+      <DataFilterConfigArea />
+      <div className={styles.hr} />
       <DataChat />
+      <div className={styles.hr} />
       <DataTable />
     </div>
   )

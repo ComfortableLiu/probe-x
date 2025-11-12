@@ -4,14 +4,14 @@ import { useQuery } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/event/type"
 import { TableProps } from "antd"
 import dayjs from "dayjs"
+import * as styles from "./styles.module.scss"
 
 function DataTable() {
 
   const {
     timeRange,
     dimension,
-    chartType,
-    eventInfoList,
+    eventInfoList = [],
   } = useQuery<IQuery>()
 
   const pageData = useMemo(() => new Array(Math.floor(Math.random() * 5) + 1)
@@ -29,8 +29,8 @@ function DataTable() {
     // 维度列表，需要合并各个事件
     list.push(...(dimension || []).map((item, index) => {
       return {
-        title: item.propertyName,
-        dataIndex: item.propertyKey,
+        title: item,
+        dataIndex: item,
         width: 150,
         onCell: (_, i) => ({
           rowSpan: i % rowSpan[index] === 0 ? rowSpan[index] : 0,
@@ -47,14 +47,15 @@ function DataTable() {
         <div key={eventName} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <div
             style={{
-              width: 20,
               height: 20,
+              width: 20,
               borderRadius: '100%',
               backgroundColor: '#536DFE',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               color: 'white',
+              fontWeight: 'bold',
             }}
           >
             {String.fromCharCode(65 + (index % eventInfoList.length))}
@@ -113,6 +114,9 @@ function DataTable() {
         dataSource={dataSource}
         columns={columns}
         size="middle"
+        style={{
+          padding: 0,
+        }}
         paginationData={{
           total: 0,
           current: 1,
@@ -122,8 +126,10 @@ function DataTable() {
     )
   }, [columns, dataSource, timeRange?.length])
 
+  if (!eventInfoList?.length) return null
+
   return (
-    <div>
+    <div className={styles.container}>
       <h3>表格展示</h3>
       {renderTable}
     </div>

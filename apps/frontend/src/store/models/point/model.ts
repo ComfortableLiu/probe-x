@@ -1,10 +1,11 @@
 import { createModel } from "@rematch/core"
 import { RootModel } from "@/store/models"
 import { IPointState } from "./type"
-import { queryEventList } from "@/store/models/point/services"
+import { queryEventList, queryPropertyList } from "@/store/models/point/services"
 
 const initState: IPointState = {
   eventList: [],
+  propertyList: [],
 }
 
 export const pointModel = createModel<RootModel>()({
@@ -23,6 +24,11 @@ export const pointModel = createModel<RootModel>()({
       const res = await queryEventList()
       const { data } = res
       dispatch.pointModel.updateItem({ eventList: data })
+    },
+    async getPropertyList() {
+      const res = await queryPropertyList()
+      const { data } = res
+      dispatch.pointModel.updateItem({ propertyList: data })
     },
   }),
 })
