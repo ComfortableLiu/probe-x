@@ -3,6 +3,8 @@ import { RootModel } from "@/store/models"
 import { IDataAnalysisEventState, IQuery } from "@pages/data-analysis/event/type"
 import { getParamsOrQuery } from "@utils/router"
 import { isEmpty } from "@probe-x/shared-utils/src"
+import { queryDownloadTask, submitDownloadTask, submitQueryTask } from "@pages/data-analysis/event/services"
+import { message } from "antd"
 
 const initState: IDataAnalysisEventState = {}
 
@@ -53,25 +55,34 @@ const dataAnalysisEventModel = createModel<RootModel>()({
     },
     // 下载数据
     async downloadData() {
-      const {
-        globalFilters,
-        timeRange,
-        dimension,
-        eventInfoList,
-      } = getParamsOrQuery<IQuery>()
-      // TODO 异步下载
-      console.log('下载数据', globalFilters, timeRange, dimension, eventInfoList)
+      const query = getParamsOrQuery<IQuery>()
+      const { data, code, msg } = await submitDownloadTask(query)
+      if (code !== 0 || !data?.taskId) {
+        message.error(msg || '提交下载任务失败')
+        return
+      }
+      // TODO 储存任务ID，并启动轮询
     },
     // 提交查询数据
     async submitQuery() {
-      const {
-        globalFilters,
-        timeRange,
-        dimension,
-        eventInfoList,
-      } = getParamsOrQuery<IQuery>()
-      // TODO 接口查询
-      console.log('查询数据', globalFilters, timeRange, dimension, eventInfoList)
+      const query = getParamsOrQuery<IQuery>()
+      const { data, code, msg } = await submitQueryTask(query)
+      if (code !== 0 || !data) {
+        message.error(msg || '查询失败')
+        return
+      }
+      // TODO 储存查询结果
+    },
+    // 查询下载任务
+    async queryDownloadTask() {
+      const taskId = ''
+      const { data, code, msg } = await queryDownloadTask({ taskId })
+
+      if (code !== 0 || !data) {
+        message.error(msg || '查询失败')
+        return
+      }
+      return data
     },
   }),
 })

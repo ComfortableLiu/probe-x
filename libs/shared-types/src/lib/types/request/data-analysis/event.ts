@@ -50,7 +50,7 @@ export enum Metrics {
 }
 
 // 事件分析请求入参
-export interface EventAnalysisReq {
+export interface IEventAnalysisReq {
   // 事件部分
   eventInfoList: IEventAnalysisInfo[]
   // 时间范围
@@ -62,6 +62,25 @@ export interface EventAnalysisReq {
 }
 
 // 事件分析请求返回值
-export interface EventAnalysisRes {
+export interface IEventAnalysisRes {
 
+}
+
+// 提交数据下载请求入参
+export type ISubmitDownloadTaskReq = IEventAnalysisReq
+
+// 提交数据下载请求返回值
+export interface ISubmitDownloadTaskRes {
+  taskId: string
+}
+
+// 提交数据下载请求入参
+export interface IQueryDownloadTaskReq {
+  taskId: string
+}
+
+// 提交数据下载请求返回值
+export interface IQueryDownloadTaskRes {
+  status: 'SUCCESS' | 'FAIL' | 'RUNNING'
+  downloadUrl?: string
 }

@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from "react"
 import { useRouter } from "@/hooks"
-import { Button, notification, Space } from 'antd'
+import { Button, message, Space } from 'antd'
 import * as styles from "./styles.module.scss"
 import { Refresh, Search } from "@icon-park/react"
 import EventSelector from "./components/EventSelector"
@@ -23,7 +23,7 @@ function DataFilterConfigArea() {
     // 先检查填写项
     const flag = await dispatch.dataAnalysisEventModel.checkQueryParams()
     if (flag) {
-      notification.error({ message: flag })
+      message.error(flag)
       return
     }
     dispatch.dataAnalysisEventModel.submitQuery()

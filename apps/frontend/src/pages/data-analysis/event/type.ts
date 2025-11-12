@@ -1,4 +1,4 @@
-import { EventAnalysisReq } from "@probe-x/shared-types/src"
+import { IEventAnalysisReq } from "@probe-x/shared-types/src"
 
 export interface IDataAnalysisEventState {
   // 数据更新时间
@@ -6,4 +6,4 @@ export interface IDataAnalysisEventState {
 }
 
 // url参数
-export type IQuery = EventAnalysisReq
+export type IQuery = IEventAnalysisReq

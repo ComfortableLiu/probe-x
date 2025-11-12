@@ -5,7 +5,7 @@ import DataTable from "./components/DataTable"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import * as styles from "./styles.module.scss"
-import { Button, notification, Spin } from "antd"
+import { Button, message, Spin } from "antd"
 import { Download } from "@icon-park/react"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisEventState, IQuery } from "./type"
@@ -47,7 +47,7 @@ function EventAnalysis() {
     // 先检查填写项
     const flag = await dispatch.dataAnalysisEventModel.checkQueryParams()
     if (flag) {
-      notification.error({ message: flag })
+      message.error(flag)
       return
     }
     dispatch.dataAnalysisEventModel.downloadData()
