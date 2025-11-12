@@ -116,7 +116,7 @@ function EventItem(props: IEventItemProps) {
       </div>
       <FilterSelector
         styles={{ marginLeft: 32 }}
-        value={eventInfo.filters}
+        value={eventInfo?.filters}
         onChange={(value) => {
           onChange({
             ...eventInfo,

@@ -6,7 +6,20 @@ export function isEmpty(value: unknown) {
   return value === null || value === '' || value === undefined
 }
 
-export const isString = (val: unknown): boolean => Object.prototype.toString.call(val) === '[object String]'
+export const isString = (value: unknown): boolean => Object.prototype.toString.call(value) === '[object String]'
+
+export const isNumber = (value: unknown): boolean => Object.prototype.toString.call(value) === '[object Number]'
+
+/**
+ * 校验是否可以转换为数字
+ * @param value
+ */
+export const checkNumber = (value: unknown): boolean => {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'boolean') return false
+  const num = Number(value)
+  return Number.isFinite(num)
+}
 
 /**
  * 延时函数

@@ -31,4 +31,11 @@
           title="指标维度选择" extension="" presentableText="" tooltipTitle="" />
     <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea/components/FilterSelector"
           title="筛选模块" />
+    <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea/components/EventSelector"
+          title="事件选择部分" />
+    <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea/components/GlobalFilter"
+          title="全局筛选" />
+    <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea/components/TimeRangeSelector"
+          title="时间范围" />
+    <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea" title="上方选择部分" />
 </trees>

@@ -48,11 +48,6 @@ function EventSelector() {
 
   // 渲染事件选项列表
   const renderEventList = useMemo(() => {
-    if (!eventInfoList.length) {
-      return (
-        <EventItem eventInfo={null} index={0} />
-      )
-    }
     return eventInfoList.map((eventInfo, index) => (
       <EventItem
         key={index}
