@@ -1,5 +1,4 @@
 import { flatRoutes } from "@/router"
-import type { IAnyObj } from "@probe-x/shared-types/src"
 import queryString from "query-string"
 
 /**
@@ -9,9 +8,18 @@ function checkIsInternalRoute(path: string) {
   return !!flatRoutes.get(path)
 }
 
-export function getParamsOrQuery(): IAnyObj {
-  return queryString.parse(location.search, {
+export function getParamsOrQuery<T>(search?: string) {
+  const obj = (queryString.parse(search || location.search, {
     parseBooleans: true,
     parseNumbers: true,
+  }) || {})
+  const query = {}
+  Object.keys(obj).forEach(key => {
+    try {
+      query[key] = JSON.parse(`${obj[key]}`)
+    } catch (e) {
+      query[key] = obj[key]
+    }
   })
+  return query as T
 }

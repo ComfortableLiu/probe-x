@@ -1,23 +1,33 @@
 import React, { memo, useCallback } from "react"
 import { useRouter } from "@/hooks"
-import { Button, Space } from 'antd'
+import { Button, notification, Space } from 'antd'
 import * as styles from "./styles.module.scss"
 import { Refresh, Search } from "@icon-park/react"
 import EventSelector from "./components/EventSelector"
 import GlobalFilter from "./components/GlobalFilter"
 import DimensionSelector from "@pages/data-analysis/event/components/DataFilterConfigArea/components/DimensionSelector"
 import TimeRangeSelector from "@pages/data-analysis/event/components/DataFilterConfigArea/components/TimeRangeSelector"
+import { useDispatch } from "react-redux"
+import { Dispatch } from "@/store/storeContext"
 
 function DataFilterConfigArea() {
+
+  const dispatch = useDispatch<Dispatch>()
 
   const {
     refresh,
   } = useRouter()
 
   // 提交查询任务
-  const submit = useCallback(() => {
-    console.log('提交')
-  }, [])
+  const submit = useCallback(async () => {
+    // 先检查填写项
+    const flag = await dispatch.dataAnalysisEventModel.checkQueryParams()
+    if (flag) {
+      notification.error({ message: flag })
+      return
+    }
+    dispatch.dataAnalysisEventModel.submitQuery()
+  }, [dispatch.dataAnalysisEventModel])
 
   return (
     <div className={styles.container}>

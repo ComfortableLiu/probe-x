@@ -25,13 +25,13 @@ function DimensionSelector() {
    * @param index 修改第index个
    * @param value 有值就是把第index个修改成value，为null就是删除第index个，如果超过了dimension.length，则添加一个
    */
-  const changeDimension = (index: number, value: string | null) => {
+  const changeDimension = (index: number, value?: string | undefined) => {
     const list = [...dimension]
     if (index > list.length) {
-      if (!value) return
+      if (value === undefined) return
       list.push(value)
     } else {
-      if (value) {
+      if (value !== undefined) {
         list[index] = value
       } else {
         list.splice(index, 1)
@@ -49,13 +49,11 @@ function DimensionSelector() {
           allowClear
           key={index}
           style={{ width: 120 }}
-          onChange={(value) => {
-            changeDimension(index, value)
-          }}
-          options={propertyList.map(property => ({
+          onChange={(value) => changeDimension(index, value)}
+          options={[{ label: '总体', value: '' }, ...propertyList.map(property => ({
             label: property.propertyName,
             value: property.propertyName,
-          }))}
+          }))]}
           value={item}
         />
       ))}
@@ -63,9 +61,7 @@ function DimensionSelector() {
       <a
         className={styles.addBtn}
         href="#"
-        onClick={() => {
-          changeDimension(dimension.length, '总体')
-        }}
+        onClick={() => changeDimension(dimension.length, '')}
       >
         <AddOne theme="outline" size="16" fill="#3F51B5" style={{ display: 'flex' }} />
         增加维度

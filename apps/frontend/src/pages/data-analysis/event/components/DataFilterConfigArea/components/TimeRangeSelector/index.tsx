@@ -12,7 +12,7 @@ const { RangePicker } = DatePicker
 function TimeRangeSelector() {
 
   const {
-    timeRange = [dayjs().subtract(8, 'day').format('YYYY-MM-DD'), dayjs().subtract(1, 'day').format('YYYY-MM-DD')],
+    timeRange = [],
   } = useQuery<IQuery>()
 
   const {

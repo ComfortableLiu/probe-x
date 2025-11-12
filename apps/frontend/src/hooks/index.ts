@@ -5,6 +5,7 @@ import { useNavigate } from "react-router"
 import queryString from "query-string"
 import { useSelector } from "react-redux"
 import { RootState } from "@/store/storeContext"
+import { getParamsOrQuery } from "@utils/router"
 
 export function useModel<T>(key: keyof RootState) {
   return useSelector((store: RootState) => store[key] as T)
@@ -22,19 +23,7 @@ export function useQuery<T = IAnyObj>() {
   const location = useLocation()
 
   return useMemo<T>(() => {
-    const obj = (queryString.parse(location.search, {
-      parseBooleans: true,
-      parseNumbers: true,
-    }) || {})
-    const query = {}
-    Object.keys(obj).forEach(key => {
-      try {
-        query[key] = JSON.parse(`${obj[key]}`)
-      } catch (e) {
-        query[key] = obj[key]
-      }
-    })
-    return query as T
+    return getParamsOrQuery<T>(location.search)
   }, [location.search])
 }
 
@@ -43,7 +32,7 @@ export function useQuery<T = IAnyObj>() {
  */
 export function useHistoryListener(fn: (location: Location) => void) {
   const location = useLocation() as unknown as Location
-  useEffect(() => fn && fn(location), [fn, location])
+  useEffect(() => fn && fn(location), [location])
 }
 
 /**
