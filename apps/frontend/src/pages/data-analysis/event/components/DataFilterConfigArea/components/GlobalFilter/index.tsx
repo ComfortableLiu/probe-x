@@ -2,9 +2,9 @@ import React, { memo, useCallback } from "react"
 import * as styles from "./styles.module.scss"
 import { Plus } from "@icon-park/react"
 import { useQuery, useRouter } from "@/hooks"
-import { IAttributionFilter, IQuery } from "@pages/data-analysis/event/type"
+import { IAttributionAnalysisFilter, MetaPropertyType } from "@probe-x/shared-types/src"
+import { IQuery } from "@pages/data-analysis/event/type"
 import FilterSelector from "../FilterSelector"
-import { MetaPropertyType } from "@probe-x/shared-types/src"
 
 function GlobalFilter() {
 
@@ -16,7 +16,7 @@ function GlobalFilter() {
     refresh,
   } = useRouter()
 
-  const handleChange = useCallback((value: IAttributionFilter[]) => {
+  const handleChange = useCallback((value: IAttributionAnalysisFilter[]) => {
     console.log('value', value)
     refresh({
       globalFilters: value,
@@ -32,7 +32,7 @@ function GlobalFilter() {
         propertyType: MetaPropertyType.STRING,
         propertyValue: [],
         compareType: 'EQUAL',
-      } as IAttributionFilter,
+      } as IAttributionAnalysisFilter,
     ])
   }, [globalFilters, handleChange])
 

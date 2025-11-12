@@ -1,17 +1,21 @@
 import React, { memo, useEffect, useMemo } from "react"
 import * as styles from "./styles.module.scss"
-import { CompareType, IAttributionFilter } from "@pages/data-analysis/event/type"
 import { DatePicker, Input, InputNumber, Select } from "antd"
 import { useModel } from "@/hooks"
 import { IPointState } from "@/store/models/point/type"
-import { MetaPropertyBusinessType, MetaPropertyType } from "@probe-x/shared-types/src"
+import {
+  CompareType,
+  IAttributionAnalysisFilter,
+  MetaPropertyBusinessType,
+  MetaPropertyType,
+} from "@probe-x/shared-types/src"
 import { checkNumber } from "@probe-x/shared-utils/src"
 import dayjs from "dayjs"
 import { CopyOne, Delete } from "@icon-park/react"
 
 interface IFilterItemProps {
-  filterItem?: IAttributionFilter
-  onChange?: (value: IAttributionFilter) => void
+  filterItem?: IAttributionAnalysisFilter
+  onChange?: (value: IAttributionAnalysisFilter) => void
   onCopy?: () => void
   onRemove?: () => void
 }

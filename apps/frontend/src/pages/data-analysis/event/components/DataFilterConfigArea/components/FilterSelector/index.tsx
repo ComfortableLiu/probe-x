@@ -1,12 +1,11 @@
 import React, { CSSProperties, memo, useMemo } from "react"
 import * as style from "./styles.module.scss"
-import { IAttributionFilter } from "@pages/data-analysis/event/type"
-import FilterItem
-  from "@pages/data-analysis/event/components/DataFilterConfigArea/components/FilterSelector/components/FilterItem"
+import { IAttributionAnalysisFilter } from "@probe-x/shared-types/src"
+import FilterItem from "./components/FilterItem"
 
 interface IFilterSelectorProps {
-  value?: IAttributionFilter[]
-  onChange?: (value: IAttributionFilter[]) => void
+  value?: IAttributionAnalysisFilter[]
+  onChange?: (value: IAttributionAnalysisFilter[]) => void
   styles?: CSSProperties
 }
 

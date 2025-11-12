@@ -8,7 +8,7 @@ import * as styles from "./styles.module.scss"
 import { Button, notification, Spin } from "antd"
 import { Download } from "@icon-park/react"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
-import { IDataAnalysisEventState, IQuery } from "@pages/data-analysis/event/type"
+import { IDataAnalysisEventState, IQuery } from "./type"
 import dayjs from "dayjs"
 
 function EventAnalysis() {

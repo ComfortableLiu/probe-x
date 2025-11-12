@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react"
-import { IEventInfo, Metrics } from "@pages/data-analysis/event/type"
+import { IEventAnalysisInfo, Metrics } from "@probe-x/shared-types/src"
 import { Select, Tooltip } from "antd"
 import { useModel } from "@/hooks"
 import { IPointState } from "@/store/models/point/type"
@@ -8,7 +8,7 @@ import { CopyOne, Delete, Filter } from "@icon-park/react"
 import FilterSelector from "@pages/data-analysis/event/components/DataFilterConfigArea/components/FilterSelector"
 
 interface IEventItemProps {
-  eventInfo: IEventInfo | null
+  eventInfo: IEventAnalysisInfo | null
   index: number
   // 点击移除
   onRemove?: () => void
@@ -17,7 +17,7 @@ interface IEventItemProps {
   // 点击复制
   onCopy?: () => void
   // 修改值
-  onChange?: (value: IEventInfo) => void
+  onChange?: (value: IEventAnalysisInfo) => void
 }
 
 function EventItem(props: IEventItemProps) {

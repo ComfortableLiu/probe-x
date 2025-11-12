@@ -1,10 +1,10 @@
 import React, { memo, useCallback, useMemo } from "react"
 import EventItem from "./components/EventItem"
 import { useQuery, useRouter } from "@/hooks"
-import { IAttributionFilter, IQuery, Metrics } from "@pages/data-analysis/event/type"
+import { IQuery } from "@pages/data-analysis/event/type"
+import { IAttributionAnalysisFilter, MetaPropertyType, Metrics } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 import { AddOne } from "@icon-park/react"
-import { MetaPropertyType } from "@probe-x/shared-types/src"
 
 function EventSelector() {
 
@@ -71,7 +71,7 @@ function EventSelector() {
               propertyType: MetaPropertyType.STRING,
               propertyValue: [],
               compareType: 'EQUAL',
-            } as IAttributionFilter],
+            } as IAttributionAnalysisFilter],
           }
           refresh({
             eventInfoList: list,
