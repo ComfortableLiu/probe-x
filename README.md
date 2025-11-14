@@ -55,7 +55,7 @@
 - MySQL >= 5.7
 - Kafka >= 2.8.0
 - Redis >= 6.0
-- ClickHouse >= 25.9
+- ClickHouse >= 24.8
 
 ### 安装和启动
 

@@ -44,11 +44,11 @@ const dataAnalysisEventModel = createModel<RootModel>()({
         return '请选择维度项'
       }
 
-      if (eventInfoList.some(item => !item.eventName || !item.metrics || (item.filters?.length && item.filters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && filter.propertyValue.length === 0))))) {
+      if (eventInfoList.some(item => !item.eventName || !item.metrics || (item.filters?.length && item.filters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))))) {
         return '请完善事件项'
       }
 
-      if (globalFilters?.length && globalFilters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && filter.propertyValue.length === 0))) {
+      if (globalFilters?.length && globalFilters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))) {
         return '请完善全局筛选项'
       }
       return ''
@@ -67,7 +67,7 @@ const dataAnalysisEventModel = createModel<RootModel>()({
     async submitQuery() {
       const query = getParamsOrQuery<IQuery>()
       const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 0 || !data) {
+      if (code !== 0) {
         message.error(msg || '查询失败')
         return
       }

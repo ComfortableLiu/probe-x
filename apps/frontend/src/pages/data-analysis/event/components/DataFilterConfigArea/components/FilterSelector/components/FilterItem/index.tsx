@@ -120,7 +120,14 @@ function FilterItem(props: IFilterItemProps) {
       ...filterItem,
       propertyValue: defaultValue,
     })
-  }, [filterItem.propertyType, filterItem.compareType])
+  }, [filterItem.compareType])
+
+  useEffect(() => {
+    onChange({
+      ...filterItem,
+      compareType: 'EQUAL',
+    })
+  }, [filterItem.propertyType])
 
   // 渲染文本输入框
   const renderFilterTextInput = useMemo(() => (
@@ -175,7 +182,7 @@ function FilterItem(props: IFilterItemProps) {
         onChange={(value) => {
           onChange && onChange({
             ...filterItem,
-            propertyValue: [value, value[1]],
+            propertyValue: [value, filterItem.propertyValue?.[1]],
           })
         }}
       />
@@ -186,7 +193,7 @@ function FilterItem(props: IFilterItemProps) {
         onChange={(value) => {
           onChange && onChange({
             ...filterItem,
-            propertyValue: [value[0], value],
+            propertyValue: [filterItem.propertyValue?.[0], value],
           })
         }}
       />

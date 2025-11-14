@@ -16,6 +16,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config"
 import { PropertyModule } from "@src/api/property/property.module"
 import { TrackingNodeModule } from "@src/api/tracking-node/tracking-node.module"
 import configuration from "../config/configuration"
+import { DataAnalysisModule } from "@src/api/data-analysis/data-analysis.module"
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import configuration from "../config/configuration"
     EventModule,
     PropertyModule,
     TrackingNodeModule,
+    DataAnalysisModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

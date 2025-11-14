@@ -37,8 +37,7 @@ export class PropertyController {
    * 获取属性列表，简化版
    */
   @Get('/list/simple')
-  async getPropertiesSimple(
-  ) {
+  async getPropertiesSimple() {
     return await this.propertyService.getPropertyList()
   }
 

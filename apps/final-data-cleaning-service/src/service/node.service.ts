@@ -63,8 +63,8 @@ export class ComputeNodeService {
     const sql = `
         SELECT *
         FROM event_log
-        WHERE toDate(\`$service_time\`) = :queryDate
-          AND $session_id = :sessionId;
+        WHERE toDate(\`$service_time\`) = {queryDate: DateTime64}
+          AND $session_id = {sessionId: String};
     `
 
     return this.clickhouseService.query<IPreEventLog>(sql, {
