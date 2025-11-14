@@ -17,7 +17,6 @@ function GlobalFilter() {
   } = useRouter()
 
   const handleChange = useCallback((value: IAttributionAnalysisFilter[]) => {
-    console.log('value', value)
     refresh({
       globalFilters: value,
     }, true)

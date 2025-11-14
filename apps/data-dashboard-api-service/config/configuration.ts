@@ -82,4 +82,13 @@ export default () => ({
     clusterEnabled: process.env.REDIS_CLUSTER_ENABLED === 'true',
     clusterNodes: process.env.REDIS_CLUSTER_NODES?.split(',') || [],
   },
+  minio: {
+    host: process.env.MINIO_HOST || 'localhost',
+    port: parseInt(process.env.MINIO_PORT, 10) || 6800,
+    accessKey: process.env.MINIO_ACCESS_KEY || '',
+    secretKey: process.env.MINIO_SECRET_KEY || '',
+    useSSL: process.env.MINIO_USE_SSL === 'true',
+    bucket: process.env.MINIO_BUCKET || 'probe-x',
+    downloadExpires: parseInt(process.env.MINIO_DOWNLOAD_EXPIRES, 10) || 1800,
+  },
 })
