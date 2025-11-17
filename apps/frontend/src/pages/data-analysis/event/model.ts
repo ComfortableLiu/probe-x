@@ -57,28 +57,28 @@ const dataAnalysisEventModel = createModel<RootModel>()({
     async downloadData() {
       const query = getParamsOrQuery<IQuery>()
       const { data, code, msg } = await submitDownloadTask(query)
-      if (code !== 0 || !data?.taskId) {
+      if (code !== 200 || !data?.taskId) {
         message.error(msg || '提交下载任务失败')
         return
       }
-      // TODO 储存任务ID，并启动轮询
+      return data.taskId
     },
     // 提交查询数据
     async submitQuery() {
       const query = getParamsOrQuery<IQuery>()
       const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 0) {
+      if (code !== 200) {
         message.error(msg || '查询失败')
         return
       }
       // TODO 储存查询结果
     },
     // 查询下载任务
-    async queryDownloadTask() {
-      const taskId = ''
+    async queryDownloadTask({ taskId }: { taskId: string }) {
+      if (!taskId) return null
       const { data, code, msg } = await queryDownloadTask({ taskId })
 
-      if (code !== 0 || !data) {
+      if (code !== 200 || !data) {
         message.error(msg || '查询失败')
         return
       }

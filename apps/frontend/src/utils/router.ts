@@ -8,7 +8,7 @@ function checkIsInternalRoute(path: string) {
   return !!flatRoutes.get(path)
 }
 
-export function getParamsOrQuery<T>(search?: string) {
+export function getParamsOrQuery<T = any>(search?: string) {
   const obj = (queryString.parse(search || location.search, {
     parseBooleans: true,
     parseNumbers: true,

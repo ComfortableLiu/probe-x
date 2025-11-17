@@ -1,11 +1,11 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Job } from 'bullmq'
 import ExcelJS from 'exceljs'
-import { Readable } from 'stream'
 import { ClickHouseService, MinioService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { DimensionLayer } from "@probe-x/shared-types/src"
 import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_NAME } from "@src/api/data-analysis/type"
 import dayjs from "dayjs"
+import { PassThrough } from "node:stream"
 
 @Processor(QUEUE_NAME)
 export class QueryDownloadQueueProcessor extends WorkerHost {
@@ -50,11 +50,11 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
       }
 
       // Excel 流式上传 MinIO（无需本地存储）
-      const excelStream = new Readable()
+      const excelStream = new PassThrough()
       excelStream._read = () => {
       } // 实现 Readable 必需的 _read 方法
       await workbook.xlsx.write(excelStream)
-      excelStream.push(null) // 结束流
+      excelStream.end()
 
       // MinIO 文件路径（用 taskId 避免重复）
       const exportName = `${dayjs(createTime).format()}`
@@ -68,8 +68,8 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
       await this.redisService.set(redisKey, {
         ...job.data,
         downloadUrl,
-        status: 'success',
-      })
+        status: 'SUCCESS',
+      }, 30 * 60)
 
       // 实时推送结果到前端
       // if (global.io) {
@@ -87,8 +87,8 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
       // 更新任务状态为“失败”，存储错误信息
       await this.redisService.set(redisKey, {
         ...job.data,
-        status: 'failed',
-      })
+        status: 'FAIL',
+      }, 30 * 60)
 
       // TODO 推送失败通知到前端
       // if (global.io) {

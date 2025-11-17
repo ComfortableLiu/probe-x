@@ -26,10 +26,10 @@ export function submitDownloadTask(data: ISubmitDownloadTaskReq) {
 }
 
 // 查询下载任务情况
-export function queryDownloadTask(params: IQueryDownloadTaskReq) {
+export function queryDownloadTask(data: IQueryDownloadTaskReq) {
   return request<IQueryDownloadTaskRes>({
     url: '/data-analysis/event/download/task',
-    method: 'get',
-    params,
+    method: 'post',
+    data,
   })
 }

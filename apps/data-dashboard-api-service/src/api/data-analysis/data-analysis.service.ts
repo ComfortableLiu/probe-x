@@ -7,7 +7,7 @@ import {
 } from "@probe-x/shared-types/src"
 import { BusinessException, ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { v4 as uuidv4 } from "uuid"
-import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_TASK_NAME } from "@src/api/data-analysis/type"
+import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_NAME, QUEUE_TASK_NAME } from "@src/api/data-analysis/type"
 import { InjectQueue } from "@nestjs/bullmq"
 import { Queue } from "bullmq"
 import { eventAnalysisSqlBuilder } from "@src/api/data-analysis/EventAnalysisSqlBuilder"
@@ -17,7 +17,7 @@ export class DataAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
     private readonly redisService: RedisService,
-    @InjectQueue('clickhouse-export-queue')
+    @InjectQueue(QUEUE_NAME)
     private readonly exportQueue: Queue,
   ) {
   }
@@ -47,7 +47,7 @@ export class DataAnalysisService {
     }
 
     // 任务加入 BullMQ 队列（异步执行）
-    await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
+    const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
     await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData)
     return {
       taskId,

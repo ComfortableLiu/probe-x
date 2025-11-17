@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import DataFilterConfigArea from "./components/DataFilterConfigArea"
 import DataChat from "./components/DataChat"
 import DataTable from "./components/DataTable"
@@ -10,6 +10,7 @@ import { Download } from "@icon-park/react"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisEventState, IQuery } from "./type"
 import dayjs from "dayjs"
+import { downloadFile } from "@/utils"
 
 function EventAnalysis() {
 
@@ -27,6 +28,12 @@ function EventAnalysis() {
     refresh,
   } = useRouter()
 
+  const timer = useRef(undefined)
+
+  useEffect(() => {
+    return () => clearInterval(timer.current)
+  }, [timer])
+
   useEffect(() => {
     if (!timeRange) {
       refresh({
@@ -43,6 +50,15 @@ function EventAnalysis() {
 
   const pageLoading = useMemo(() => loading.dataAnalysisEventModel.init, [loading.dataAnalysisEventModel.init])
 
+  const queryDownloadTask = useCallback(async (taskId: string) => {
+    const res = await dispatch.dataAnalysisEventModel.queryDownloadTask({ taskId })
+    if (res.status === 'SUCCESS' && res.downloadUrl) {
+      // 下载文件
+      downloadFile(res.downloadUrl)
+      clearInterval(timer.current)
+    }
+  }, [dispatch.dataAnalysisEventModel])
+
   const download = useCallback(async () => {
     // 先检查填写项
     const flag = await dispatch.dataAnalysisEventModel.checkQueryParams()
@@ -50,8 +66,11 @@ function EventAnalysis() {
       message.error(flag)
       return
     }
-    dispatch.dataAnalysisEventModel.downloadData()
-  }, [dispatch.dataAnalysisEventModel])
+    const taskId = await dispatch.dataAnalysisEventModel.downloadData()
+    timer.current = setInterval(() => {
+      queryDownloadTask(taskId)
+    }, 1000)
+  }, [dispatch.dataAnalysisEventModel, queryDownloadTask])
 
   return (
     <Spin spinning={pageLoading}>

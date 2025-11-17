@@ -6,6 +6,7 @@ import { DataAnalysisService } from "./data-analysis.service"
 import { ClickHouseModule, MinIOModule } from "@probe-x/shared-utils/src/lib/backend-common"
 import { BullModule } from "@nestjs/bullmq"
 import { QUEUE_NAME } from "@src/api/data-analysis/type"
+import { QueryDownloadQueueProcessor } from "@src/api/data-analysis/query-download-queue.processor"
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { QUEUE_NAME } from "@src/api/data-analysis/type"
     MinIOModule,
   ],
   controllers: [DataAnalysisController],
-  providers: [DataAnalysisService],
+  providers: [DataAnalysisService, QueryDownloadQueueProcessor],
   exports: [],
 })
 export class DataAnalysisModule {
