@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DataFilterConfigArea from "./components/DataFilterConfigArea"
 import DataChat from "./components/DataChat"
 import DataTable from "./components/DataTable"
@@ -10,7 +10,7 @@ import { Download } from "@icon-park/react"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisEventState, IQuery } from "./type"
 import dayjs from "dayjs"
-import { downloadFile } from "@/utils"
+import DownloadPopup from "./components/DownloadPopup"
 
 function EventAnalysis() {
 
@@ -29,6 +29,10 @@ function EventAnalysis() {
   } = useRouter()
 
   const timer = useRef(undefined)
+
+  // 显示下载弹窗
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
 
   useEffect(() => {
     return () => clearInterval(timer.current)
@@ -54,7 +58,8 @@ function EventAnalysis() {
     const res = await dispatch.dataAnalysisEventModel.queryDownloadTask({ taskId })
     if (res.status === 'SUCCESS' && res.downloadUrl) {
       // 下载文件
-      downloadFile(res.downloadUrl)
+      setDownloadUrl(res.downloadUrl)
+      // downloadFile(res.downloadUrl)
       clearInterval(timer.current)
     }
   }, [dispatch.dataAnalysisEventModel])
@@ -66,6 +71,9 @@ function EventAnalysis() {
       message.error(flag)
       return
     }
+    setShowDownloadPopup(true)
+    setDownloadUrl(null)
+    clearInterval(timer.current)
     const taskId = await dispatch.dataAnalysisEventModel.downloadData()
     timer.current = setInterval(() => {
       queryDownloadTask(taskId)
@@ -91,6 +99,11 @@ function EventAnalysis() {
         <DataChat />
         <div className={styles.hr} />
         <DataTable />
+        <DownloadPopup
+          downloadUrl={downloadUrl}
+          onClose={() => setShowDownloadPopup(false)}
+          show={showDownloadPopup}
+        />
       </div>
     </Spin>
   )
