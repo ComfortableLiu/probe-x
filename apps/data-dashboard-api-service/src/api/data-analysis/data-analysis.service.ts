@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import {
-  DimensionLayer,
+  GenericEventAnalysisResult,
   IEventAnalysisReq,
   IQueryDownloadTaskRes,
   ISubmitDownloadTaskReq,
@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid"
 import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_NAME, QUEUE_TASK_NAME } from "@src/api/data-analysis/type"
 import { InjectQueue } from "@nestjs/bullmq"
 import { Queue } from "bullmq"
-import { eventAnalysisSqlBuilder } from "@src/api/data-analysis/EventAnalysisSqlBuilder"
+import { generateEventAnalysisSql } from "@src/api/data-analysis/EventAnalysisSqlBuilder"
 
 @Injectable()
 export class DataAnalysisService {
@@ -22,11 +22,14 @@ export class DataAnalysisService {
   ) {
   }
 
-  async queryEvent(data: IEventAnalysisReq): Promise<DimensionLayer> {
+  async queryEvent(data: IEventAnalysisReq): Promise<GenericEventAnalysisResult[]> {
     // 拼接SQL语句
-    const { sql, params } = eventAnalysisSqlBuilder.buildSql(data)
+    const { sql, params, error } = generateEventAnalysisSql(data)
+    //
+    // console.log('SQL语句：', sql)
+    // console.log('SQL参数：', params)
 
-    const result = await this.clickhouseService.query<DimensionLayer>(sql, params)
+    const result = await this.clickhouseService.query<GenericEventAnalysisResult[]>(sql, params)
 
     console.log('数据查询结果：', result)
     return result[0]
@@ -35,7 +38,11 @@ export class DataAnalysisService {
   async createDownloadTask(data: ISubmitDownloadTaskReq) {
     const taskId = uuidv4()
     // 拼接SQL语句
-    const { sql, params } = eventAnalysisSqlBuilder.buildSql(data)
+    const { sql, params, error } = generateEventAnalysisSql(data)
+
+    if (error) {
+      throw new BusinessException(error)
+    }
 
     const taskData: IDownloadTask = {
       taskId,

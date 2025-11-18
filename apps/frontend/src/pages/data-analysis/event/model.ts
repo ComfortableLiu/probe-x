@@ -71,7 +71,8 @@ const dataAnalysisEventModel = createModel<RootModel>()({
         message.error(msg || '查询失败')
         return
       }
-      // TODO 储存查询结果
+      // 储存查询结果
+      dispatch.dataAnalysisEventModel.updateItem({ data })
     },
     // 查询下载任务
     async queryDownloadTask({ taskId }: { taskId: string }) {

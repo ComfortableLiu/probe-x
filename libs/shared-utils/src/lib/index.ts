@@ -34,13 +34,6 @@ export function delay(time = 1000) {
 }
 
 /**
- * 深拷贝数组
- */
-export function deepCopyArray<T>(arr: T[]): T[] {
-  return JSON.parse(JSON.stringify(arr))
-}
-
-/**
  * 小驼峰转下划线
  */
 export function camelToUnderline(str: string): string {

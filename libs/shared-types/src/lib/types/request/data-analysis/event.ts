@@ -61,25 +61,18 @@ export interface IEventAnalysisReq {
   globalFilters?: IAttributionAnalysisFilter[]
 }
 
-// 1. 定义基础类型别名（可根据实际业务调整）
-type DimensionKey = string; // 维度 key 类型（第一层、第二层等动态层级的 key）
-type EventKey = string; // 事件名
-type DateKey = string; // 日期 key 类型（"日期1"/"2025-11-13"...）
-type NumericValue = number; // 最终数值类型
-
-// 2. 最内层：日期-数字映射
-type DateValueMap = Record<DateKey, NumericValue>;
-
-// 3. 倒数第二层：Event 到日期映射的映射
-type EventLayer = Record<EventKey, DateValueMap>;
-
-// 4. 递归类型：动态维度层（支持 N 层嵌套，最终指向 EventLayer）
-export type DimensionLayer = {
-  [key in DimensionKey]: DimensionLayer | EventLayer;
-};
+/**
+ * 通用事件分析结果类型（非严格推导，适用于运行时动态处理）
+ */
+export interface GenericEventAnalysisResult {
+  // 维度字段（动态，实际字段由入参 dimension 决定）
+  // 事件名字段（如 event_0_page_leave）
+  // 事件-日期指标字段（如 event_0_page_leave_2025_11_05）
+  [key: string]: string | number | null | undefined;
+}
 
 // 事件分析请求返回值
-export type IEventAnalysisRes = DimensionLayer
+export type IEventAnalysisRes = GenericEventAnalysisResult[]
 
 // 提交数据下载请求入参
 export type ISubmitDownloadTaskReq = IEventAnalysisReq

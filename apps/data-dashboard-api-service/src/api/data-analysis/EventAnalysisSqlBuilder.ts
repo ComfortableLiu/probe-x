@@ -1,414 +1,420 @@
-import { CompareType, IEventAnalysisInfo, IEventAnalysisReq, MetaPropertyType } from "@probe-x/shared-types/src"
+import {
+  IAttributionAnalysisFilter,
+  IEventAnalysisInfo,
+  IEventAnalysisReq,
+  MetaPropertyType,
+  Metrics,
+} from "@probe-x/shared-types/src"
 
-// 类型映射（保持 DateTime64 不带精度）
-const META_TYPE_TO_CH_TYPE: Record<MetaPropertyType, string> = {
+/**
+ * 元属性类型到ClickHouse数据类型的映射
+ */
+export const META_TYPE_TO_CH_TYPE: Record<MetaPropertyType, string> = {
   [MetaPropertyType.STRING]: 'String',
   [MetaPropertyType.NUMBER]: 'Int64',
   [MetaPropertyType.FLOAT]: 'Float64',
   [MetaPropertyType.BOOLEAN]: 'UInt8',
-  [MetaPropertyType.DATE]: 'DateTime64', // 不带精度
+  [MetaPropertyType.DATE]: 'DateTime64',
 }
-
-// 扩展 CompareType 类型，包含自定义后缀
-type ExtendedCompareType = CompareType | 'RANGE_START' | 'RANGE_END' | 'IN' | 'CONTAINS_ITEM'
 
 /**
- * 生成唯一占位符 key（格式：my_字段名_比较类型_索引，确保合法无特殊字符）
+ * SQL生成结果类型（包含占位符参数映射）
  */
-const generatePlaceholderKey = (field: string, compareType: ExtendedCompareType, index: number): string => {
-  let cleanField = field.replace(/[^\w\d]/g, '_')
-  cleanField = cleanField.replace(/^[_0-9]+/, '')
-  if (!cleanField) cleanField = 'default'
-  return `my_${cleanField}_${compareType}_${index}`
+export interface ISqlGenerateResult {
+  sql: string;
+  params: Record<string, any>;
+  error?: string;
 }
 
-// SQL 生成工具类（最终版：纯日期 YYYY-MM-DD + 分区过滤优化）
-class EventAnalysisSqlBuilder {
-  private readonly TABLE_NAME = 'probe_x.event_log'
-  private readonly PARTITION_FIELD = '$service_time' // 假设分区字段为 DateTime64 类型，分区键为 toDate($service_time)
+/**
+ * 生成唯一占位符名称
+ */
+let paramIndex = 0
+function generateParamKey(prefix: string): string {
+  paramIndex += 1
+  return `param_${prefix}_${paramIndex}`
+}
 
-  /**
-   * 生成查询 SQL（纯日期格式 + 分区过滤生效）
-   */
-  buildSql(req: IEventAnalysisReq): { sql: string; params: Record<string, string | number | boolean> } {
-    const params: Record<string, string | number | boolean> = {}
+/**
+ * 重置占位符索引
+ */
+function resetParamIndex() {
+  paramIndex = 0
+}
 
-    // 1. 校验必填参数
-    this.validateRequiredParams(req)
+/**
+ * 强制用反引号包裹字段名
+ */
+function wrapFieldWithBacktick(field: string): string {
+  return `\`${field.replace(/`/g, '``')}\``
+}
 
-    // 2. 构建 SELECT 子句
-    const selectFields = this.buildSelectClause(req.eventInfoList, req.dimension, params)
-    const selectClause = `SELECT ${selectFields}`
+/**
+ * 生成时间范围内的所有日期
+ */
+function generateDateList(startDate: string, endDate: string): string[] {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const dates: string[] = []
 
-    // 3. 构建 FROM 子句
-    const fromClause = `FROM ${this.TABLE_NAME}`
-
-    // 4. 构建 WHERE 子句（纯日期过滤 + 分区生效）
-    const { whereClause, whereParams } = this.buildWhereClauses(req)
-    Object.assign(params, whereParams)
-
-    // 5. 构建 GROUP BY / ORDER BY 子句
-    const groupByClause = this.buildGroupByClause(req.dimension)
-    const orderByClause = this.buildOrderByClause(req.dimension)
-
-    // 拼接 SQL
-    const sqlParts = [selectClause, fromClause, whereClause, groupByClause, orderByClause].filter(Boolean)
-    const sql = sqlParts.join('\n')
-
-    return { sql, params }
+  if (start > end) {
+    throw new Error('开始日期不能晚于结束日期')
   }
 
-  /**
-   * 校验必填参数
-   */
-  private validateRequiredParams(req: IEventAnalysisReq): void {
-    const { eventInfoList, timeRange } = req
-
-    if (!eventInfoList || eventInfoList.length === 0) {
-      throw new Error('事件列表不能为空')
-    }
-    const validEvents = eventInfoList.filter(info => info.eventName?.trim())
-    if (validEvents.length === 0) {
-      throw new Error('至少需要指定一个有效事件（eventName 不能为空）')
-    }
-
-    if (!timeRange || timeRange.length !== 2) {
-      throw new Error('时间范围需传入 [开始日期, 结束日期]（格式：YYYY-MM-DD）')
-    }
-    const [startDate, endDate] = timeRange
-    // 校验纯日期格式（避免时分秒干扰）
-    const startDateObj = new Date(startDate)
-    const endDateObj = new Date(endDate)
-    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime()) ||
-      startDateObj.toISOString().split('T')[0] !== startDate ||
-      endDateObj.toISOString().split('T')[0] !== endDate) {
-      throw new Error('时间范围格式错误，仅支持纯日期格式：YYYY-MM-DD（如 2025-11-05）')
-    }
-    if (startDateObj > endDateObj) {
-      throw new Error('开始日期不能晚于结束日期')
-    }
+  const current = new Date(start)
+  while (current <= end) {
+    const dateStr = current.toISOString().split('T')[0]
+    dates.push(dateStr)
+    current.setDate(current.getDate() + 1)
   }
 
-  /**
-   * 构建 SELECT 子句
-   */
-  private buildSelectClause(
-    eventInfoList: IEventAnalysisInfo[],
-    dimension: string[] = [],
-    params: Record<string, string | number | boolean>,
-  ): string {
-    const dimensionFields = [...new Set(dimension)]
-      .map(field => this.escapeFieldName(field))
-      .join(', ')
+  return dates
+}
 
-    const eventMetrics = eventInfoList.map((eventInfo, index) => {
-      const eventName = eventInfo.eventName!.trim()
-      const eventAlias = this.escapeAlias(eventName)
-      const field = '$event_name'
-      const placeholderKey = generatePlaceholderKey(field, 'EQUAL', index)
-      const chType = META_TYPE_TO_CH_TYPE[MetaPropertyType.STRING]
-      const placeholder = `{${placeholderKey}: ${chType}}`
-      params[placeholderKey] = eventName
+/**
+ * 清理参数名中的特殊字符
+ */
+function sanitizeParamName(name: string): string {
+  return name.replace(/[\$\-\.\s]/g, '_')
+}
 
-      return `sumIf(1, \`$event_name\` = ${placeholder}) as ${eventAlias}_count`
-    })
+/**
+ * 构建过滤条件子句（带参数占位符）
+ */
+function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record<string, any>): string {
+  if (filters.length === 0) return ''
 
-    return dimensionFields
-      ? [...dimensionFields.split(', '), ...eventMetrics].join(',\n  ')
-      : eventMetrics.join(',\n  ')
-  }
-
-  /**
-   * 构建 WHERE 子句（核心：纯日期过滤 + 分区键对齐，避免全表扫描）
-   */
-  private buildWhereClauses(req: IEventAnalysisReq): { whereClause: string; whereParams: Record<string, string | number | boolean> } {
-    const { eventInfoList, timeRange, globalFilters = [] } = req
-    const clauses: string[] = []
-    const whereParams: Record<string, string | number | boolean> = {}
-    const [startDate, endDate] = timeRange
-    let filterIndex = 0
-
-    // 1. 分区过滤（核心优化：toDate(分区字段) 与纯日期值比较，确保分区生效）
-    const partitionField = this.PARTITION_FIELD
-    const startKey = generatePlaceholderKey(partitionField, 'RANGE_START', filterIndex++)
-    const endKey = generatePlaceholderKey(partitionField, 'RANGE_END', filterIndex++)
-    const chType = 'Date' // 纯日期比较时，使用 ClickHouse 的 Date 类型（与分区键类型一致）
-    whereParams[startKey] = startDate // 纯日期：YYYY-MM-DD
-    whereParams[endKey] = endDate
-    // 关键：toDate($service_time) 对齐分区键（假设分区键为 toDate($service_time)）
-    clauses.push(
-      `toDate(\`${partitionField}\`) BETWEEN {${startKey}: ${chType}} AND {${endKey}: ${chType}}`,
-    )
-
-    // 2. 事件名过滤
-    const eventField = '$event_name'
-    const validEventNames = eventInfoList
-      .map(info => info.eventName!.trim())
-      .filter(Boolean)
-    if (validEventNames.length > 0) {
-      const eventPlaceholders = validEventNames.map((name, idx) => {
-        const key = generatePlaceholderKey(eventField, 'IN', idx)
-        const chType = META_TYPE_TO_CH_TYPE[MetaPropertyType.STRING]
-        whereParams[key] = name
-        return `{${key}: ${chType}}`
-      }).join(', ')
-      clauses.push(`\`${eventField}\` IN (${eventPlaceholders})`)
-    }
-
-    // 3. 处理全局筛选条件
-    globalFilters.forEach(filter => {
-      const { propertyName, propertyType, propertyValue, compareType } = filter
-      if (!this.isCompareTypeSupported(propertyType, compareType)) return
-
-      const escapedField = this.escapeFieldName(propertyName)
-      const { condition, params } = this.buildFilterCondition({
-        field: propertyName,
-        escapedField,
-        propertyValue,
-        compareType,
-        propertyType,
-        index: filterIndex++,
-      })
-
-      if (condition && params) {
-        clauses.push(condition)
-        Object.assign(whereParams, params)
-      }
-    })
-
-    // 拼接 WHERE 子句
-    const whereClause = clauses.length > 0
-      ? `WHERE ${clauses[0]}${clauses.slice(1).map(cond => `\n  AND ${cond}`).join('')}`
-      : ''
-
-    return { whereClause, whereParams }
-  }
-
-  /**
-   * 构建单个筛选条件
-   */
-  private buildFilterCondition({
-    field,
-    escapedField,
-    propertyValue,
-    compareType,
-    propertyType,
-    index,
-  }: {
-    field: string;
-    escapedField: string;
-    propertyValue: any;
-    compareType: CompareType;
-    propertyType: MetaPropertyType;
-    index: number;
-  }): { condition: string; params?: Record<string, string | number | boolean> } {
-    const params: Record<string, string | number | boolean> = {}
-    const validValues = Array.isArray(propertyValue)
-      ? this.filterValidValues(propertyValue, propertyType)
-      : this.filterValidValues([propertyValue], propertyType)
-
-    if (validValues.length === 0) {
-      console.warn(`【${propertyType}】字段 ${field} 的 ${compareType} 条件无有效值，忽略`)
-      return { condition: '' }
-    }
-
+  const filterClauses = filters.map(filter => {
+    const { propertyName, propertyType, compareType, propertyValue } = filter
+    const field = wrapFieldWithBacktick(propertyName)
     const chType = META_TYPE_TO_CH_TYPE[propertyType]
 
-    // 数组值（IN/NOT IN）
-    if (Array.isArray(propertyValue)) {
-      const placeholders = validValues.map((value, idx) => {
-        const key = generatePlaceholderKey(field, 'CONTAINS_ITEM', index * 100 + idx)
-        params[key] = this.formatValue(value, propertyType)
-        return `{${key}: ${chType}}`
-      }).join(', ')
-
-      switch (compareType) {
-        case 'EQUAL': return { condition: `${escapedField} IN (${placeholders})`, params }
-        case 'NOT_EQUAL': return { condition: `${escapedField} NOT IN (${placeholders})`, params }
-        case 'CONTAINS': return { condition: `${escapedField} IN (${placeholders})`, params }
-        case 'NOT_CONTAINS': return { condition: `${escapedField} NOT IN (${placeholders})`, params }
-        default: return { condition: '' }
-      }
-    }
-
-    // RANGE 条件（日期类型特殊处理：纯日期比较）
-    if (compareType === 'RANGE' && propertyType === MetaPropertyType.DATE) {
-      if (!Array.isArray(validValues[0]) || validValues[0].length !== 2) {
-        console.warn(`【DATE】字段 ${field} 的 RANGE 条件需传入长度为 2 的纯日期数组（如 ["2025-11-01", "2025-11-10"]）`)
-        return { condition: '' }
-      }
-      const [startVal, endVal] = validValues[0]
-      const startKey = generatePlaceholderKey(field, 'RANGE_START', index)
-      const endKey = generatePlaceholderKey(field, 'RANGE_END', index)
-      // 日期字段比较时，使用 toDate() 对齐纯日期值
-      params[startKey] = this.formatValue(startVal, propertyType)
-      params[endKey] = this.formatValue(endVal, propertyType)
-      return {
-        condition: `toDate(\`${escapedField}\`) BETWEEN {${startKey}: Date} AND {${endKey}: Date}`,
-        params,
-      }
-    }
-
-    // 其他类型 RANGE 条件
-    if (compareType === 'RANGE' && [MetaPropertyType.NUMBER, MetaPropertyType.FLOAT].includes(propertyType)) {
-      if (!Array.isArray(validValues[0]) || validValues[0].length !== 2) {
-        console.warn(`【${propertyType}】字段 ${field} 的 RANGE 条件需传入长度为 2 的数组（如 [100, 200]）`)
-        return { condition: '' }
-      }
-      const [startVal, endVal] = validValues[0]
-      const startKey = generatePlaceholderKey(field, 'RANGE_START', index)
-      const endKey = generatePlaceholderKey(field, 'RANGE_END', index)
-
-      params[startKey] = this.formatValue(startVal, propertyType)
-      params[endKey] = this.formatValue(endVal, propertyType)
-      return {
-        condition: `${escapedField} BETWEEN {${startKey}: ${chType}} AND {${endKey}: ${chType}}`,
-        params,
-      }
-    }
-
-    // 单个值条件（日期类型特殊处理：toDate() 对齐）
-    if (propertyType === MetaPropertyType.DATE) {
-      const value = validValues[0]
-      const key = generatePlaceholderKey(field, compareType as ExtendedCompareType, index)
-      params[key] = this.formatValue(value, propertyType)
-      return {
-        condition: `toDate(\`${escapedField}\`) ${this.getCompareOperator(compareType)} {${key}: Date}`,
-        params,
-      }
-    }
-
-    // 其他类型单个值条件
-    const value = validValues[0]
-    const key = generatePlaceholderKey(field, compareType as ExtendedCompareType, index)
-    params[key] = this.formatValue(value, propertyType)
-    return {
-      condition: `${escapedField} ${this.getCompareOperator(compareType)} {${key}: ${chType}}`,
-      params,
-    }
-  }
-
-  /**
-   * 格式化参数值（日期类型强制转为纯 YYYY-MM-DD）
-   */
-  private formatValue(value: any, propertyType: MetaPropertyType): string | number | boolean {
-    switch (propertyType) {
-      case MetaPropertyType.DATE:
-        // 强制转为纯日期格式 YYYY-MM-DD
-        const dateObj = typeof value === 'string' ? new Date(value) : value
-        if (isNaN(dateObj.getTime())) {
-          throw new Error(`无效日期：${value}，仅支持纯日期格式：YYYY-MM-DD`)
-        }
-        return dateObj.toISOString().split('T')[0] // 提取 YYYY-MM-DD
-      case MetaPropertyType.BOOLEAN:
-        return Boolean(value)
-      case MetaPropertyType.NUMBER:
-        return Number.isInteger(value) ? Number(value) : Math.floor(value)
-      case MetaPropertyType.FLOAT:
-        return Number(value)
-      case MetaPropertyType.STRING:
-        return String(value).trim()
+    switch (compareType) {
+      case 'EQUAL':
+        return buildEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+      case 'NOT_EQUAL':
+        return buildNotEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+      case 'GREATER_THAN':
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>')
+      case 'GREATER_THAN_OR_EQUAL':
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>=')
+      case 'LESS_THAN':
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<')
+      case 'LESS_THAN_OR_EQUAL':
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<=')
+      case 'RANGE':
+        return buildRangeFilter(field, propertyName, propertyValue as number[] | string[], propertyType, chType, params)
+      case 'CONTAINS':
+        return buildContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+      case 'NOT_CONTAINS':
+        return buildNotContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+      case 'REGEX':
+        return buildRegexFilter(field, propertyName, propertyValue as string, params)
       default:
-        return String(value).trim()
+        throw new Error(`不支持的比较类型：${compareType}`)
     }
-  }
+  })
 
-  /**
-   * 过滤无效值（日期类型仅保留纯 YYYY-MM-DD）
-   */
-  private filterValidValues(values: any[], propertyType: MetaPropertyType): any[] {
-    return values.filter(val => {
-      if (val === null || val === undefined || val === '') return false
+  return filterClauses.filter(Boolean).join(' AND ')
+}
 
-      switch (propertyType) {
-        case MetaPropertyType.STRING: return typeof val === 'string' && val.trim()
-        case MetaPropertyType.NUMBER: return typeof val === 'number' && !isNaN(val)
-        case MetaPropertyType.FLOAT: return typeof val === 'number' && !isNaN(val)
-        case MetaPropertyType.BOOLEAN: return typeof val === 'boolean' || [0, 1].includes(val)
-        case MetaPropertyType.DATE:
-          // 仅允许纯日期格式 YYYY-MM-DD
-          const dateObj = new Date(val)
-          return !isNaN(dateObj.getTime()) && dateObj.toISOString().split('T')[0] === val
-        default: return true
-      }
+/**
+ * 构建等于过滤条件
+ */
+function buildEqualFilter(
+  field: string,
+  propertyName: string,
+  value: any,
+  propertyType: MetaPropertyType,
+  chType: string,
+  params: Record<string, any>,
+): string {
+  if (Array.isArray(value)) {
+    const paramKeys = value.map((item, idx) => {
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal_${idx}`)
+      params[paramKey] = item
+      return `{${paramKey}:${chType}}`
     })
+    return `${field} IN (${paramKeys.join(', ')})`
   }
 
-  /**
-   * 映射比较操作符（CompareType → SQL 操作符）
-   */
-  private getCompareOperator(compareType: CompareType): string {
-    const operatorMap: Record<CompareType, string> = {
-      EQUAL: '=',
-      NOT_EQUAL: '!=',
-      GREATER_THAN: '>',
-      GREATER_THAN_OR_EQUAL: '>=',
-      LESS_THAN: '<',
-      LESS_THAN_OR_EQUAL: '<=',
-      CONTAINS: 'IN',
-      NOT_CONTAINS: 'NOT IN',
-      REGEX: 'REGEXP',
-      RANGE: 'BETWEEN',
-    }
-    return operatorMap[compareType]
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal`)
+  params[paramKey] = value
+  return `${field} = {${paramKey}:${chType}}`
+}
+
+/**
+ * 构建不等于过滤条件
+ */
+function buildNotEqualFilter(
+  field: string,
+  propertyName: string,
+  value: any,
+  propertyType: MetaPropertyType,
+  chType: string,
+  params: Record<string, any>,
+): string {
+  if (Array.isArray(value)) {
+    const paramKeys = value.map((item, idx) => {
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal_${idx}`)
+      params[paramKey] = item
+      return `{${paramKey}:${chType}}`
+    })
+    return `${field} NOT IN (${paramKeys.join(', ')})`
   }
 
-  /**
-   * 校验操作符支持性
-   */
-  private isCompareTypeSupported(propertyType: MetaPropertyType, compareType: CompareType): boolean {
-    const supportMap: Record<MetaPropertyType, CompareType[]> = {
-      [MetaPropertyType.STRING]: ['EQUAL', 'NOT_EQUAL', 'CONTAINS', 'NOT_CONTAINS', 'REGEX'],
-      [MetaPropertyType.NUMBER]: ['EQUAL', 'NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN', 'LESS_THAN_OR_EQUAL', 'RANGE'],
-      [MetaPropertyType.FLOAT]: ['EQUAL', 'NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN', 'LESS_THAN_OR_EQUAL', 'RANGE'],
-      [MetaPropertyType.BOOLEAN]: ['EQUAL', 'NOT_EQUAL'],
-      [MetaPropertyType.DATE]: ['EQUAL', 'NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN', 'LESS_THAN_OR_EQUAL', 'RANGE'],
-    }
-    const supported = supportMap[propertyType].includes(compareType)
-    if (!supported) {
-      console.warn(`【${propertyType}】不支持 ${compareType} 操作符，支持操作符：${supportMap[propertyType].join('、')}`)
-    }
-    return supported
-  }
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal`)
+  params[paramKey] = value
+  return `${field} != {${paramKey}:${chType}}`
+}
 
-  /**
-   * 字段名转义
-   */
-  private escapeFieldName(field: string): string {
-    return `\`${field.replace(/`/g, '``')}\``
-  }
+/**
+ * 构建单值比较过滤条件
+ */
+function buildSingleValueFilter(
+  field: string,
+  propertyName: string,
+  value: any,
+  propertyType: MetaPropertyType,
+  chType: string,
+  params: Record<string, any>,
+  operator: string,
+): string {
+  const operatorKey = operator.replace(/=/g, 'eq').replace(/>/g, 'gt').replace(/</g, 'lt')
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_${operatorKey}`)
+  params[paramKey] = value
+  return `${field} ${operator} {${paramKey}:${chType}}`
+}
 
-  /**
-   * 别名转义
-   */
-  private escapeAlias(alias: string): string {
-    return alias.replace(/[^a-zA-Z0-9_]/g, '_')
+/**
+ * 构建区间过滤条件
+ */
+function buildRangeFilter(
+  field: string,
+  propertyName: string,
+  value: number[] | string[],
+  propertyType: MetaPropertyType,
+  chType: string,
+  params: Record<string, any>,
+): string {
+  if (value.length !== 2) {
+    throw new Error('区间过滤条件必须包含两个值')
   }
+  const [min, max] = value
 
-  /**
-   * 构建 GROUP BY 子句（与分区键一致）
-   */
-  private buildGroupByClause(dimension: string[] = []): string {
-    const uniqueDimensions = [...new Set(dimension)]
-    const groupFields = [
-      `toDate(\`${this.PARTITION_FIELD}\`)`, // 与分区键一致
-      ...uniqueDimensions.map(field => this.escapeFieldName(field)),
-    ].join(', ')
-    return `GROUP BY ${groupFields}`
-  }
+  const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`)
+  const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`)
 
-  /**
-   * 构建 ORDER BY 子句
-   */
-  private buildOrderByClause(dimension: string[] = []): string {
-    const uniqueDimensions = [...new Set(dimension)]
-    const orderFields = [
-      `toDate(\`${this.PARTITION_FIELD}\`) ASC`,
-      ...uniqueDimensions.map(field => `${this.escapeFieldName(field)} ASC`),
-    ].join(', ')
-    return `ORDER BY ${orderFields}`
+  params[minParamKey] = min
+  params[maxParamKey] = max
+
+  return `${field} BETWEEN {${minParamKey}:${chType}} AND {${maxParamKey}:${chType}}`
+}
+
+/**
+ * 构建包含过滤条件
+ */
+function buildContainsFilter(
+  field: string,
+  propertyName: string,
+  value: string[] | string,
+  params: Record<string, any>,
+): string {
+  const values = Array.isArray(value) ? value : [value]
+  const containsClauses = values.map((item, idx) => {
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`)
+    params[paramKey] = item
+    return `position(${field}, {${paramKey}:String}) > 0`
+  })
+  return containsClauses.join(' OR ')
+}
+
+/**
+ * 构建不包含过滤条件
+ */
+function buildNotContainsFilter(
+  field: string,
+  propertyName: string,
+  value: string[] | string,
+  params: Record<string, any>,
+): string {
+  const values = Array.isArray(value) ? value : [value]
+  const notContainsClauses = values.map((item, idx) => {
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`)
+    params[paramKey] = item
+    return `position(${field}, {${paramKey}:String}) = 0`
+  })
+  return notContainsClauses.join(' AND ')
+}
+
+/**
+ * 构建正则匹配过滤条件
+ */
+function buildRegexFilter(
+  field: string,
+  propertyName: string,
+  value: string,
+  params: Record<string, any>,
+): string {
+  const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`)
+  params[paramKey] = value
+  return `${field} REGEXP {${paramKey}:String}`
+}
+
+/**
+ * 获取指标对应的聚合函数
+ */
+function getMetricAggregationFunc(metrics: Metrics): string {
+  switch (metrics) {
+    case Metrics.COUNT:
+      return '1' // SUM(1) 等价于 COUNT()
+    case Metrics.USERS:
+      return `if(uniqMergeState(user_uniq), 1, 0)`
+    case Metrics.SESSIONS:
+      return `if(uniqMergeState(session_uniq), 1, 0)`
+    default:
+      throw new Error(`不支持的指标类型：${metrics}`)
   }
 }
 
-// 单例导出
-export const eventAnalysisSqlBuilder = new EventAnalysisSqlBuilder()
+/**
+ * 生成事件别名
+ */
+function getEventAlias(eventInfo: IEventAnalysisInfo, index: number): string {
+  const eventName = eventInfo.eventName || 'unknown'
+  return `event_${index}_${eventName.replace(/\W+/g, '_')}`
+}
+
+/**
+ * 生成事件-日期组合别名
+ */
+function getEventDateAlias(eventInfo: IEventAnalysisInfo, date: string, index: number): string {
+  const eventAlias = getEventAlias(eventInfo, index)
+  const dateStr = date.replace(/-/g, '_')
+  return `${eventAlias}_${dateStr}`
+}
+
+/**
+ * 工具函数：生成ClickHouse查询SQL（添加维度排序，适配表格合并）
+ */
+export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerateResult {
+  resetParamIndex()
+  const sqlParams: Record<string, any> = {}
+
+  try {
+    // 基础参数校验
+    if (!params.eventInfoList || params.eventInfoList.length === 0) {
+      return { sql: '', params: {}, error: '事件列表不能为空' }
+    }
+    if (!params.timeRange || params.timeRange.length !== 2) {
+      return { sql: '', params: {}, error: '时间范围格式错误' }
+    }
+
+    const [startDate, endDate] = params.timeRange
+    const dateList = generateDateList(startDate, endDate)
+
+    // 1. 处理时间范围过滤（参数化）
+    const startParamKey = generateParamKey('time_start')
+    const endParamKey = generateParamKey('time_end')
+    sqlParams[startParamKey] = `${startDate} 00:00:00.000`
+    sqlParams[endParamKey] = `${endDate} 23:59:59.999`
+    const timeFilter = `${wrapFieldWithBacktick('$service_time')} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
+
+    // 2. 全局过滤条件
+    const globalWhereClause = buildFilterClause(params.globalFilters || [], sqlParams)
+    const whereClauses = [timeFilter, globalWhereClause].filter(Boolean)
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
+
+    // 3. 维度字段（去重 + 反引号包裹）
+    const dimensionFields = [...new Set(params.dimension)].map(field => wrapFieldWithBacktick(field))
+    const groupByClause = dimensionFields.length > 0 ? `GROUP BY ${dimensionFields.join(', ')}` : ''
+
+    // ===================== 新增：按维度顺序生成ORDER BY子句 =====================
+    // 排序规则：按维度数组顺序升序排序（一级：维度1，二级：维度2，以此类推）
+    const orderByClause = dimensionFields.length > 0
+      ? `ORDER BY ${dimensionFields.join(', ')} ASC`  // 统一升序，适配表格合并
+      : ''
+
+    // 4. 预定义需要的聚合状态（用于USERS/SESSIONS指标）
+    const aggregationStates = []
+    if (params.eventInfoList.some(info => info.metrics === Metrics.USERS)) {
+      aggregationStates.push(`uniqState(${wrapFieldWithBacktick('$uid')}) AS user_uniq`)
+    }
+    if (params.eventInfoList.some(info => info.metrics === Metrics.SESSIONS)) {
+      aggregationStates.push(`uniqState(${wrapFieldWithBacktick('$session_id')}) AS session_uniq`)
+    }
+
+    // 5. 生成事件指标SQL片段（核心修复：使用SUM+CASE WHEN替代IF）
+    const eventMetricFragments = params.eventInfoList.map((eventInfo, index) => {
+      const { eventName, filters = [], metrics } = eventInfo
+      const eventAlias = getEventAlias(eventInfo, index)
+      const eventNameParamKey = generateParamKey(`event_name_${index}`)
+
+      // 构建事件专属过滤条件
+      const eventFilterClause = buildFilterClause(filters, sqlParams)
+      let eventCondition = '1=1'
+
+      // 事件名条件
+      if (eventName) {
+        sqlParams[eventNameParamKey] = eventName
+        eventCondition = `${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`
+      }
+
+      // 组合事件条件
+      if (eventFilterClause) {
+        eventCondition = `${eventCondition} AND ${eventFilterClause}`
+      }
+
+      // 按日期生成指标列（SUM+CASE WHEN 避免非聚合字段问题）
+      const metricExpr = getMetricAggregationFunc(metrics)
+      const dateMetrics = dateList.map(date => {
+        const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`)
+        sqlParams[dateParamKey] = date
+
+        const dateCondition = `toDate(${wrapFieldWithBacktick('$service_time')}) = toDate({${dateParamKey}:String})`
+        const fullCondition = `${eventCondition} AND ${dateCondition}`
+
+        // 不同指标的聚合逻辑
+        let aggregationExpr = ''
+        switch (metrics) {
+          case Metrics.COUNT:
+            aggregationExpr = `SUM(CASE WHEN ${fullCondition} THEN 1 ELSE 0 END)`
+            break
+          case Metrics.USERS:
+          case Metrics.SESSIONS:
+            aggregationExpr = `SUM(CASE WHEN ${fullCondition} THEN ${metricExpr} ELSE 0 END)`
+            break
+        }
+
+        return `${aggregationExpr} AS ${getEventDateAlias(eventInfo, date, index)}`
+      }).join(', ')
+
+      // 事件名列（参数化）
+      const eventAliasParamKey = generateParamKey(`event_alias_${index}`)
+      sqlParams[eventAliasParamKey] = eventName || 'unknown_event'
+      const eventNameColumn = `{${eventAliasParamKey}:String} AS ${eventAlias}`
+
+      return {
+        eventNameColumn,
+        dateMetrics,
+      }
+    })
+
+    // 6. 拼接SELECT子句
+    const selectParts = [
+      ...dimensionFields,
+      ...aggregationStates, // 聚合状态（仅USERS/SESSIONS需要）
+      ...eventMetricFragments.flatMap(frag => [frag.eventNameColumn, frag.dateMetrics]),
+    ].filter(Boolean)
+
+    const selectClause = selectParts.join(', ')
+
+    // 7. 最终SQL（拼接ORDER BY，表名反引号包裹）
+    const tableName = '`probe_x`.`final_event_log`'
+    const sql = `SELECT ${selectClause} FROM ${tableName} ${whereClause} ${groupByClause} ${orderByClause}`
+
+    return { sql, params: sqlParams }
+  } catch (error) {
+    return { sql: '', params: {}, error: (error as Error).message }
+  }
+}
