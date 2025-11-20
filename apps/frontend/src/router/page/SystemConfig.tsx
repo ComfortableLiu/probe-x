@@ -6,7 +6,7 @@ export default {
   name: '系统设置',
   key: 'system-config',
   meta: {
-    icon: <SettingOne theme="outline" size="16" fill="#333" />,
+    icon: <SettingOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
   },
   path: '/system-config',
   component: lazy(() => import('@pages/system-config/index')),

@@ -41,4 +41,13 @@ export class EventController {
 
     return await this.eventService.getEventsWithPagination(filter, pagination)
   }
+
+
+  /**
+   * 获取所有事件，简化版
+   */
+  @Get('/list/simple')
+  async getEventsSimple() {
+    return await this.eventService.getEvents()
+  }
 }

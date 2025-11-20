@@ -5,6 +5,7 @@ import { useNavigate } from "react-router"
 import queryString from "query-string"
 import { useSelector } from "react-redux"
 import { RootState } from "@/store/storeContext"
+import { getParamsOrQuery } from "@utils/router"
 
 export function useModel<T>(key: keyof RootState) {
   return useSelector((store: RootState) => store[key] as T)
@@ -22,10 +23,7 @@ export function useQuery<T = IAnyObj>() {
   const location = useLocation()
 
   return useMemo<T>(() => {
-    return (queryString.parse(location.search, {
-      parseBooleans: true,
-      parseNumbers: true,
-    }) || {}) as T
+    return getParamsOrQuery<T>(location.search)
   }, [location.search])
 }
 
@@ -46,15 +44,28 @@ export function useRouter() {
   return {
     location,
     navigate,
+    /**
+     * 刷新路由
+     * @param query 参数
+     * @param retainOldQuery 是否保留旧字段，但是相同的key还是会覆盖的，如果不想覆盖，需要在自行处理
+     */
     refresh: (query?: IAnyObj, retainOldQuery?: boolean) => {
       let search: string
+      const obj = {}
+      Object.keys(query || {}).forEach(key => {
+        if (typeof query[key] === 'object') {
+          obj[key] = JSON.stringify(query[key])
+        } else {
+          obj[key] = query[key]
+        }
+      })
       if (retainOldQuery) {
         search = queryString.stringify({
           ...queryString.parse(location.search),
-          ...(query || {}),
+          ...(obj || {}),
         })
       } else {
-        search = queryString.stringify(query || {})
+        search = queryString.stringify(obj || {})
       }
 
       navigate({

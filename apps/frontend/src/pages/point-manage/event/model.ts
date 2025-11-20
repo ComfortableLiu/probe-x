@@ -47,10 +47,10 @@ const pointManageEventModel = createModel<RootModel>()({
       })
     },
     // 获取事件的属性
-    async getEventProperties({ eventName }: { eventName: string }, state) {
+    async getEventProperties({ eventName }: { eventName: string }) {
       const res = await queryEventProperties({ eventName })
       const { data } = res
-      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data.data })
+      dispatch.pointManageEventModel.updateEventProperties({ eventName, properties: data })
     },
   }),
 })

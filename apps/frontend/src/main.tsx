@@ -1,7 +1,15 @@
 import React from 'react'
-import { store } from "./store/storeContext"
 import { createRoot } from "react-dom/client"
 import App from "@/layout/App"
+import dayjs from 'dayjs'
+import weekday from 'dayjs/plugin/weekday'
+import localeData from 'dayjs/plugin/localeData'
+import 'dayjs/locale/zh-cn'
+import { store } from "@/store/storeContext"
+
+dayjs.extend(weekday)
+dayjs.extend(localeData)
+dayjs.locale('zh-cn')
 
 const render = async () => {
   // 初始化一些东西

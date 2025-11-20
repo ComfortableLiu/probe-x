@@ -14,8 +14,6 @@ export class PropertyController {
 
   /**
    * 获取属性列表
-   * @param page
-   * @param pageSize
    * @param eventName 查询某个事件关联的属性列表
    * @param propertyName 筛选属性名
    * @param type 筛选类型
@@ -36,6 +34,14 @@ export class PropertyController {
   }
 
   /**
+   * 获取属性列表，简化版
+   */
+  @Get('/list/simple')
+  async getPropertiesSimple() {
+    return await this.propertyService.getPropertyList()
+  }
+
+  /**
    * 获取所有公共属性
    */
   @Get('commonList')
@@ -44,7 +50,7 @@ export class PropertyController {
   }
 
   /**
-   * 获取所有公共属性
+   * 创建属性
    */
   @Post('create')
   async createProperty(

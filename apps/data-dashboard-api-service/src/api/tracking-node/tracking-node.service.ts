@@ -257,7 +257,6 @@ export class TrackingNodeService {
       createUserId: user.userId,
       updateUserId: user.userId,
     }
-    console.log('lllll-llll-', data)
     const businessSiteInfo = await this.trackingNodeRepository.save(data)
     return {
       type: businessSiteInfo.type,
