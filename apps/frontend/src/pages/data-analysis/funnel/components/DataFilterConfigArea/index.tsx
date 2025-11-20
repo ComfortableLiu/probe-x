@@ -10,6 +10,7 @@ import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
 import DimensionSelector from "@pages/data-analysis/components/DimensionSelector"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
 import WindowPeriod from "./components/WindowPeriod"
+import FunnelType from "./components/FunnelType"
 
 function DataFilterConfigArea() {
 
@@ -36,7 +37,7 @@ function DataFilterConfigArea() {
       {/* 漏斗类型 */}
       <DataFilterConfigAreaItem
         title="漏斗类型"
-        content={null}
+        content={<FunnelType />}
       />
       <div className={styles.hr} />
 
@@ -47,7 +48,7 @@ function DataFilterConfigArea() {
       />
       <div className={styles.hr} />
 
-      {/* 漏斗配置 */}
+      {/* TODO 漏斗配置 */}
       <DataFilterConfigAreaItem
         title="漏斗配置"
         content={null}
@@ -76,7 +77,7 @@ function DataFilterConfigArea() {
       <div className={styles.hr} />
 
       {/* 操作按钮 */}
-      <div className={styles.selectorContainer}>
+      <div className={styles.btnContainer}>
         <Space>
           <Button
             type="primary"

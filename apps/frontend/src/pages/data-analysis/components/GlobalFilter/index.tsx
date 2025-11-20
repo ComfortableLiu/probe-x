@@ -2,7 +2,7 @@ import React, { memo, useCallback } from "react"
 import * as styles from "./styles.module.scss"
 import { Plus } from "@icon-park/react"
 import { useQuery, useRouter } from "@/hooks"
-import { IAttributionAnalysisFilter, MetaPropertyType } from "../../../../../../../libs/shared-types/src"
+import { IAttributionAnalysisFilter, MetaPropertyType } from "@probe-x/shared-types/src"
 import { IQuery } from "@pages/data-analysis/event/type"
 import FilterSelector from "../FilterSelector"
 

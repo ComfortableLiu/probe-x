@@ -1,6 +1,6 @@
 import React, { CSSProperties, memo, useMemo } from "react"
 import * as style from "./styles.module.scss"
-import { IAttributionAnalysisFilter } from "../../../../../../../libs/shared-types/src"
+import { IAttributionAnalysisFilter } from "@probe-x/shared-types/src"
 import FilterItem from "./components/FilterItem"
 
 interface IFilterSelectorProps {
@@ -56,7 +56,7 @@ function FilterSelector(props: IFilterSelectorProps) {
     })
   }, [onChange, value])
 
-  if (!value) {
+  if (!value?.length) {
     return null
   }
 

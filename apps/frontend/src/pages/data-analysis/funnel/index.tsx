@@ -9,6 +9,7 @@ import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/ty
 import dayjs from "dayjs"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
+import { FunnelTypeEnum } from "@probe-x/shared-types/src"
 
 function FunnelAnalysis() {
 
@@ -21,6 +22,7 @@ function FunnelAnalysis() {
   const {
     timeRange,
     windowPeriod,
+    funnelType,
   } = useQuery<IQuery>()
 
   const {
@@ -36,13 +38,14 @@ function FunnelAnalysis() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!timeRange || !windowPeriod) {
+    if (!timeRange || !windowPeriod || !funnelType) {
       refresh({
         timeRange: timeRange || [dayjs().subtract(7, 'day').format('YYYY-MM-DD'), dayjs().format('YYYY-MM-DD')],
         windowPeriod: windowPeriod || { unit: 'd', value: 7 },
+        funnelType: funnelType || FunnelTypeEnum.USER,
       }, true)
     }
-  }, [timeRange, windowPeriod])
+  }, [timeRange, windowPeriod, funnelType])
 
   useEffect(() => {
     dispatch.dataAnalysisEventModel.init()

@@ -8,8 +8,8 @@ import {
   IAttributionAnalysisFilter,
   MetaPropertyBusinessType,
   MetaPropertyType,
-} from "../../../../../../../../../libs/shared-types/src"
-import { checkNumber } from "../../../../../../../../../libs/shared-utils/src"
+} from "@probe-x/shared-types/src"
+import { checkNumber } from "@probe-x/shared-utils/src"
 import dayjs from "dayjs"
 import { CopyOne, Delete } from "@icon-park/react"
 
