@@ -1,7 +1,7 @@
 import React, { memo } from "react"
 import { Select } from "antd"
 import * as styles from "./styles.module.scss"
-import { AddOne } from "@icon-park/react"
+import { Plus } from "@icon-park/react"
 import { useModel, useQuery, useRouter } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/event/type"
 import { IPointState } from "@/store/models/point/type"
@@ -63,7 +63,7 @@ function DimensionSelector() {
         href="#"
         onClick={() => changeDimension(dimension.length, '')}
       >
-        <AddOne theme="outline" size="16" fill="#3F51B5" style={{ display: 'flex' }} />
+        <Plus theme="outline" size="16" fill="#3F51B5" style={{ display: 'flex' }} />
         增加维度
       </a>
     </div>

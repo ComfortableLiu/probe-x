@@ -17,3 +17,12 @@ export interface IDownloadTask {
   sqlParams?: IAnyObj
   downloadUrl: string
 }
+
+/**
+ * SQL生成结果类型（包含占位符参数映射）
+ */
+export interface ISqlGenerateResult {
+  sql: string;
+  params: Record<string, any>;
+  error?: string;
+}

@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Modal, Progress } from "antd"
 import { downloadFile } from "@/utils"
-import { delay } from "@probe-x/shared-utils/src"
+import { delay } from "../../../../../../../libs/shared-utils/src"
 
 interface IDownloadPopupProps {
   show: boolean

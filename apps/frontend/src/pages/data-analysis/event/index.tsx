@@ -4,12 +4,12 @@ import DataTable from "./components/DataTable"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import * as styles from "./styles.module.scss"
-import { Button, message, Spin } from "antd"
-import { Download } from "@icon-park/react"
+import { message, Spin } from "antd"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisEventState, IQuery } from "./type"
 import dayjs from "dayjs"
-import DownloadPopup from "./components/DownloadPopup"
+import DownloadPopup from "../components/DownloadPopup"
+import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
 
 function EventAnalysis() {
 
@@ -82,17 +82,11 @@ function EventAnalysis() {
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <div className={styles.title}>事件分析</div>
-          {updateTime ? <div>更新时间：{dayjs(updateTime).format('YYYY-MM-DD HH:mm:ss')}</div> : null}
-          <Button
-            type="link"
-            onClick={() => download()}
-          >
-            <Download theme="filled" size="16" fill="#333" />
-            下载
-          </Button>
-        </div>
+        <DataAnalysisHeader
+          title="事件分析"
+          updateTime={updateTime}
+          download={download}
+        />
         <DataFilterConfigArea />
         <div className={styles.hr} />
         {/*TODO 先不展示图表，后面想好了功能交互在做*/}

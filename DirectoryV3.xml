@@ -38,4 +38,12 @@
     <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea/components/TimeRangeSelector"
           title="时间范围" />
     <tree path="/apps/frontend/src/pages/data-analysis/event/components/DataFilterConfigArea" title="上方选择部分" />
+    <tree path="/apps/frontend/src/pages/data-analysis/funnel" title="漏斗分析" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/event-analysis.service.ts"
+          title="事件分析逻辑" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/funnel-analysis.service.ts"
+          title="漏斗分析逻辑" />
+    <tree path="/apps/frontend/src/pages/data-analysis/components/DataFilterConfigAreaItem" title="各种分析的容器" />
+    <tree path="/apps/frontend/src/pages/data-analysis/funnel/components/DataFilterConfigArea/components/WindowPeriod"
+          title="窗口期" extension="" presentableText="" tooltipTitle="" icon="" textColor="" backgroundColor="" />
 </trees>

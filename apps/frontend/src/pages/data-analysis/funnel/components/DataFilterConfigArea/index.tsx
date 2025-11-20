@@ -3,13 +3,13 @@ import { useRouter } from "@/hooks"
 import { Button, message, Space } from 'antd'
 import * as styles from "./styles.module.scss"
 import { Refresh, Search } from "@icon-park/react"
-import EventSelector from "./components/EventSelector"
-import GlobalFilter from "../../../components/GlobalFilter"
-import DimensionSelector from "../../../components/DimensionSelector"
-import TimeRangeSelector from "../../../components/TimeRangeSelector"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
+import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
+import DimensionSelector from "@pages/data-analysis/components/DimensionSelector"
+import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
+import WindowPeriod from "./components/WindowPeriod"
 
 function DataFilterConfigArea() {
 
@@ -33,10 +33,24 @@ function DataFilterConfigArea() {
   return (
     <div className={styles.container}>
 
-      {/* 事件部分 */}
+      {/* 漏斗类型 */}
       <DataFilterConfigAreaItem
-        title="事件选择"
-        content={<EventSelector />}
+        title="漏斗类型"
+        content={null}
+      />
+      <div className={styles.hr} />
+
+      {/* 窗口期 */}
+      <DataFilterConfigAreaItem
+        title="窗口期"
+        content={<WindowPeriod />}
+      />
+      <div className={styles.hr} />
+
+      {/* 漏斗配置 */}
+      <DataFilterConfigAreaItem
+        title="漏斗配置"
+        content={null}
       />
       <div className={styles.hr} />
 
@@ -62,7 +76,7 @@ function DataFilterConfigArea() {
       <div className={styles.hr} />
 
       {/* 操作按钮 */}
-      <div className={styles.btnContainer}>
+      <div className={styles.selectorContainer}>
         <Space>
           <Button
             type="primary"
