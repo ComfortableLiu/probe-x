@@ -11,6 +11,7 @@ import DimensionSelector from "@pages/data-analysis/components/DimensionSelector
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
 import WindowPeriod from "./components/WindowPeriod"
 import FunnelType from "./components/FunnelType"
+import FunnelList from "@pages/data-analysis/funnel/components/DataFilterConfigArea/components/FunnelList"
 
 function DataFilterConfigArea() {
 
@@ -48,10 +49,10 @@ function DataFilterConfigArea() {
       />
       <div className={styles.hr} />
 
-      {/* TODO 漏斗配置 */}
+      {/* 漏斗配置 */}
       <DataFilterConfigAreaItem
         title="漏斗配置"
-        content={null}
+        content={<FunnelList />}
       />
       <div className={styles.hr} />
 

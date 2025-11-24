@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react"
-import { IEventAnalysisInfo, Metrics } from "@probe-x/shared-types/src"
+import { IEventAnalysisInfo, Metrics } from "../../../../../../../libs/shared-types/src"
 import { Select, Tooltip } from "antd"
 import { useModel } from "@/hooks"
 import { IPointState } from "@/store/models/point/type"
@@ -10,6 +10,8 @@ import FilterSelector from "@pages/data-analysis/components/FilterSelector"
 interface IEventItemProps {
   eventInfo: IEventAnalysisInfo | null
   index: number
+  // 单点模式
+  singleMode?: boolean
   // 点击移除
   onRemove?: () => void
   // 点击增加筛选
@@ -23,6 +25,7 @@ interface IEventItemProps {
 function EventItem(props: IEventItemProps) {
 
   const {
+    singleMode,
     eventInfo,
     index,
     onCopy,
@@ -67,12 +70,35 @@ function EventItem(props: IEventItemProps) {
     })
   }, [eventInfo, onChange])
 
+  const renderOperate = useMemo(() => (
+    <div className={styles.operate}>
+      <a href="#" className={styles.operateBtn} onClick={() => addFilter?.()}>
+        <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
+        增加筛选
+      </a>
+      {singleMode ? null :
+        <>
+          <a href="#" className={styles.operateBtn} onClick={() => onCopy?.()}>
+            <CopyOne className={styles.icon} theme="outline" size="14" fill="#333" />
+            复制
+          </a>
+          <a href="#" className={styles.operateBtn} onClick={() => onRemove?.()}>
+            <Delete className={styles.icon} theme="outline" size="14" fill="#333" />
+            移除
+          </a>
+        </>
+      }
+    </div>
+  ), [addFilter, onCopy, onRemove, singleMode])
+
   return (
     <div className={styles.container}>
       <div className={styles.eventContainer}>
-        <div className={styles.tag}>
-          {String.fromCharCode(index + 65)}
-        </div>
+        {singleMode ? null :
+          <div className={styles.tag}>
+            {String.fromCharCode(index + 65)}
+          </div>
+        }
         <Select
           allowClear
           className={styles.selectEvent}
@@ -98,21 +124,7 @@ function EventItem(props: IEventItemProps) {
           }]}
           placeholder="选择指标"
         />
-
-        <div className={styles.operate}>
-          <a href="#" className={styles.operateBtn} onClick={() => addFilter?.()}>
-            <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
-            增加筛选
-          </a>
-          <a href="#" className={styles.operateBtn} onClick={() => onCopy?.()}>
-            <CopyOne className={styles.icon} theme="outline" size="14" fill="#333" />
-            复制
-          </a>
-          <a href="#" className={styles.operateBtn} onClick={() => onRemove?.()}>
-            <Delete className={styles.icon} theme="outline" size="14" fill="#333" />
-            移除
-          </a>
-        </div>
+        {renderOperate}
       </div>
       <FilterSelector
         styles={{ marginLeft: 32 }}

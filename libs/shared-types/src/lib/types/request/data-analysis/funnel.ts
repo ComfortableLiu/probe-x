@@ -1,4 +1,5 @@
 import { IAttributionAnalysisFilter } from "./common"
+import { IEventAnalysisInfo } from "./event"
 
 // 漏斗类型
 export enum FunnelTypeEnum {
@@ -6,6 +7,13 @@ export enum FunnelTypeEnum {
   USER = 'user',
   // 次数
   COUNT = 'count',
+}
+
+export interface IFunnelInfo {
+  // 步骤名称
+  stepName: string
+  // 事件
+  eventInfo: IEventAnalysisInfo
 }
 
 // 漏斗分析请求入参
@@ -19,6 +27,8 @@ export interface IFunnelAnalysisReq {
     // 单位
     unit: 'm' | 'h' | 'd'
   }
+  // 漏斗数据
+  funnelInfoList: IFunnelInfo[]
   // 时间范围
   timeRange: [`${string}-${string}-${string}`, `${string}-${string}-${string}`]
   // 指标维度，属性
