@@ -1,0 +1,32 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .chart-container {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+
+    .chat {
+      height: 500px;
+      flex: 1;
+    }
+
+    .data-detail {
+      display: flex;
+      flex-direction: column;
+      flex: 2;
+      gap: 8px;
+      margin: 0 24px;
+
+      .total-conversion-rate {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background-color: rgba(83, 109, 254, 0.3);
+        font-weight: bold;
+      }
+    }
+  }
+}

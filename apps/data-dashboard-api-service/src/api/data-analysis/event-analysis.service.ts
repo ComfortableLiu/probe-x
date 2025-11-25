@@ -13,7 +13,7 @@ import { Queue } from "bullmq"
 import { generateEventAnalysisSql } from "@src/api/data-analysis/EventAnalysisSqlBuilder"
 
 @Injectable()
-export class DataAnalysisService {
+export class EventAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
     private readonly redisService: RedisService,

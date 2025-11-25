@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react"
-import EventItem from "./components/EventItem"
+import EventItem from "../../../../../components/EventItem"
 import { useQuery, useRouter } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/event/type"
 import { IAttributionAnalysisFilter, MetaPropertyType, Metrics } from "@probe-x/shared-types/src"

@@ -11,7 +11,7 @@ function DataTable() {
 
   const {
     timeRange,
-    dimension,
+    dimension = [],
     eventInfoList = [],
   } = useQuery<IQuery>()
 

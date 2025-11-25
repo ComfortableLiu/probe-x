@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+
+  .tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #536DFE;
+    color: white;
+    border-radius: 100%;
+    width: 24px;
+    height: 24px;
+    font-weight: bold;
+  }
+
+  &:hover {
+    .operate {
+      display: flex;
+    }
+  }
+
+  .operate {
+    flex-direction: row;
+    gap: 12px;
+    display: none;
+
+    .operate-btn {
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+      align-items: center;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px dashed #CCCCCC;
+
+    &:hover {
+      border: 1px dashed #3D5AFE;
+    }
+  }
+}
+
+.icon {
+  display: flex;
+}

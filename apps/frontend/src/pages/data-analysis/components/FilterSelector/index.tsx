@@ -56,7 +56,7 @@ function FilterSelector(props: IFilterSelectorProps) {
     })
   }, [onChange, value])
 
-  if (!value) {
+  if (!value?.length) {
     return null
   }
 

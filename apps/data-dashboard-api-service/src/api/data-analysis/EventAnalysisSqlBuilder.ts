@@ -5,31 +5,13 @@ import {
   MetaPropertyType,
   Metrics,
 } from "@probe-x/shared-types/src"
-
-/**
- * 元属性类型到ClickHouse数据类型的映射
- */
-export const META_TYPE_TO_CH_TYPE: Record<MetaPropertyType, string> = {
-  [MetaPropertyType.STRING]: 'String',
-  [MetaPropertyType.NUMBER]: 'Int64',
-  [MetaPropertyType.FLOAT]: 'Float64',
-  [MetaPropertyType.BOOLEAN]: 'UInt8',
-  [MetaPropertyType.DATE]: 'DateTime64',
-}
-
-/**
- * SQL生成结果类型（包含占位符参数映射）
- */
-export interface ISqlGenerateResult {
-  sql: string;
-  params: Record<string, any>;
-  error?: string;
-}
+import { ISqlGenerateResult, META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
 
 /**
  * 生成唯一占位符名称
  */
 let paramIndex = 0
+
 function generateParamKey(prefix: string): string {
   paramIndex += 1
   return `param_${prefix}_${paramIndex}`
@@ -411,7 +393,8 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
 
     // 7. 最终SQL（拼接ORDER BY，表名反引号包裹）
     const tableName = '`probe_x`.`final_event_log`'
-    const sql = `SELECT ${selectClause} FROM ${tableName} ${whereClause} ${groupByClause} ${orderByClause}`
+    const sql = `SELECT ${selectClause}
+                 FROM ${tableName} ${whereClause} ${groupByClause} ${orderByClause}`
 
     return { sql, params: sqlParams }
   } catch (error) {
