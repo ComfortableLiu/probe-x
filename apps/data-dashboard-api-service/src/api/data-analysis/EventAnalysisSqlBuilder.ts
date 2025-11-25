@@ -5,18 +5,7 @@ import {
   MetaPropertyType,
   Metrics,
 } from "@probe-x/shared-types/src"
-import { ISqlGenerateResult } from "@src/api/data-analysis/type"
-
-/**
- * 元属性类型到ClickHouse数据类型的映射
- */
-export const META_TYPE_TO_CH_TYPE: Record<MetaPropertyType, string> = {
-  [MetaPropertyType.STRING]: 'String',
-  [MetaPropertyType.NUMBER]: 'Int64',
-  [MetaPropertyType.FLOAT]: 'Float64',
-  [MetaPropertyType.BOOLEAN]: 'UInt8',
-  [MetaPropertyType.DATE]: 'DateTime64',
-}
+import { ISqlGenerateResult, META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
 
 /**
  * 生成唯一占位符名称

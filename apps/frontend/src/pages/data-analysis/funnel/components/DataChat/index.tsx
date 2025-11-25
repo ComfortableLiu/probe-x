@@ -1,8 +1,8 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as echarts from "echarts"
 import * as styles from "./styles.module.scss"
-import { useLoading, useModel } from "@/hooks"
-import { IDataAnalysisFunnelState } from "@pages/data-analysis/funnel/type"
+import { useLoading, useModel, useQuery } from "@/hooks"
+import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/type"
 import { Radio } from "antd"
 import ConversionRateItem from "@pages/data-analysis/funnel/components/DataChat/components/ConversionRateItem"
 
@@ -11,6 +11,10 @@ function DataChat() {
   const {
     data = [],
   } = useModel<IDataAnalysisFunnelState>('dataAnalysisFunnelModel')
+
+  const {
+    funnelInfoList,
+  } = useQuery<IQuery>()
 
   const chart = useRef(null)
   const loading = useLoading()
@@ -24,19 +28,22 @@ function DataChat() {
 
   // 处理后的数据
   const chatData = useMemo(() => {
-    return data.map((item, index) => {
+    if (!data.length) return []
+    // TODO 先只取第一个维度数据
+    return funnelInfoList.map((item, index) => {
       const isFirst = index === 0
       // 上一个值
-      const prevItem = isFirst ? undefined : data[index - 1]
+      const prevItemValue = isFirst ? undefined : data[0][funnelInfoList[index-1].stepName] as number
       const conversionRate = isFirst ? undefined : (
-        showType === 'single' ? (item.value / prevItem.value) : (item.value / data[0].value)
+        showType === 'single' ? (data[0][item.stepName] as number / prevItemValue) : (data[0][item.stepName] as number / (data[0][funnelInfoList[0].stepName] as number))
       )
       return {
         ...item,
+        value: data[0][item.stepName] as number,
         conversionRate,
       }
     })
-  }, [data, showType])
+  }, [data, funnelInfoList, showType])
 
   const initECharts = useCallback(() => {
     if (chart.current) return

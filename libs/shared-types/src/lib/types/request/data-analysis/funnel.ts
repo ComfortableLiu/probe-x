@@ -7,6 +7,8 @@ export enum FunnelTypeEnum {
   USER = 'user',
   // 次数
   COUNT = 'count',
+  // session
+  SESSION = 'session',
 }
 
 export interface IFunnelInfo {
@@ -35,13 +37,11 @@ export interface IFunnelAnalysisReq {
   dimension: string[]
   // 全局筛选
   globalFilters?: IAttributionAnalysisFilter[]
-}
-
-// 漏斗转化率一步数据
-export interface IFunnelConversionRateStepData extends IFunnelInfo {
-  // 具体数据
-  value: number
+  // 漏斗模式 - 严格类型、宽松类型
+  funnelMode?: 'strict' | 'loose'
 }
 
 // 漏斗分析请求返回值
-export type IFunnelAnalysisRes = IFunnelConversionRateStepData[]
+export type IFunnelAnalysisRes = {
+  [stepName: string]: number | string
+}[]
