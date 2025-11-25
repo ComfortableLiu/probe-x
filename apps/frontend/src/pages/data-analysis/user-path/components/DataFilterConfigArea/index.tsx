@@ -6,12 +6,10 @@ import { Refresh, Search } from "@icon-park/react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
-import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
-import DimensionSelector from "@pages/data-analysis/components/DimensionSelector"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
-import WindowPeriod from "../../../components/WindowPeriod"
-import FunnelType from "./components/FunnelType"
-import FunnelList from "./components/FunnelList"
+import WindowPeriod from "@pages/data-analysis/components/WindowPeriod"
+import EventSelector from "./components/EventSelector"
+import CenterEvent from "@pages/data-analysis/user-path/components/DataFilterConfigArea/components/CenterEvent"
 
 function DataFilterConfigArea() {
 
@@ -34,14 +32,6 @@ function DataFilterConfigArea() {
 
   return (
     <div className={styles.container}>
-
-      {/* 漏斗类型 */}
-      <DataFilterConfigAreaItem
-        title="漏斗类型"
-        content={<FunnelType />}
-      />
-      <div className={styles.hr} />
-
       {/* 窗口期 */}
       <DataFilterConfigAreaItem
         title="窗口期"
@@ -49,24 +39,17 @@ function DataFilterConfigArea() {
       />
       <div className={styles.hr} />
 
-      {/* 漏斗配置 */}
+      {/* 事件选择 */}
       <DataFilterConfigAreaItem
-        title="漏斗配置"
-        content={<FunnelList />}
+        title="事件选择"
+        content={<EventSelector />}
       />
       <div className={styles.hr} />
 
-      {/* 全局筛选部分 */}
+      {/* 事件起点终点设置 */}
       <DataFilterConfigAreaItem
-        title="全局筛选"
-        content={<GlobalFilter />}
-      />
-      <div className={styles.hr} />
-
-      {/* 数据维度 */}
-      <DataFilterConfigAreaItem
-        title="数据维度"
-        content={<DimensionSelector />}
+        title="事件定义"
+        content={<CenterEvent />}
       />
       <div className={styles.hr} />
 
