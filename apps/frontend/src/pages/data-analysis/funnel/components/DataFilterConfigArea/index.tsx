@@ -11,7 +11,7 @@ import DimensionSelector from "@pages/data-analysis/components/DimensionSelector
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
 import WindowPeriod from "./components/WindowPeriod"
 import FunnelType from "./components/FunnelType"
-import FunnelList from "@pages/data-analysis/funnel/components/DataFilterConfigArea/components/FunnelList"
+import FunnelList from "./components/FunnelList"
 
 function DataFilterConfigArea() {
 
@@ -24,13 +24,13 @@ function DataFilterConfigArea() {
   // 提交查询任务
   const submit = useCallback(async () => {
     // 先检查填写项
-    const flag = await dispatch.dataAnalysisEventModel.checkQueryParams()
+    const flag = await dispatch.dataAnalysisFunnelModel.checkQueryParams()
     if (flag) {
       message.error(flag)
       return
     }
-    dispatch.dataAnalysisEventModel.submitQuery()
-  }, [dispatch.dataAnalysisEventModel])
+    dispatch.dataAnalysisFunnelModel.submitQuery()
+  }, [dispatch.dataAnalysisFunnelModel])
 
   return (
     <div className={styles.container}>

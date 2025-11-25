@@ -1,11 +1,11 @@
 import { createModel } from "@rematch/core"
 import { RootModel } from "@/store/models"
-import { IQuery } from "@pages/data-analysis/event/type"
 import { getParamsOrQuery } from "@utils/router"
 import { isEmpty } from "@probe-x/shared-utils/src"
-import { submitQueryTask } from "@pages/data-analysis/event/services"
 import { message } from "antd"
-import { IDataAnalysisFunnelState } from "@pages/data-analysis/funnel/type"
+import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/type"
+import { windowPeriodValue } from "@pages/data-analysis/funnel/utils"
+import { submitQueryTask } from "@pages/data-analysis/funnel/services"
 
 const initState: IDataAnalysisFunnelState = {}
 
@@ -33,10 +33,12 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
         globalFilters,
         timeRange,
         dimension,
-        eventInfoList,
+        funnelType,
+        funnelInfoList,
+        windowPeriod,
       } = getParamsOrQuery<IQuery>()
-      if (!eventInfoList?.length) {
-        return '请选择事件'
+      if (!funnelInfoList?.length) {
+        return '请选择漏斗数据'
       }
       if (!timeRange?.length) {
         return '请选择时间范围'
@@ -45,12 +47,22 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
         return '请选择维度项'
       }
 
-      if (eventInfoList.some(item => !item.eventName || !item.metrics || (item.filters?.length && item.filters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))))) {
+      if (funnelInfoList.map(item => item.eventInfo).some(item => !item.eventName || !item.metrics || (item.filters?.length && item.filters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))))) {
         return '请完善事件项'
       }
 
       if (globalFilters?.length && globalFilters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))) {
         return '请完善全局筛选项'
+      }
+      if (!funnelType) {
+        return '请选择漏斗类型'
+      }
+      if (!windowPeriod) {
+        return '请选择时间窗口'
+      }
+      const m = windowPeriodValue(windowPeriod.unit, 'm', windowPeriod.value)
+      if (m < 1 || m > 3650 * 24 * 60) {
+        return '时间窗口范围1分钟-3650天'
       }
       return ''
     },

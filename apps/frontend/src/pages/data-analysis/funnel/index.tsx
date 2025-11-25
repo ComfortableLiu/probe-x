@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react"
-import DataFilterConfigArea from "./components/DataFilterConfigArea"
 import * as styles from "./styles.module.scss"
 import { Spin } from "antd"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
@@ -10,6 +9,8 @@ import dayjs from "dayjs"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import { FunnelTypeEnum } from "@probe-x/shared-types/src"
+import DataFilterConfigArea from "./components/DataFilterConfigArea"
+import DataChat from "./components/DataChat"
 
 function FunnelAnalysis() {
 
@@ -59,6 +60,9 @@ function FunnelAnalysis() {
           updateTime={updateTime}
         />
         <DataFilterConfigArea />
+        <div className={styles.hr} />
+
+        <DataChat />
         <div className={styles.hr} />
 
         <DownloadPopup

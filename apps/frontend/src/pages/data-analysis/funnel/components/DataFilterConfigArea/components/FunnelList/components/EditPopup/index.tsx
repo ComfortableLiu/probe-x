@@ -61,10 +61,6 @@ function EditPopup(props: IEditPopupProps) {
           eventInfo={info?.eventInfo}
           index={index}
           onChange={(eventInfo) => {
-            console.log(';lll---', info, {
-              ...info,
-              eventInfo,
-            })
             setInfo({
               ...info,
               eventInfo,

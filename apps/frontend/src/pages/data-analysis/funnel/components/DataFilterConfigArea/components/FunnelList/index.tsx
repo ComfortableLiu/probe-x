@@ -78,7 +78,7 @@ function FunnelList() {
         onClick={() => addFunnel()}
       >
         <AddOne theme="filled" size="24" fill="#536DFE" style={{ display: 'flex' }} />
-        添加指标
+        增加步骤
       </a>
 
       <EditPopup

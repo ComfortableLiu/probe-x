@@ -37,6 +37,11 @@ export interface IFunnelAnalysisReq {
   globalFilters?: IAttributionAnalysisFilter[]
 }
 
-// 漏斗分析请求返回值
-export interface IFunnelAnalysisRes {
+// 漏斗转化率一步数据
+export interface IFunnelConversionRateStepData extends IFunnelInfo {
+  // 具体数据
+  value: number
 }
+
+// 漏斗分析请求返回值
+export type IFunnelAnalysisRes = IFunnelConversionRateStepData[]

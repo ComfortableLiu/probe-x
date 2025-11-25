@@ -59,6 +59,7 @@ function EventItem(props: IEventItemProps) {
   const onEventChange = useCallback((value: string) => {
     onChange({
       ...eventInfo,
+      metrics: eventInfo.metrics ? eventInfo.metrics : Metrics.COUNT,
       eventName: value,
     })
   }, [eventInfo, onChange])
