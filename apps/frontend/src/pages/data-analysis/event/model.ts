@@ -72,7 +72,10 @@ const dataAnalysisEventModel = createModel<RootModel>()({
         return
       }
       // 储存查询结果
-      dispatch.dataAnalysisEventModel.updateItem({ data })
+      dispatch.dataAnalysisEventModel.updateItem({
+        data,
+        updateTime: new Date(),
+      })
     },
     // 查询下载任务
     async queryDownloadTask({ taskId }: { taskId: string }) {

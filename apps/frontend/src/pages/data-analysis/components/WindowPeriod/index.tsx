@@ -2,7 +2,7 @@ import React, { memo, useMemo } from "react"
 import { InputNumber, Select, Space } from "antd"
 import { useQuery, useRouter } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/funnel/type"
-import { windowPeriodValue } from "@pages/data-analysis/funnel/utils"
+import { windowPeriodValue } from "@pages/data-analysis/components/WindowPeriod/utils"
 
 function WindowPeriod() {
 

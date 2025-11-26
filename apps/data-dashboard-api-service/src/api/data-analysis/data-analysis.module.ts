@@ -8,6 +8,7 @@ import { QUEUE_NAME } from "@src/api/data-analysis/type"
 import { QueryDownloadQueueProcessor } from "@src/api/data-analysis/query-download-queue.processor"
 import { EventAnalysisService } from "./event-analysis.service"
 import { FunnelAnalysisService } from "./funnel-analysis.service"
+import { UserPathAnalysisService } from "./user-path-analysis.service"
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { FunnelAnalysisService } from "./funnel-analysis.service"
     MinIOModule,
   ],
   controllers: [DataAnalysisController],
-  providers: [EventAnalysisService, FunnelAnalysisService, QueryDownloadQueueProcessor],
+  providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, QueryDownloadQueueProcessor],
   exports: [],
 })
 export class DataAnalysisModule {

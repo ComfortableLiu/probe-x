@@ -2,7 +2,7 @@ import React, { memo } from "react"
 import { Radio } from "antd"
 import { useQuery, useRouter } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/funnel/type"
-import windowPeriod from "@pages/data-analysis/funnel/components/DataFilterConfigArea/components/WindowPeriod"
+import windowPeriod from "@pages/data-analysis/components/WindowPeriod"
 import { FunnelTypeEnum } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 

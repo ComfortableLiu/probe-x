@@ -34,7 +34,9 @@ export type IQueryEventPropertiesRes = IQueryPropertyListRes
 // 简化事件列表项
 export interface IEventListItemSimple {
   eventName: string
+  // 事件别名
   eventAliases: string
+  // 事件描述
   eventRemark: string
 }
 

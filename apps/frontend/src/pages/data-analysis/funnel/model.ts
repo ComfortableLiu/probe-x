@@ -4,7 +4,7 @@ import { getParamsOrQuery } from "@utils/router"
 import { isEmpty } from "@probe-x/shared-utils/src"
 import { message } from "antd"
 import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/type"
-import { windowPeriodValue } from "@pages/data-analysis/funnel/utils"
+import { windowPeriodValue } from "@pages/data-analysis/components/WindowPeriod/utils"
 import { submitQueryTask } from "@pages/data-analysis/funnel/services"
 
 const initState: IDataAnalysisFunnelState = {}
@@ -75,7 +75,10 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
         return
       }
       // 储存查询结果
-      dispatch.dataAnalysisFunnelModel.updateItem({ data })
+      dispatch.dataAnalysisFunnelModel.updateItem({
+        data,
+        updateTime: new Date(),
+      })
     },
   }),
 })

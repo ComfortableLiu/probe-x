@@ -9,6 +9,7 @@ import pointManageSpmModel from "@pages/point-manage/spm/model"
 import pointManageBasicCodingModel from "@pages/point-manage/basic-coding/model"
 import dataAnalysisEventModel from "@pages/data-analysis/event/model"
 import dataAnalysisFunnelModel from "@pages/data-analysis/funnel/model"
+import dataAnalysisUserPathModel from "@pages/data-analysis/user-path/model"
 
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
@@ -22,6 +23,7 @@ export interface RootModel extends Models<RootModel> {
   pointManageBasicCodingModel: typeof pointManageBasicCodingModel
   dataAnalysisEventModel: typeof dataAnalysisEventModel
   dataAnalysisFunnelModel: typeof dataAnalysisFunnelModel
+  dataAnalysisUserPathModel: typeof dataAnalysisUserPathModel
 }
 
 export const models: RootModel = {
@@ -35,4 +37,5 @@ export const models: RootModel = {
   pointManageBasicCodingModel,
   dataAnalysisEventModel,
   dataAnalysisFunnelModel,
+  dataAnalysisUserPathModel,
 }

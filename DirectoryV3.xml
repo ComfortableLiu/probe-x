@@ -46,4 +46,8 @@
     <tree path="/apps/frontend/src/pages/data-analysis/components/DataFilterConfigAreaItem" title="各种分析的容器" />
     <tree path="/apps/frontend/src/pages/data-analysis/funnel/components/DataFilterConfigArea/components/WindowPeriod"
           title="窗口期" extension="" presentableText="" tooltipTitle="" icon="" textColor="" backgroundColor="" />
+    <tree path="/apps/frontend/src/pages/data-analysis/user-path" title="用户路径分析" />
+    <tree path="/apps/frontend/src/pages/data-analysis/components/WindowPeriod" title="窗口期选择" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/user-path-analysis.service.ts"
+          title="用户路径分析逻辑" />
 </trees>

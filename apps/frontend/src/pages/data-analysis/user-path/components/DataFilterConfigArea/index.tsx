@@ -6,12 +6,10 @@ import { Refresh, Search } from "@icon-park/react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
-import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
-import DimensionSelector from "@pages/data-analysis/components/DimensionSelector"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
-import WindowPeriod from "../../../components/WindowPeriod"
-import FunnelType from "./components/FunnelType"
-import FunnelList from "./components/FunnelList"
+import EventSelector from "./components/EventSelector"
+import CenterEvent from "./components/CenterEvent"
+import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
 
 function DataFilterConfigArea() {
 
@@ -24,35 +22,27 @@ function DataFilterConfigArea() {
   // 提交查询任务
   const submit = useCallback(async () => {
     // 先检查填写项
-    const flag = await dispatch.dataAnalysisFunnelModel.checkQueryParams()
+    const flag = await dispatch.dataAnalysisUserPathModel.checkQueryParams()
     if (flag) {
       message.error(flag)
       return
     }
-    dispatch.dataAnalysisFunnelModel.submitQuery()
-  }, [dispatch.dataAnalysisFunnelModel])
+    dispatch.dataAnalysisUserPathModel.submitQuery()
+  }, [dispatch.dataAnalysisUserPathModel])
 
   return (
     <div className={styles.container}>
-
-      {/* 漏斗类型 */}
+      {/* 事件选择 */}
       <DataFilterConfigAreaItem
-        title="漏斗类型"
-        content={<FunnelType />}
+        title="事件选择"
+        content={<EventSelector />}
       />
       <div className={styles.hr} />
 
-      {/* 窗口期 */}
+      {/* 事件起点终点设置 */}
       <DataFilterConfigAreaItem
-        title="窗口期"
-        content={<WindowPeriod />}
-      />
-      <div className={styles.hr} />
-
-      {/* 漏斗配置 */}
-      <DataFilterConfigAreaItem
-        title="漏斗配置"
-        content={<FunnelList />}
+        title="事件定义"
+        content={<CenterEvent />}
       />
       <div className={styles.hr} />
 
@@ -60,13 +50,6 @@ function DataFilterConfigArea() {
       <DataFilterConfigAreaItem
         title="全局筛选"
         content={<GlobalFilter />}
-      />
-      <div className={styles.hr} />
-
-      {/* 数据维度 */}
-      <DataFilterConfigAreaItem
-        title="数据维度"
-        content={<DimensionSelector />}
       />
       <div className={styles.hr} />
 
