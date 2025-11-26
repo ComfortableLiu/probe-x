@@ -1,4 +1,27 @@
+.chat-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 700px;
+  max-width: 100vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+  position: relative; // 父容器相对定位，用于下载按钮绝对定位
+}
+
 .chat {
   width: 100%;
-  height: 500px;
+  height: 100%;
+  min-width: 800px;
+  min-height: 600px;
+}
+
+// 下载按钮样式：悬浮右上角
+.download-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 100; // 层级高于图表，避免被遮挡
+  font-size: 13px;
 }

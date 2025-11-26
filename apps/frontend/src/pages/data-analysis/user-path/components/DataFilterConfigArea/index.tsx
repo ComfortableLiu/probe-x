@@ -7,9 +7,9 @@ import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
-import WindowPeriod from "@pages/data-analysis/components/WindowPeriod"
 import EventSelector from "./components/EventSelector"
-import CenterEvent from "@pages/data-analysis/user-path/components/DataFilterConfigArea/components/CenterEvent"
+import CenterEvent from "./components/CenterEvent"
+import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
 
 function DataFilterConfigArea() {
 
@@ -22,23 +22,16 @@ function DataFilterConfigArea() {
   // 提交查询任务
   const submit = useCallback(async () => {
     // 先检查填写项
-    const flag = await dispatch.dataAnalysisFunnelModel.checkQueryParams()
+    const flag = await dispatch.dataAnalysisUserPathModel.checkQueryParams()
     if (flag) {
       message.error(flag)
       return
     }
-    dispatch.dataAnalysisFunnelModel.submitQuery()
-  }, [dispatch.dataAnalysisFunnelModel])
+    dispatch.dataAnalysisUserPathModel.submitQuery()
+  }, [dispatch.dataAnalysisUserPathModel])
 
   return (
     <div className={styles.container}>
-      {/* 窗口期 */}
-      <DataFilterConfigAreaItem
-        title="窗口期"
-        content={<WindowPeriod />}
-      />
-      <div className={styles.hr} />
-
       {/* 事件选择 */}
       <DataFilterConfigAreaItem
         title="事件选择"
@@ -50,6 +43,13 @@ function DataFilterConfigArea() {
       <DataFilterConfigAreaItem
         title="事件定义"
         content={<CenterEvent />}
+      />
+      <div className={styles.hr} />
+
+      {/* 全局筛选部分 */}
+      <DataFilterConfigAreaItem
+        title="全局筛选"
+        content={<GlobalFilter />}
       />
       <div className={styles.hr} />
 

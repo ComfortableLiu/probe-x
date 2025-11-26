@@ -1,18 +1,12 @@
 import { Injectable } from '@nestjs/common'
 import { IFunnelAnalysisReq, IFunnelAnalysisRes } from "@probe-x/shared-types/src"
-import { ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
-import { QUEUE_NAME } from "@src/api/data-analysis/type"
-import { InjectQueue } from "@nestjs/bullmq"
-import { Queue } from "bullmq"
+import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { generateFunnelAnalysisSql } from "./FunnelAnalysisSqlBuilder"
 
 @Injectable()
 export class FunnelAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
-    private readonly redisService: RedisService,
-    @InjectQueue(QUEUE_NAME)
-    private readonly exportQueue: Queue,
   ) {
   }
 

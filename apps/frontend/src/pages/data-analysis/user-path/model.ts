@@ -3,7 +3,6 @@ import { RootModel } from "@/store/models"
 import { getParamsOrQuery } from "@utils/router"
 import { message } from "antd"
 import { IDataAnalysisUserPathState, IQuery } from "@pages/data-analysis/user-path/type"
-import { windowPeriodValue } from "@pages/data-analysis/components/WindowPeriod/utils"
 import { submitQueryTask } from "@pages/data-analysis/user-path/services"
 
 const initState: IDataAnalysisUserPathState = {}
@@ -30,16 +29,12 @@ const dataAnalysisUserPathModel = createModel<RootModel>()({
     async checkQueryParams() {
       const {
         timeRange,
-        windowPeriod,
         startEvent,
         endEvent,
         eventList,
       } = getParamsOrQuery<IQuery>()
       if (!timeRange?.length) {
         return '请选择时间范围'
-      }
-      if (!windowPeriod) {
-        return '请选择时间窗口'
       }
       if (!eventList?.length) {
         return '请选择事件'
@@ -57,10 +52,6 @@ const dataAnalysisUserPathModel = createModel<RootModel>()({
         return "开始或结束事件仅可设定已选择的事件"
       }
 
-      const m = windowPeriodValue(windowPeriod.unit, 'm', windowPeriod.value)
-      if (m < 1 || m > 3650 * 24 * 60) {
-        return '时间窗口范围1分钟-3650天'
-      }
       return ''
     },
 
