@@ -64,7 +64,10 @@ const dataAnalysisUserPathModel = createModel<RootModel>()({
         return
       }
       // 储存查询结果
-      dispatch.dataAnalysisUserPathModel.updateItem({ data })
+      dispatch.dataAnalysisUserPathModel.updateItem({
+        data,
+        updateTime: new Date(),
+      })
     },
   }),
 })

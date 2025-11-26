@@ -75,7 +75,10 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
         return
       }
       // 储存查询结果
-      dispatch.dataAnalysisFunnelModel.updateItem({ data })
+      dispatch.dataAnalysisFunnelModel.updateItem({
+        data,
+        updateTime: new Date(),
+      })
     },
   }),
 })
