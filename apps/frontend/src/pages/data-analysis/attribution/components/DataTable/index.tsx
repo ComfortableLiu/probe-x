@@ -146,9 +146,24 @@ function DataTable() {
           } else {
             // 中间的维度字段，需要根据标题查找对应的数据字段
             // 标题可能是 "device_id"，对应的数据字段是 "$device_id"
-            const dimensionKey = `$${title}`
-            dataIndex = ['touchPointData', dimensionKey]
-            columnKey = dimensionKey
+            // 但也可能是 "page_name"，对应的数据字段就是 "page_name"
+            // 我们需要检查两种可能性
+            const dollarPrefixedKey = `$${title}`
+            const nonDollarKey = title
+
+            // 检查数据中是否存在这两种键
+            const sampleData = data.tableData?.[0]?.touchPointData || {}
+            if (sampleData.hasOwnProperty(dollarPrefixedKey)) {
+              dataIndex = ['touchPointData', dollarPrefixedKey]
+              columnKey = dollarPrefixedKey
+            } else if (sampleData.hasOwnProperty(nonDollarKey)) {
+              dataIndex = ['touchPointData', nonDollarKey]
+              columnKey = nonDollarKey
+            } else {
+              // 默认使用美元符号前缀
+              dataIndex = ['touchPointData', dollarPrefixedKey]
+              columnKey = dollarPrefixedKey
+            }
           }
 
           return {
@@ -233,7 +248,7 @@ function DataTable() {
         }),
       },
     ]
-  }, [data?.tableHeader])
+  }, [data?.tableHeader, data?.tableData])
 
   return (
     <div className={styles.container}>

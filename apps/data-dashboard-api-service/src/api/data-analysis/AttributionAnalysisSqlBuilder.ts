@@ -308,18 +308,27 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   const attributionIndexField = wrapFieldWithBacktick('attribution_index')
   const eventTimeField = wrapFieldWithBacktick('event_time')
 
+  // 定义触摸点总数变量，避免重复子查询
+  const touchpointCount = `(SELECT COALESCE(COUNT(*), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField})`
+  // 定义最后触摸点索引变量
+  const lastTouchpointIndex = `(SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField})`
+
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
       return `CASE WHEN a.${attributionIndexField} = 0 THEN 1 ELSE 0 END`
     case AttributionModelEnum.LAST_TOUCH:
-      return `CASE WHEN a.${attributionIndexField} = (SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) THEN 1 ELSE 0 END`
+      return `CASE WHEN a.${attributionIndexField} = ${lastTouchpointIndex} THEN 1 ELSE 0 END`
     case AttributionModelEnum.LINEAR:
-      return `1 / COALESCE((SELECT COUNT(*) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
+      return `1 / COALESCE(${touchpointCount}, 1)`
     case AttributionModelEnum.POSITION:
       return `CASE 
-        WHEN a.${attributionIndexField} = 0 THEN 0.4
-        WHEN a.${attributionIndexField} = (SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) THEN 0.4
-        ELSE COALESCE(0.2 / NULLIF((SELECT COUNT(*) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) - 2, 0), 1)
+        -- 修复1：单个触摸点（总数=1），权重1.0
+        WHEN ${touchpointCount} = 1 THEN 1.0
+        -- 修复2：两个触摸点（总数=2），每个权重0.5
+        WHEN ${touchpointCount} = 2 THEN 0.5
+        -- 修复3：多个触摸点，先判断是否是第一个/最后一个（权重0.4），中间点均分剩余0.2
+        WHEN a.${attributionIndexField} = 0 OR a.${attributionIndexField} = ${lastTouchpointIndex} THEN 0.4
+        ELSE COALESCE(0.2 / NULLIF(${touchpointCount} - 2, 0), 1)
       END`
     case AttributionModelEnum.TIME_DECAY:
       return `EXP(-0.1 * DATEDIFF(second, a.${eventTimeField}, ${serviceTimeField})) / 
