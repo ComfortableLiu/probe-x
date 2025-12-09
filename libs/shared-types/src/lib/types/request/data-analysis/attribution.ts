@@ -32,7 +32,39 @@ export interface IAttributionAnalysisReq {
   globalFilters?: IAttributionAnalysisFilter[]
 }
 
-// 漏斗分析请求返回值
-export type IAttributionAnalysisRes = {
-  [stepName: string]: number | string
-}[]
+// 归因分析请求返回值
+export interface IAttributionAnalysisRes {
+  // 归因维度层级数据
+  data: IAttributionDimensionNode[]
+  // 总计数据
+  total: {
+    // 转化指标值
+    conversionValue: number
+    // 总贡献率
+    totalContributionRate: number
+    // 转化率
+    conversionRate: number
+  }
+  // 维度列表
+  dimensions: string[]
+  // 归因模型
+  attributionModel: AttributionModelEnum
+}
+
+/**
+ * 归因维度节点
+ */
+export interface IAttributionDimensionNode {
+  // 维度名称
+  dimensionName: string
+  // 维度值
+  dimensionValue: string
+  // 子维度节点
+  children?: IAttributionDimensionNode[]
+  // 转化指标值
+  conversionValue: number
+  // 贡献率（百分比）
+  contributionRate: number
+  // 转化率
+  conversionRate: number
+}

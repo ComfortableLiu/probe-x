@@ -55,7 +55,7 @@ const dataAnalysisAttributionModel = createModel<RootModel>()({
         return
       }
       // 储存查询结果
-      dispatch.dataAnalysisFunnelModel.updateItem({
+      dispatch.dataAnalysisAttributionModel.updateItem({
         data,
         updateTime: new Date(),
       })
