@@ -259,6 +259,50 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   }
 }
 
+/**
+ * 构建动态排序子句（核心优化：基于入参动态生成事件优先级）
+ * 排序优先级：
+ * 1. 事件优先级（入参attributionEvent的顺序即为优先级）
+ * 2. 归因维度值（按传入顺序升序）
+ * 3. 贡献度（降序）
+ */
+function buildDynamicOrderByClause(
+  attributionEvents: { eventInfo: IEventAnalysisInfo }[],
+  attributionEventDimension: string[],
+): string {
+  // 1. 动态生成事件优先级CASE语句（基于入参顺序）
+  const eventNames = attributionEvents
+    .map(item => item.eventInfo?.eventName)
+    .filter(Boolean) as string[]
+
+  let eventPriorityCase = ''
+  if (eventNames.length > 0) {
+    const caseWhenParts = eventNames.map((name, index) =>
+      `WHEN '${name}' THEN ${index + 1}`,
+    ).join('\n      ')
+
+    eventPriorityCase = `
+      CASE ${wrapFieldWithBacktick('$event_name')}
+        ${caseWhenParts}
+        ELSE ${eventNames.length + 1}
+      END ASC
+    `.trim()
+  }
+
+  // 2. 构建维度排序（按传入的维度列表升序）
+  const dimensionOrderBy = attributionEventDimension
+    .map(dim => `${wrapFieldWithBacktick(dim)} ASC`)
+    .join(', ')
+
+  // 3. 组合排序条件（处理空值情况）
+  const orderByParts: string[] = []
+  if (eventPriorityCase) orderByParts.push(eventPriorityCase)
+  if (dimensionOrderBy) orderByParts.push(dimensionOrderBy)
+  orderByParts.push('contribution_rate DESC') // 最后按贡献度降序
+
+  return `ORDER BY ${orderByParts.join(', ')}`
+}
+
 /** 生成适配表格展示的归因分析SQL */
 export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq): ISqlGenerateResult {
   resetParamIndex()
@@ -365,8 +409,8 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       ON f.${wrapFieldWithBacktick('$source_page_id')} = a.source_page_id 
       AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.event_time)`
 
-    // 排序
-    const orderByClause = `ORDER BY contribution_rate DESC`
+    // 核心优化：基于入参动态生成排序子句（不再写死事件）
+    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension)
 
     // 拼接SQL
     const sql = `SELECT ${selectClause}

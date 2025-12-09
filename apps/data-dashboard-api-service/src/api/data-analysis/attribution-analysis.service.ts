@@ -150,7 +150,8 @@ export class AttributionAnalysisService {
       totalContribution,
     }
   }
-  /** 模拟原始查询数据（适配表格结构）- 增强版（修复forEach break问题） */
+
+  /** 模拟原始查询数据（适配表格结构+排序优化+表格合并） */
   private getMockRawData(attributionDimensions: string[]): IAttributionRawRow[] {
     // 定义真实业务场景的维度值池（可根据实际业务扩展）
     const dimensionValuePool = {
@@ -162,16 +163,15 @@ export class AttributionAnalysisService {
       '$browser': ['chrome', 'safari', 'firefox', 'edge', 'ie', 'unknown'],
     }
 
-    // 定义更多归因事件（覆盖常见用户行为）
-    const attributionEvents = [
-      'page_leave', 'page_load', 'page_view', 'click_button',
+    // 定义归因事件优先级（控制排序，核心事件在前）
+    const eventPriority = [
+      'page_view', 'page_load', 'page_leave', 'click_button',
       'form_submit', 'link_click', 'video_play', 'download_file',
     ]
 
     // 构建基础维度对象（适配传入的维度列表，随机取值）
     const getRandomDimensionValues = (dimList: string[]) => {
       return dimList.reduce((obj, dim) => {
-        // 优先从值池中取随机值，无匹配则设为"未知"
         if (dimensionValuePool[dim as keyof typeof dimensionValuePool]) {
           const values = dimensionValuePool[dim as keyof typeof dimensionValuePool]
           obj[dim] = values[Math.floor(Math.random() * values.length)]
@@ -182,18 +182,22 @@ export class AttributionAnalysisService {
       }, {} as Record<string, string | number>)
     }
 
-    // 生成模拟数据行（每个事件生成多条数据，维度值随机）
+    // 生成模拟数据行（按事件优先级生成，保证相同事件连续）
     const mockData: IAttributionRawRow[] = []
     let totalContribution = 0 // 控制总贡献度接近100%
-    let shouldStop = false // 循环终止标志位
 
-    // 替换forEach为for循环，支持break
-    for (let eventIdx = 0; eventIdx < attributionEvents.length && !shouldStop; eventIdx++) {
-      const eventName = attributionEvents[eventIdx]
+    // 按事件优先级遍历（保证核心事件在前，相同事件连续）
+    for (let eventIdx = 0; eventIdx < eventPriority.length; eventIdx++) {
+      const eventName = eventPriority[eventIdx]
+      if (totalContribution >= 100) break // 贡献度满了直接终止
+
       // 每个事件生成2-4条数据行（模拟不同维度组合）
       const rowCount = Math.floor(Math.random() * 3) + 2
+      const eventRows: IAttributionRawRow[] = [] // 暂存当前事件的所有行
 
-      for (let i = 0; i < rowCount && !shouldStop; i++) {
+      for (let i = 0; i < rowCount; i++) {
+        if (totalContribution >= 100) break
+
         // 生成随机维度值
         const dimensionValues = getRandomDimensionValues(attributionDimensions)
 
@@ -210,7 +214,7 @@ export class AttributionAnalysisService {
         }
         totalContribution += contributionRate
 
-        mockData.push({
+        eventRows.push({
           attribution_event_name: eventName,
           ...dimensionValues,
           total_count: totalCount,
@@ -218,15 +222,15 @@ export class AttributionAnalysisService {
           conversion_metric: conversionMetric,
           conversion_rate: conversionRate,
           contribution_rate: contributionRate,
-          contribution_progress: contributionRate, // 进度条值与贡献度百分比一致
+          contribution_progress: contributionRate,
         })
 
-        // 总贡献度达到100%则停止生成
-        if (totalContribution >= 100) {
-          shouldStop = true // 设置终止标志
-          break // 跳出当前事件的行循环
-        }
+        if (totalContribution >= 100) break
       }
+
+      // 对当前事件的行按维度值排序（保证相同维度连续，适配表格合并）
+      const sortedEventRows = this.sortRowsByDimensions(eventRows, attributionDimensions)
+      mockData.push(...sortedEventRows)
     }
 
     // 确保总贡献度正好100%（最后一行调整）
@@ -237,5 +241,31 @@ export class AttributionAnalysisService {
     }
 
     return mockData
+  }
+
+  /** 辅助方法：按维度优先级排序行数据（保证相同维度值连续） */
+  private sortRowsByDimensions(rows: IAttributionRawRow[], dimensions: string[]): IAttributionRawRow[] {
+    return rows.sort((a, b) => {
+      // 按维度优先级依次比较（先比较第一个维度，再第二个，以此类推）
+      for (const dim of dimensions) {
+        const valA = a[dim] ?? ''
+        const valB = b[dim] ?? ''
+
+        // 字符串比较
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        // 数字比较
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return valA - valB
+        }
+        // 混合类型：字符串在前
+        if (typeof valA === 'string' && typeof valB === 'number') return -1
+        if (typeof valA === 'number' && typeof valB === 'string') return 1
+      }
+      // 维度值都相同，按贡献度降序
+      return b.contribution_rate - a.contribution_rate
+    })
   }
 }
