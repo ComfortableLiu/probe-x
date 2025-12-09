@@ -40,7 +40,7 @@ export class AttributionAnalysisService {
       // 显式获取归因事件维度（兜底空数组）
       const attributionEventDimensions = headerConfig?.attributionEventDimensions || data.attributionEventDimension || []
       // 3. 执行查询（模拟数据/真实查询二选一）
-      const rawRows = await this.clickhouseService.query<IAttributionRawRow[]>(sql, params)
+      const rawRows = await this.clickhouseService.query<IAttributionRawRow>(sql, params)
       // const rawRows = this.getMockRawData(attributionEventDimensions)
 
       // 4. 构建表头配置
@@ -250,21 +250,30 @@ export class AttributionAnalysisService {
       for (const dim of dimensions) {
         const valA = a[dim] ?? ''
         const valB = b[dim] ?? ''
+        let compareResult = 0
 
         // 字符串比较
         if (typeof valA === 'string' && typeof valB === 'string') {
-          if (valA < valB) return -1
-          if (valA > valB) return 1
+          compareResult = valA.localeCompare(valB)
         }
         // 数字比较
-        if (typeof valA === 'number' && typeof valB === 'number') {
-          return valA - valB
+        else if (typeof valA === 'number' && typeof valB === 'number') {
+          compareResult = valA - valB
         }
         // 混合类型：字符串在前
-        if (typeof valA === 'string' && typeof valB === 'number') return -1
-        if (typeof valA === 'number' && typeof valB === 'string') return 1
+        else if (typeof valA === 'string' && typeof valB === 'number') {
+          compareResult = -1
+        }
+        else if (typeof valA === 'number' && typeof valB === 'string') {
+          compareResult = 1
+        }
+
+        // 只有当当前维度比较结果不为0时才返回，否则继续比较下一个维度
+        if (compareResult !== 0) {
+          return compareResult
+        }
       }
-      // 维度值都相同，按贡献度降序
+      // 所有维度值都相同，按贡献度降序
       return b.contribution_rate - a.contribution_rate
     })
   }

@@ -202,18 +202,32 @@ function buildRegexFilter(
   return `${field} REGEXP {${paramKey}:String}`
 }
 
-/** 获取指标聚合函数（区分归因事件/转化事件） */
+/** 获取基础指标计算逻辑（非聚合，用于归因权重计算） */
+function getBaseMetricLogic(metrics: Metrics): string {
+  switch (metrics) {
+    case Metrics.COUNT:
+      return '1' // 计数：每行计1
+    case Metrics.USERS:
+      return `if(isNotNull(${wrapFieldWithBacktick('$uid')}), 1, 0)` // 用户数：非空UID计1
+    case Metrics.SESSIONS:
+      return `if(isNotNull(${wrapFieldWithBacktick('$session_id')}), 1, 0)` // 会话数：非空SessionID计1
+    default:
+      throw new Error(`不支持的指标类型：${metrics}`)
+  }
+}
+
+/** 获取指标聚合函数（用于最终结果聚合） */
 function getMetricAggregationFunc(metrics: Metrics, isUserCount = false): string {
   if (isUserCount) {
-    return `uniq(${wrapFieldWithBacktick('$uid')})` // 用户数
+    return `uniq(${wrapFieldWithBacktick('$uid')})` // 用户数去重
   }
   switch (metrics) {
     case Metrics.COUNT:
       return 'COUNT(*)' // 总次数
     case Metrics.USERS:
-      return `uniq(${wrapFieldWithBacktick('$uid')})`
+      return `uniq(${wrapFieldWithBacktick('$uid')})` // 去重用户数
     case Metrics.SESSIONS:
-      return `uniq(${wrapFieldWithBacktick('$session_id')})`
+      return `uniq(${wrapFieldWithBacktick('$session_id')})` // 去重会话数
     default:
       throw new Error(`不支持的指标类型：${metrics}`)
   }
@@ -244,6 +258,27 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
   return eventClauses.length > 0 ? eventClauses.join(' OR ') : '1=0'
 }
 
+/** 构建转化事件过滤条件 */
+function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params: Record<string, any>): string {
+  if (!targetEventInfo) return ''
+
+  const conditions: string[] = []
+  // 转化事件名过滤
+  if (targetEventInfo.eventName) {
+    const eventNameParamKey = generateParamKey('conversion_event_name')
+    params[eventNameParamKey] = targetEventInfo.eventName
+    conditions.push(`${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`)
+  }
+
+  // 转化事件其他过滤条件
+  const eventFilterClause = buildFilterClause(targetEventInfo.filters || [], params)
+  if (eventFilterClause) {
+    conditions.push(eventFilterClause)
+  }
+
+  return conditions.length > 0 ? conditions.join(' AND ') : ''
+}
+
 /** 构建归因权重逻辑 */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   // 统一封装需要的字段（确保转义一致性）
@@ -268,8 +303,7 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
     case AttributionModelEnum.TIME_DECAY:
       return `EXP(-0.1 * DATEDIFF(second, a.${eventTimeField}, ${serviceTimeField})) / 
               COALESCE((SELECT SUM(EXP(-0.1 * DATEDIFF(second, ${eventTimeField}, ${serviceTimeField}))) 
-               FROM probe_x.event_attribution 
-               WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
+               FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
@@ -353,59 +387,62 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const targetEventInfo = targetMetric.eventInfo
     const conversionEventName = targetEventInfo.eventName || '未知事件'
 
-    // 1. 时间过滤
+    // 1. 时间过滤（全局时间范围）
     const startParamKey = generateParamKey('time_start')
     const endParamKey = generateParamKey('time_end')
     sqlParams[startParamKey] = `${startDate} 00:00:00.000`
     sqlParams[endParamKey] = `${endDate} 23:59:59.999`
     const timeFilter = `${wrapFieldWithBacktick('$service_time')} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
 
-    // 2. 全局过滤
-    const globalWhereClause = buildFilterClause(globalFilters, sqlParams)
+    // 2. 全局过滤条件（非事件相关）
+    const globalFilterConditions = buildFilterClause(globalFilters, sqlParams)
 
-    // 3. 转化目标过滤
-    const targetEventFilters = Array.isArray(targetEventInfo.filters) ? targetEventInfo.filters : []
-    const targetEventWhereClause = buildFilterClause(targetEventFilters, sqlParams)
-    let targetEventNameFilter = ''
-    if (targetEventInfo.eventName) {
-      const eventNameParamKey = generateParamKey('target_event_name')
-      sqlParams[eventNameParamKey] = targetEventInfo.eventName
-      targetEventNameFilter = `${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`
-    }
-
-    // 4. 归因事件过滤
+    // 3. 构建归因事件过滤条件（触点事件）
     const attributionEventFilter = buildAttributionEventFilter(attributionEvent, sqlParams)
 
-    // 5. 合并过滤条件
-    const allFilters = [
-      timeFilter,
-      targetEventNameFilter,
-      targetEventWhereClause,
-      attributionEventFilter,
-      globalWhereClause,
-    ].filter(Boolean)
-    const whereClause = allFilters.length > 0 ? `WHERE ${allFilters.join(' AND ')}` : ''
+    // 4. 构建转化事件过滤条件（转化事件，仅用于子查询计算总转化量）
+    const conversionEventFilter = buildConversionEventFilter(targetEventInfo, sqlParams)
 
-    // 6. 维度处理（归因事件维度 + 转化目标维度）
-    const allDimensions = [...new Set([...attributionEventDimension, ...targetDimension])].filter(Boolean)
+    // 5. 合并WHERE子句（仅包含归因事件过滤+全局过滤+时间过滤，解决逻辑冲突）
+    const whereConditions = [
+      timeFilter,
+      attributionEventFilter,
+      globalFilterConditions,
+    ].filter(Boolean)
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+    // 6. 维度处理（仅使用归因事件维度，转化维度通过关联处理）
+    const allDimensions = [...new Set([...attributionEventDimension])].filter(Boolean)
     const dimensionFields = allDimensions.map(field => wrapFieldWithBacktick(field))
     const groupByFields = dimensionFields.length > 0 ? dimensionFields.join(', ') : ''
-    const groupByClause = groupByFields ? `GROUP BY ${groupByFields}, ${wrapFieldWithBacktick('$event_name')}` : `GROUP BY ${wrapFieldWithBacktick('$event_name')}`
+    const groupByClause = groupByFields
+      ? `GROUP BY ${groupByFields}, ${wrapFieldWithBacktick('$event_name')}`
+      : `GROUP BY ${wrapFieldWithBacktick('$event_name')}`
 
-    // 7. 核心聚合逻辑（适配表格字段）
+    // 7. 核心归因计算逻辑（解决聚合嵌套问题）
     const weightLogic = buildAttributionWeightLogic(attributionModel)
-    const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics) // 转化指标
+    const baseMetricLogic = getBaseMetricLogic(targetEventInfo.metrics) // 基础指标（非聚合）
+    const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics) // 转化指标聚合函数
     const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT) // 归因事件总次数
     const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true) // 归因事件用户数
 
-    // 转化值/转化率/贡献度计算
-    const conversionValueExpr = `SUM(${weightLogic} * ${conversionMetricAggFunc}) AS conversion_metric`
-    const totalConversionExpr = `(SELECT COALESCE(${conversionMetricAggFunc}, 1) FROM \`probe_x\`.\`final_event_log\` ${whereClause})`
-    const conversionRateExpr = `IF(${conversionMetricAggFunc} > 0, ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${conversionMetricAggFunc}) * 100, 2), 0) AS conversion_rate`
-    const contributionRateExpr = `ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${totalConversionExpr}) * 100, 2) AS contribution_rate`
-    const contributionProgressExpr = `LEAST(ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${totalConversionExpr}) * 100, 2), 100) AS contribution_progress`
+    // 归因贡献值计算（非嵌套聚合：权重 * 基础指标，再SUM）
+    const attributionValueExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS attribution_value`
 
-    // 归因事件字段
+    // 总转化量计算（子查询：仅计算转化事件的总量，解决事件类型冲突）
+    const totalConversionSubQuery = `
+      (SELECT COALESCE(${conversionMetricAggFunc}, 1) 
+       FROM \`probe_x\`.\`final_event_log\` 
+       WHERE ${timeFilter} 
+       ${conversionEventFilter ? `AND ${conversionEventFilter}` : ''}
+       ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''})
+    `.trim()
+
+    // 贡献度计算（归因值 / 总转化量）
+    const contributionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / ${totalConversionSubQuery}) * 100, 2) AS contribution_rate`
+    const contributionProgressExpr = `LEAST(${contributionRateExpr.replace(' AS contribution_rate', '')}, 100) AS contribution_progress`
+
+    // 归因事件基础指标
     const attributionEventNameExpr = `${wrapFieldWithBacktick('$event_name')} AS attribution_event_name`
     const attributionCountExpr = `${attributionCountAggFunc} AS total_count`
     const attributionUserExpr = `${attributionUserAggFunc} AS user_count`
@@ -413,14 +450,13 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     // 维度字段选择
     const dimensionSelect = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
 
-    // 最终SELECT
+    // 最终SELECT子句
     const selectClause = `
       ${attributionEventNameExpr},
       ${dimensionSelect}
       ${attributionCountExpr},
       ${attributionUserExpr},
-      ${conversionValueExpr},
-      ${conversionRateExpr},
+      ${attributionValueExpr},
       ${contributionRateExpr},
       ${contributionProgressExpr}
     `.trim()
@@ -432,10 +468,10 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('$source_page_id')} 
       AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
 
-    // 核心优化：基于入参动态生成排序子句（参数化事件名，防止SQL注入）
+    // 动态排序子句
     const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams)
 
-    // 拼接SQL
+    // 拼接最终SQL
     const sql = `SELECT ${selectClause}
                  FROM ${mainTable}
                  ${joinClause}
@@ -447,7 +483,6 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       sql,
       params: sqlParams,
       error: '',
-      // 额外返回表头配置（供Service使用）
       headerConfig: {
         conversionEventName: conversionEventName,
         attributionEventDimensions: attributionEventDimension,
