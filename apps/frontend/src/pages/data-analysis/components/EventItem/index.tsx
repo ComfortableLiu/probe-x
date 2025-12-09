@@ -105,7 +105,7 @@ function EventItem(props: IEventItemProps) {
         </>
       }
     </div>
-  ), [addFilter, onCopy, onRemove, singleMode])
+  ), [addFilter, onCopy, onRemove, showFilter, singleMode])
 
   return (
     <div className={styles.container}>

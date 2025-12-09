@@ -189,7 +189,8 @@ function buildContainsFilter(
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) > 0`
   })
-  return containsClauses.join(' OR ')
+  // 修复：给OR组合的条件包裹括号，保证优先级
+  return `(${containsClauses.join(' OR ')})`
 }
 
 function buildNotContainsFilter(
@@ -206,7 +207,8 @@ function buildNotContainsFilter(
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) = 0`
   })
-  return notContainsClauses.join(' AND ')
+  // 修复：给AND组合的条件包裹括号（保持逻辑一致性）
+  return `(${notContainsClauses.join(' AND ')})`
 }
 
 function buildRegexFilter(
@@ -276,7 +278,8 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
     return eventConditions.length > 0 ? `(${eventConditions.join(' AND ')})` : ''
   }).filter(Boolean)
 
-  return eventClauses.length > 0 ? eventClauses.join(' OR ') : '1=0'
+  // 修复：给OR组合的事件条件包裹括号，保证和其他AND条件的优先级
+  return eventClauses.length > 0 ? `(${eventClauses.join(' OR ')})` : '1=0'
 }
 
 /** 构建转化事件过滤条件 */
