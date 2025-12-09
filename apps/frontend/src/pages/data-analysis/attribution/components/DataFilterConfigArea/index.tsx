@@ -24,13 +24,13 @@ function DataFilterConfigArea() {
   // 提交查询任务
   const submit = useCallback(async () => {
     // 先检查填写项
-    const flag = await dispatch.dataAnalysisFunnelModel.checkQueryParams()
+    const flag = await dispatch.dataAnalysisAttributionModel.checkQueryParams()
     if (flag) {
       message.error(flag)
       return
     }
-    dispatch.dataAnalysisFunnelModel.submitQuery()
-  }, [dispatch.dataAnalysisFunnelModel])
+    dispatch.dataAnalysisAttributionModel.submitQuery()
+  }, [dispatch.dataAnalysisAttributionModel])
 
   return (
     <div className={styles.container}>

@@ -2,49 +2,38 @@ import {
   AttributionModelEnum,
   IAttributionAnalysisFilter,
   IAttributionAnalysisReq,
+  IEventAnalysisInfo,
   MetaPropertyType,
   Metrics,
 } from "@probe-x/shared-types/src"
-import { ISqlGenerateResult, META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
+import { META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
 
-/**
- * 生成唯一占位符名称
- */
 let paramIndex = 0
-
 function generateParamKey(prefix: string): string {
   paramIndex += 1
   return `param_${prefix}_${paramIndex}`
 }
 
-/**
- * 重置占位符索引
- */
 function resetParamIndex() {
   paramIndex = 0
 }
 
-/**
- * 强制用反引号包裹字段名
- */
 function wrapFieldWithBacktick(field: string): string {
   return `\`${field.replace(/`/g, '``')}\``
 }
 
-/**
- * 清理参数名中的特殊字符
- */
 function sanitizeParamName(name: string): string {
   return name.replace(/[\$\-\.\s]/g, '_')
 }
 
-/**
- * 构建过滤条件子句（带参数占位符）
- */
-function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record<string, any>): string {
-  if (filters.length === 0) return ''
+/** 构建过滤条件子句 */
+function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>): string {
+  const filterList = Array.isArray(filters) ? filters : []
+  if (filterList.length === 0) return ''
 
-  const filterClauses = filters.map(filter => {
+  const filterClauses = filterList.map(filter => {
+    if (!filter || !filter.propertyName) return ''
+
     const { propertyName, propertyType, compareType, propertyValue } = filter
     const field = wrapFieldWithBacktick(propertyName)
     const chType = META_TYPE_TO_CH_TYPE[propertyType]
@@ -78,9 +67,6 @@ function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record
   return filterClauses.filter(Boolean).join(' AND ')
 }
 
-/**
- * 构建等于过滤条件
- */
 function buildEqualFilter(
   field: string,
   propertyName: string,
@@ -103,9 +89,6 @@ function buildEqualFilter(
   return `${field} = {${paramKey}:${chType}}`
 }
 
-/**
- * 构建不等于过滤条件
- */
 function buildNotEqualFilter(
   field: string,
   propertyName: string,
@@ -128,9 +111,6 @@ function buildNotEqualFilter(
   return `${field} != {${paramKey}:${chType}}`
 }
 
-/**
- * 构建单值比较过滤条件
- */
 function buildSingleValueFilter(
   field: string,
   propertyName: string,
@@ -146,9 +126,6 @@ function buildSingleValueFilter(
   return `${field} ${operator} {${paramKey}:${chType}}`
 }
 
-/**
- * 构建区间过滤条件
- */
 function buildRangeFilter(
   field: string,
   propertyName: string,
@@ -157,10 +134,11 @@ function buildRangeFilter(
   chType: string,
   params: Record<string, any>,
 ): string {
-  if (value.length !== 2) {
+  const rangeValue = Array.isArray(value) ? value : []
+  if (rangeValue.length !== 2) {
     throw new Error('区间过滤条件必须包含两个值')
   }
-  const [min, max] = value
+  const [min, max] = rangeValue
 
   const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`)
   const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`)
@@ -171,16 +149,13 @@ function buildRangeFilter(
   return `${field} BETWEEN {${minParamKey}:${chType}} AND {${maxParamKey}:${chType}}`
 }
 
-/**
- * 构建包含过滤条件
- */
 function buildContainsFilter(
   field: string,
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
 ): string {
-  const values = Array.isArray(value) ? value : [value]
+  const values = Array.isArray(value) ? value : (value ? [value] : [])
   const containsClauses = values.map((item, idx) => {
     const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`)
     params[paramKey] = item
@@ -189,16 +164,13 @@ function buildContainsFilter(
   return containsClauses.join(' OR ')
 }
 
-/**
- * 构建不包含过滤条件
- */
 function buildNotContainsFilter(
   field: string,
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
 ): string {
-  const values = Array.isArray(value) ? value : [value]
+  const values = Array.isArray(value) ? value : (value ? [value] : [])
   const notContainsClauses = values.map((item, idx) => {
     const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`)
     params[paramKey] = item
@@ -207,27 +179,27 @@ function buildNotContainsFilter(
   return notContainsClauses.join(' AND ')
 }
 
-/**
- * 构建正则匹配过滤条件
- */
 function buildRegexFilter(
   field: string,
   propertyName: string,
   value: string,
   params: Record<string, any>,
 ): string {
+  if (!value) return '1=0'
+
   const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`)
   params[paramKey] = value
   return `${field} REGEXP {${paramKey}:String}`
 }
 
-/**
- * 获取指标对应的聚合函数
- */
-function getMetricAggregationFunc(metrics: Metrics): string {
+/** 获取指标聚合函数（区分归因事件/转化事件） */
+function getMetricAggregationFunc(metrics: Metrics, isUserCount = false): string {
+  if (isUserCount) {
+    return `uniq(${wrapFieldWithBacktick('$uid')})` // 用户数
+  }
   switch (metrics) {
     case Metrics.COUNT:
-      return 'COUNT(*)'
+      return 'COUNT(*)' // 总次数
     case Metrics.USERS:
       return `uniq(${wrapFieldWithBacktick('$uid')})`
     case Metrics.SESSIONS:
@@ -237,84 +209,96 @@ function getMetricAggregationFunc(metrics: Metrics): string {
   }
 }
 
-/**
- * 构建归因模型对应的权重计算逻辑
- */
+/** 构建归因事件过滤条件（多事件OR） */
+function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnalysisInfo }[], params: Record<string, any>): string {
+  if (!Array.isArray(attributionEvents) || attributionEvents.length === 0) {
+    return '1=0'
+  }
+
+  const eventClauses = attributionEvents.map((eventItem, idx) => {
+    const eventInfo = eventItem.eventInfo
+    if (!eventInfo) return ''
+
+    let eventNameFilter = ''
+    if (eventInfo.eventName) {
+      const eventNameParamKey = generateParamKey(`attribution_event_name_${idx}`)
+      params[eventNameParamKey] = eventInfo.eventName
+      eventNameFilter = `${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`
+    }
+
+    const eventFilterClause = buildFilterClause(eventInfo.filters || [], params)
+    const eventConditions = [eventNameFilter, eventFilterClause].filter(Boolean)
+    return eventConditions.length > 0 ? `(${eventConditions.join(' AND ')})` : ''
+  }).filter(Boolean)
+
+  return eventClauses.length > 0 ? eventClauses.join(' OR ') : '1=0'
+}
+
+/** 构建归因权重逻辑 */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
-      // 首次触点：仅第一个归因点权重为1，其余为0
       return `CASE WHEN a.attribution_index = 0 THEN 1 ELSE 0 END`
     case AttributionModelEnum.LAST_TOUCH:
-      // 末次触点：仅最后一个归因点权重为1，其余为0
-      return `CASE WHEN a.attribution_index = (SELECT MAX(attribution_index) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 1 ELSE 0 END`
+      return `CASE WHEN a.attribution_index = (SELECT COALESCE(MAX(attribution_index), 0) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 1 ELSE 0 END`
     case AttributionModelEnum.LINEAR:
-      // 线性归因：所有归因点均分权重
-      return `1 / (SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id)`
+      return `1 / COALESCE((SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id), 1)`
     case AttributionModelEnum.POSITION:
-      // 位置归因：首末各40%，中间均分20%
       return `CASE 
         WHEN a.attribution_index = 0 THEN 0.4
-        WHEN a.attribution_index = (SELECT MAX(attribution_index) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 0.4
-        ELSE 0.2 / ((SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) - 2)
+        WHEN a.attribution_index = (SELECT COALESCE(MAX(attribution_index), 0) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 0.4
+        ELSE COALESCE(0.2 / NULLIF((SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) - 2, 0), 1)
       END`
     case AttributionModelEnum.TIME_DECAY:
-      // 时间衰减归因：基于时间差计算权重（指数衰减）
       return `EXP(-0.1 * DATEDIFF(second, a.event_time, f.$service_time)) / 
-              (SELECT SUM(EXP(-0.1 * DATEDIFF(second, event_time, f.$service_time))) 
+              COALESCE((SELECT SUM(EXP(-0.1 * DATEDIFF(second, event_time, f.$service_time))) 
                FROM probe_x.event_attribution 
-               WHERE source_page_id = a.source_page_id)`
+               WHERE source_page_id = a.source_page_id), 1)`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
 }
 
-/**
- * 生成归因分析查询SQL
- */
+/** 生成适配表格展示的归因分析SQL */
 export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq): ISqlGenerateResult {
   resetParamIndex()
   const sqlParams: Record<string, any> = {}
 
   try {
-    // 基础参数校验
-    if (!params.attributionModel) {
-      return { sql: '', params: {}, error: '归因模型不能为空' }
-    }
-    if (!params.targetMetric?.eventInfo) {
-      return { sql: '', params: {}, error: '转化目标指标不能为空' }
-    }
-    if (!params.timeRange || params.timeRange.length !== 2) {
-      return { sql: '', params: {}, error: '时间范围格式错误' }
-    }
+    // 基础校验
+    if (!params) return { sql: '', params: {}, error: '入参不能为空' }
+    if (!params.attributionModel) return { sql: '', params: {}, error: '归因模型不能为空' }
+    if (!params.targetMetric?.eventInfo) return { sql: '', params: {}, error: '转化目标指标不能为空' }
+    if (!params.timeRange || params.timeRange.length !== 2) return { sql: '', params: {}, error: '时间范围格式错误' }
+    if (!Array.isArray(params.attributionEvent) || params.attributionEvent.length === 0) return { sql: '', params: {}, error: '归因事件不能为空' }
 
     const {
       attributionModel,
       targetMetric,
-      targetDimension,
+      targetDimension = [],
       timeRange,
-      dimension,
+      attributionEvent,
+      attributionEventDimension = [],
       globalFilters = [],
     } = params
 
     const [startDate, endDate] = timeRange
     const targetEventInfo = targetMetric.eventInfo
+    const conversionEventName = targetEventInfo.eventName || '未知事件'
 
-    // 1. 处理时间范围过滤（参数化）
+    // 1. 时间过滤
     const startParamKey = generateParamKey('time_start')
     const endParamKey = generateParamKey('time_end')
     sqlParams[startParamKey] = `${startDate} 00:00:00.000`
     sqlParams[endParamKey] = `${endDate} 23:59:59.999`
     const timeFilter = `${wrapFieldWithBacktick('$service_time')} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
 
-    // 2. 全局过滤条件
+    // 2. 全局过滤
     const globalWhereClause = buildFilterClause(globalFilters, sqlParams)
 
-    // 3. 转化目标事件过滤条件
-    const targetEventFilters = targetEventInfo.filters || []
+    // 3. 转化目标过滤
+    const targetEventFilters = Array.isArray(targetEventInfo.filters) ? targetEventInfo.filters : []
     const targetEventWhereClause = buildFilterClause(targetEventFilters, sqlParams)
-
-    // 4. 转化目标事件名过滤
     let targetEventNameFilter = ''
     if (targetEventInfo.eventName) {
       const eventNameParamKey = generateParamKey('target_event_name')
@@ -322,68 +306,101 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       targetEventNameFilter = `${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`
     }
 
-    // 5. 合并所有过滤条件
+    // 4. 归因事件过滤
+    const attributionEventFilter = buildAttributionEventFilter(attributionEvent, sqlParams)
+
+    // 5. 合并过滤条件
     const allFilters = [
       timeFilter,
       targetEventNameFilter,
       targetEventWhereClause,
+      attributionEventFilter,
       globalWhereClause,
     ].filter(Boolean)
     const whereClause = allFilters.length > 0 ? `WHERE ${allFilters.join(' AND ')}` : ''
 
-    // 6. 处理维度字段
-    const allDimensions = [...new Set([...dimension, ...targetDimension])]
+    // 6. 维度处理（归因事件维度 + 转化目标维度）
+    const allDimensions = [...new Set([...attributionEventDimension, ...targetDimension])].filter(Boolean)
     const dimensionFields = allDimensions.map(field => wrapFieldWithBacktick(field))
     const groupByFields = dimensionFields.length > 0 ? dimensionFields.join(', ') : ''
-    const groupByClause = groupByFields ? `GROUP BY ${groupByFields}` : ''
+    const groupByClause = groupByFields ? `GROUP BY ${groupByFields}, ${wrapFieldWithBacktick('$event_name')}` : `GROUP BY ${wrapFieldWithBacktick('$event_name')}`
 
-    // 7. 构建归因权重计算逻辑
+    // 7. 核心聚合逻辑（适配表格字段）
     const weightLogic = buildAttributionWeightLogic(attributionModel)
+    const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics) // 转化指标
+    const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT) // 归因事件总次数
+    const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true) // 归因事件用户数
 
-    // 8. 获取转化指标聚合函数
-    const metricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics)
+    // 转化值/转化率/贡献度计算
+    const conversionValueExpr = `SUM(${weightLogic} * ${conversionMetricAggFunc}) AS conversion_metric`
+    const totalConversionExpr = `(SELECT COALESCE(${conversionMetricAggFunc}, 1) FROM \`probe_x\`.\`final_event_log\` ${whereClause})`
+    const conversionRateExpr = `IF(${conversionMetricAggFunc} > 0, ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${conversionMetricAggFunc}) * 100, 2), 0) AS conversion_rate`
+    const contributionRateExpr = `ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${totalConversionExpr}) * 100, 2) AS contribution_rate`
+    const contributionProgressExpr = `LEAST(ROUND(((${weightLogic} * ${conversionMetricAggFunc}) / ${totalConversionExpr}) * 100, 2), 100) AS contribution_progress`
 
-    // 9. 构建主查询SQL
-    const mainTable = '`probe_x`.`final_event_log` f'
-    const attrTable = '`probe_x`.`event_attribution` a'
+    // 归因事件字段
+    const attributionEventNameExpr = `${wrapFieldWithBacktick('$event_name')} AS attribution_event_name`
+    const attributionCountExpr = `${attributionCountAggFunc} AS total_count`
+    const attributionUserExpr = `${attributionUserAggFunc} AS user_count`
 
     // 维度字段选择
-    const selectDimensionFields = dimensionFields.length > 0
-      ? `${dimensionFields.join(', ')},`
-      : ''
+    const dimensionSelect = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
 
-    // 核心指标计算：转化值、贡献率、转化率
-    const conversionValueExpr = `SUM(${weightLogic} * ${metricAggFunc}) AS conversion_value`
-    const totalConversionValueExpr = `(SELECT ${metricAggFunc} FROM ${mainTable} ${whereClause}) AS total_conversion_value`
-    const contributionRateExpr = `IF(${totalConversionValueExpr} > 0, (conversion_value / ${totalConversionValueExpr}) * 100, 0) AS contribution_rate`
-    const conversionRateExpr = `IF(${metricAggFunc} > 0, (conversion_value / ${metricAggFunc}) * 100, 0) AS conversion_rate`
-
-    // 最终SELECT子句
-    const selectClause = `${selectDimensionFields}
+    // 最终SELECT
+    const selectClause = `
+      ${attributionEventNameExpr},
+      ${dimensionSelect}
+      ${attributionCountExpr},
+      ${attributionUserExpr},
       ${conversionValueExpr},
-      ${contributionRateExpr},
       ${conversionRateExpr},
-      ${metricAggFunc} AS total_metric_value`
+      ${contributionRateExpr},
+      ${contributionProgressExpr}
+    `.trim()
 
-    // 关联归因表
+    // 表关联
+    const mainTable = '`probe_x`.`final_event_log` f'
+    const attrTable = '`probe_x`.`event_attribution` a'
     const joinClause = `LEFT JOIN ${attrTable} 
       ON f.${wrapFieldWithBacktick('$source_page_id')} = a.source_page_id 
-      AND f.${wrapFieldWithBacktick('$service_time')} = a.event_time`
+      AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.event_time)`
 
-    // 排序规则：按维度升序，贡献率降序
-    const orderByFields = dimensionFields.map(f => `${f} ASC`).concat(['contribution_rate DESC'])
-    const orderByClause = orderByFields.length > 0 ? `ORDER BY ${orderByFields.join(', ')}` : ''
+    // 排序
+    const orderByClause = `ORDER BY contribution_rate DESC`
 
-    // 拼接最终SQL
+    // 拼接SQL
     const sql = `SELECT ${selectClause}
                  FROM ${mainTable}
                  ${joinClause}
                  ${whereClause}
                  ${groupByClause}
-                 ${orderByClause}`
+                 ${orderByClause}`.trim()
 
-    return { sql, params: sqlParams }
+    return {
+      sql,
+      params: sqlParams,
+      error: '',
+      // 额外返回表头配置（供Service使用）
+      headerConfig: {
+        conversionEventName: conversionEventName,
+        attributionEventDimensions: attributionEventDimension,
+        targetDimensions: targetDimension,
+      },
+    }
   } catch (error) {
-    return { sql: '', params: {}, error: (error as Error).message }
+    const errMsg = (error as Error).message || 'SQL生成失败'
+    return { sql: '', params: {}, error: errMsg }
   }
+}
+
+/** SQL生成结果类型（关键：补充headerConfig类型） */
+export interface ISqlGenerateResult {
+  sql: string;
+  params: Record<string, any>;
+  error: string;
+  headerConfig?: {
+    conversionEventName: string;
+    attributionEventDimensions: string[];
+    targetDimensions: string[];
+  };
 }
