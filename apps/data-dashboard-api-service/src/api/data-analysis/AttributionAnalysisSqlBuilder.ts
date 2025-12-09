@@ -331,8 +331,9 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
         ELSE COALESCE(0.2 / NULLIF(${touchpointCount} - 2, 0), 1)
       END`
     case AttributionModelEnum.TIME_DECAY:
-      return `EXP(-0.1 * DATEDIFF(second, a.${eventTimeField}, ${serviceTimeField})) / 
-              COALESCE((SELECT SUM(EXP(-0.1 * DATEDIFF(second, ${eventTimeField}, ${serviceTimeField}))) 
+      // 修复：ClickHouse的dateDiff函数单位参数需要用字符串字面量（单引号包裹）
+      return `EXP(-0.1 * dateDiff('second', a.${eventTimeField}, ${serviceTimeField})) / 
+              COALESCE((SELECT SUM(EXP(-0.1 * dateDiff('second', ${eventTimeField}, ${serviceTimeField}))) 
                FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
     default:
       throw new Error(`不支持的归因模型：${model}`)
