@@ -28,6 +28,7 @@ function EventItem(props: IEventItemProps) {
     singleMode,
     eventInfo,
     index,
+    showFilter,
     onCopy,
     onRemove,
     onChange,
@@ -84,7 +85,7 @@ function EventItem(props: IEventItemProps) {
 
   const renderOperate = useMemo(() => (
     <div className={styles.operate}>
-      {addFilter ?
+      {showFilter ?
         <a href="#" className={styles.operateBtn} onClick={() => addFilter()}>
           <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
           增加筛选

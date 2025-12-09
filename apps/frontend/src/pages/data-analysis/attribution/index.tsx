@@ -30,7 +30,7 @@ function AttributionAnalysis() {
 
   const loading = useLoading()
 
-  const pageLoading = useMemo(() => loading.dataAnalysisFunnelModel.init, [loading.dataAnalysisFunnelModel.init])
+  const pageLoading = useMemo(() => loading.dataAnalysisAttributionModel.init, [loading.dataAnalysisAttributionModel.init])
 
   useEffect(() => {
     if (!timeRange || !attributionModel) {
@@ -42,8 +42,8 @@ function AttributionAnalysis() {
   }, [timeRange, attributionModel])
 
   useEffect(() => {
-    dispatch.dataAnalysisEventModel.init()
-  }, [dispatch.dataAnalysisEventModel])
+    dispatch.dataAnalysisAttributionModel.init()
+  }, [dispatch.dataAnalysisAttributionModel])
 
   return (
     <Spin spinning={pageLoading}>

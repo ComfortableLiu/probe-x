@@ -26,6 +26,16 @@ function sanitizeParamName(name: string): string {
   return name.replace(/[\$\-\.\s]/g, '_')
 }
 
+/**
+ * 安全转义SQL字符串值（防止SQL注入）
+ * @param value 需转义的字符串
+ * @returns 转义后的安全字符串
+ */
+function escapeSqlString(value: string): string {
+  // 转义单引号、反斜杠等特殊字符
+  return value.replace(/(['\\])/g, '\\$1')
+}
+
 /** 构建过滤条件子句 */
 function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>): string {
   const filterList = Array.isArray(filters) ? filters : []
@@ -236,31 +246,37 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
 
 /** 构建归因权重逻辑 */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
+  // 统一封装需要的字段（确保转义一致性）
+  const serviceTimeField = `f.${wrapFieldWithBacktick('$service_time')}`
+  const sourcePageIdField = wrapFieldWithBacktick('$source_page_id')
+  const attributionIndexField = wrapFieldWithBacktick('attribution_index')
+  const eventTimeField = wrapFieldWithBacktick('event_time')
+
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
-      return `CASE WHEN a.attribution_index = 0 THEN 1 ELSE 0 END`
+      return `CASE WHEN a.${attributionIndexField} = 0 THEN 1 ELSE 0 END`
     case AttributionModelEnum.LAST_TOUCH:
-      return `CASE WHEN a.attribution_index = (SELECT COALESCE(MAX(attribution_index), 0) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 1 ELSE 0 END`
+      return `CASE WHEN a.${attributionIndexField} = (SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) THEN 1 ELSE 0 END`
     case AttributionModelEnum.LINEAR:
-      return `1 / COALESCE((SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id), 1)`
+      return `1 / COALESCE((SELECT COUNT(*) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
     case AttributionModelEnum.POSITION:
       return `CASE 
-        WHEN a.attribution_index = 0 THEN 0.4
-        WHEN a.attribution_index = (SELECT COALESCE(MAX(attribution_index), 0) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) THEN 0.4
-        ELSE COALESCE(0.2 / NULLIF((SELECT COUNT(*) FROM probe_x.event_attribution WHERE source_page_id = a.source_page_id) - 2, 0), 1)
+        WHEN a.${attributionIndexField} = 0 THEN 0.4
+        WHEN a.${attributionIndexField} = (SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) THEN 0.4
+        ELSE COALESCE(0.2 / NULLIF((SELECT COUNT(*) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}) - 2, 0), 1)
       END`
     case AttributionModelEnum.TIME_DECAY:
-      return `EXP(-0.1 * DATEDIFF(second, a.event_time, f.$service_time)) / 
-              COALESCE((SELECT SUM(EXP(-0.1 * DATEDIFF(second, event_time, f.$service_time))) 
+      return `EXP(-0.1 * DATEDIFF(second, a.${eventTimeField}, ${serviceTimeField})) / 
+              COALESCE((SELECT SUM(EXP(-0.1 * DATEDIFF(second, ${eventTimeField}, ${serviceTimeField}))) 
                FROM probe_x.event_attribution 
-               WHERE source_page_id = a.source_page_id), 1)`
+               WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
 }
 
 /**
- * 构建动态排序子句（核心优化：基于入参动态生成事件优先级）
+ * 构建动态排序子句（核心优化：解决SQL注入+动态事件优先级）
  * 排序优先级：
  * 1. 事件优先级（入参attributionEvent的顺序即为优先级）
  * 2. 归因维度值（按传入顺序升序）
@@ -269,27 +285,34 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
 function buildDynamicOrderByClause(
   attributionEvents: { eventInfo: IEventAnalysisInfo }[],
   attributionEventDimension: string[],
+  params: Record<string, any>, // 新增：传入参数对象用于参数化事件名
 ): string {
-  // 1. 动态生成事件优先级CASE语句（基于入参顺序）
+  // 1. 动态生成事件优先级CASE语句（参数化处理，防止SQL注入）
   const eventNames = attributionEvents
     .map(item => item.eventInfo?.eventName)
     .filter(Boolean) as string[]
 
   let eventPriorityCase = ''
   if (eventNames.length > 0) {
-    const caseWhenParts = eventNames.map((name, index) =>
-      `WHEN '${name}' THEN ${index + 1}`,
-    ).join('\n      ')
-
+    const caseWhenParts: string[] = []
+    // 为每个事件名生成参数化的WHEN子句
+    eventNames.forEach((name, index) => {
+      const paramKey = generateParamKey(`order_by_event_name_${index}`)
+      params[paramKey] = name // 将事件名存入参数（参数化）
+      caseWhenParts.push(`WHEN {${paramKey}:String} THEN ${index + 1}`)
+    })
+    // 未匹配事件的默认优先级
+    const defaultPriority = eventNames.length + 1
+    // 构建CASE语句（使用参数化的事件名）
     eventPriorityCase = `
       CASE ${wrapFieldWithBacktick('$event_name')}
-        ${caseWhenParts}
-        ELSE ${eventNames.length + 1}
+        ${caseWhenParts.join('\n      ')}
+        ELSE ${defaultPriority}
       END ASC
     `.trim()
   }
 
-  // 2. 构建维度排序（按传入的维度列表升序）
+  // 2. 构建维度排序（按传入的维度列表升序，确保字段转义）
   const dimensionOrderBy = attributionEventDimension
     .map(dim => `${wrapFieldWithBacktick(dim)} ASC`)
     .join(', ')
@@ -406,11 +429,11 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const mainTable = '`probe_x`.`final_event_log` f'
     const attrTable = '`probe_x`.`event_attribution` a'
     const joinClause = `LEFT JOIN ${attrTable} 
-      ON f.${wrapFieldWithBacktick('$source_page_id')} = a.source_page_id 
-      AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.event_time)`
+      ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('$source_page_id')} 
+      AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
 
-    // 核心优化：基于入参动态生成排序子句（不再写死事件）
-    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension)
+    // 核心优化：基于入参动态生成排序子句（参数化事件名，防止SQL注入）
+    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams)
 
     // 拼接SQL
     const sql = `SELECT ${selectClause}
