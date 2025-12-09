@@ -29,9 +29,9 @@ export class AttributionAnalysisService {
     // 2. 生成SQL（显式指定返回类型）
     const sqlResult: ISqlGenerateResult = generateAttributionAnalysisSql(data)
     const { sql, params, error, headerConfig } = sqlResult
-    console.log('SQL语句：', sql)
-    console.log('SQL参数：', params)
-    console.log('SQL错误：', error)
+    // console.log('SQL语句：', sql)
+    // console.log('SQL参数：', params)
+    // console.log('SQL错误：', error)
 
     if (error) throw new Error(`SQL生成失败: ${error}`)
     if (!sql) throw new Error('生成的SQL为空')
