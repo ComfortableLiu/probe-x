@@ -57,6 +57,7 @@ function EventItem(props: IEventItemProps) {
   })), [eventList])
 
   const addFilter = useCallback(() => {
+    if (!onChange) return
     onChange({
       ...eventInfo,
       filters: [...(eventInfo?.filters || []), {

@@ -8,14 +8,23 @@ import {
 } from "@probe-x/shared-types/src"
 import { META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
 
-let paramIndex = 0
-function generateParamKey(prefix: string): string {
-  paramIndex += 1
-  return `param_${prefix}_${paramIndex}`
+/**
+ * 生成参数键（使用局部索引避免并发冲突）
+ * @param prefix 前缀
+ * @param indexRef 索引引用（局部状态）
+ * @returns 唯一参数键
+ */
+function generateParamKey(prefix: string, indexRef: { value: number }): string {
+  indexRef.value += 1
+  return `param_${prefix}_${indexRef.value}`
 }
 
-function resetParamIndex() {
-  paramIndex = 0
+/**
+ * 重置参数索引
+ * @param indexRef 索引引用
+ */
+function resetParamIndex(indexRef: { value: number }) {
+  indexRef.value = 0
 }
 
 function wrapFieldWithBacktick(field: string): string {
@@ -32,12 +41,11 @@ function sanitizeParamName(name: string): string {
  * @returns 转义后的安全字符串
  */
 function escapeSqlString(value: string): string {
-  // 转义单引号、反斜杠等特殊字符
   return value.replace(/(['\\])/g, '\\$1')
 }
 
 /** 构建过滤条件子句 */
-function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>): string {
+function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>, indexRef: { value: number }): string {
   const filterList = Array.isArray(filters) ? filters : []
   if (filterList.length === 0) return ''
 
@@ -50,25 +58,25 @@ function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: R
 
     switch (compareType) {
       case 'EQUAL':
-        return buildEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+        return buildEqualFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef)
       case 'NOT_EQUAL':
-        return buildNotEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+        return buildNotEqualFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef)
       case 'GREATER_THAN':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef, '>')
       case 'GREATER_THAN_OR_EQUAL':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>=')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef, '>=')
       case 'LESS_THAN':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef, '<')
       case 'LESS_THAN_OR_EQUAL':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<=')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef, '<=')
       case 'RANGE':
-        return buildRangeFilter(field, propertyName, propertyValue as number[] | string[], propertyType, chType, params)
+        return buildRangeFilter(field, propertyName, propertyValue as number[] | string[], propertyType, chType, params, indexRef)
       case 'CONTAINS':
-        return buildContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+        return buildContainsFilter(field, propertyName, propertyValue as string[] | string, params, indexRef)
       case 'NOT_CONTAINS':
-        return buildNotContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+        return buildNotContainsFilter(field, propertyName, propertyValue as string[] | string, params, indexRef)
       case 'REGEX':
-        return buildRegexFilter(field, propertyName, propertyValue as string, params)
+        return buildRegexFilter(field, propertyName, propertyValue as string, params, indexRef)
       default:
         throw new Error(`不支持的比较类型：${compareType}`)
     }
@@ -84,17 +92,20 @@ function buildEqualFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (Array.isArray(value)) {
+    // 空数组返回恒假条件
+    if (value.length === 0) return '1=0'
     const paramKeys = value.map((item, idx) => {
-      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal_${idx}`)
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal_${idx}`, indexRef)
       params[paramKey] = item
       return `{${paramKey}:${chType}}`
     })
     return `${field} IN (${paramKeys.join(', ')})`
   }
 
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal`, indexRef)
   params[paramKey] = value
   return `${field} = {${paramKey}:${chType}}`
 }
@@ -106,17 +117,20 @@ function buildNotEqualFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (Array.isArray(value)) {
+    // 空数组返回恒真条件
+    if (value.length === 0) return '1=1'
     const paramKeys = value.map((item, idx) => {
-      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal_${idx}`)
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal_${idx}`, indexRef)
       params[paramKey] = item
       return `{${paramKey}:${chType}}`
     })
     return `${field} NOT IN (${paramKeys.join(', ')})`
   }
 
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal`, indexRef)
   params[paramKey] = value
   return `${field} != {${paramKey}:${chType}}`
 }
@@ -128,10 +142,11 @@ function buildSingleValueFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
   operator: string,
 ): string {
   const operatorKey = operator.replace(/=/g, 'eq').replace(/>/g, 'gt').replace(/</g, 'lt')
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_${operatorKey}`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_${operatorKey}`, indexRef)
   params[paramKey] = value
   return `${field} ${operator} {${paramKey}:${chType}}`
 }
@@ -143,6 +158,7 @@ function buildRangeFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   const rangeValue = Array.isArray(value) ? value : []
   if (rangeValue.length !== 2) {
@@ -150,8 +166,8 @@ function buildRangeFilter(
   }
   const [min, max] = rangeValue
 
-  const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`)
-  const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`)
+  const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`, indexRef)
+  const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`, indexRef)
 
   params[minParamKey] = min
   params[maxParamKey] = max
@@ -164,10 +180,12 @@ function buildContainsFilter(
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   const values = Array.isArray(value) ? value : (value ? [value] : [])
+  if (values.length === 0) return '1=0'
   const containsClauses = values.map((item, idx) => {
-    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`)
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`, indexRef)
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) > 0`
   })
@@ -179,10 +197,12 @@ function buildNotContainsFilter(
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   const values = Array.isArray(value) ? value : (value ? [value] : [])
+  if (values.length === 0) return '1=1'
   const notContainsClauses = values.map((item, idx) => {
-    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`)
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`, indexRef)
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) = 0`
   })
@@ -194,10 +214,11 @@ function buildRegexFilter(
   propertyName: string,
   value: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (!value) return '1=0'
 
-  const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`)
+  const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`, indexRef)
   params[paramKey] = value
   return `${field} REGEXP {${paramKey}:String}`
 }
@@ -206,11 +227,11 @@ function buildRegexFilter(
 function getBaseMetricLogic(metrics: Metrics): string {
   switch (metrics) {
     case Metrics.COUNT:
-      return '1' // 计数：每行计1
+      return '1'
     case Metrics.USERS:
-      return `if(isNotNull(${wrapFieldWithBacktick('$uid')}), 1, 0)` // 用户数：非空UID计1
+      return `if(isNotNull(${wrapFieldWithBacktick('$uid')}), 1, 0)`
     case Metrics.SESSIONS:
-      return `if(isNotNull(${wrapFieldWithBacktick('$session_id')}), 1, 0)` // 会话数：非空SessionID计1
+      return `if(isNotNull(${wrapFieldWithBacktick('$session_id')}), 1, 0)`
     default:
       throw new Error(`不支持的指标类型：${metrics}`)
   }
@@ -219,22 +240,22 @@ function getBaseMetricLogic(metrics: Metrics): string {
 /** 获取指标聚合函数（用于最终结果聚合） */
 function getMetricAggregationFunc(metrics: Metrics, isUserCount = false): string {
   if (isUserCount) {
-    return `uniq(${wrapFieldWithBacktick('$uid')})` // 用户数去重
+    return `uniq(${wrapFieldWithBacktick('$uid')})`
   }
   switch (metrics) {
     case Metrics.COUNT:
-      return 'COUNT(*)' // 总次数
+      return 'COUNT(*)'
     case Metrics.USERS:
-      return `uniq(${wrapFieldWithBacktick('$uid')})` // 去重用户数
+      return `uniq(${wrapFieldWithBacktick('$uid')})`
     case Metrics.SESSIONS:
-      return `uniq(${wrapFieldWithBacktick('$session_id')})` // 去重会话数
+      return `uniq(${wrapFieldWithBacktick('$session_id')})`
     default:
       throw new Error(`不支持的指标类型：${metrics}`)
   }
 }
 
 /** 构建归因事件过滤条件（多事件OR） */
-function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnalysisInfo }[], params: Record<string, any>): string {
+function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnalysisInfo }[], params: Record<string, any>, indexRef: { value: number }): string {
   if (!Array.isArray(attributionEvents) || attributionEvents.length === 0) {
     return '1=0'
   }
@@ -245,12 +266,12 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
 
     let eventNameFilter = ''
     if (eventInfo.eventName) {
-      const eventNameParamKey = generateParamKey(`attribution_event_name_${idx}`)
+      const eventNameParamKey = generateParamKey(`attribution_event_name_${idx}`, indexRef)
       params[eventNameParamKey] = eventInfo.eventName
       eventNameFilter = `${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`
     }
 
-    const eventFilterClause = buildFilterClause(eventInfo.filters || [], params)
+    const eventFilterClause = buildFilterClause(eventInfo.filters || [], params, indexRef)
     const eventConditions = [eventNameFilter, eventFilterClause].filter(Boolean)
     return eventConditions.length > 0 ? `(${eventConditions.join(' AND ')})` : ''
   }).filter(Boolean)
@@ -259,19 +280,17 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
 }
 
 /** 构建转化事件过滤条件 */
-function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params: Record<string, any>): string {
+function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params: Record<string, any>, indexRef: { value: number }): string {
   if (!targetEventInfo) return ''
 
   const conditions: string[] = []
-  // 转化事件名过滤
   if (targetEventInfo.eventName) {
-    const eventNameParamKey = generateParamKey('conversion_event_name')
+    const eventNameParamKey = generateParamKey('conversion_event_name', indexRef)
     params[eventNameParamKey] = targetEventInfo.eventName
     conditions.push(`${wrapFieldWithBacktick('$event_name')} = {${eventNameParamKey}:String}`)
   }
 
-  // 转化事件其他过滤条件
-  const eventFilterClause = buildFilterClause(targetEventInfo.filters || [], params)
+  const eventFilterClause = buildFilterClause(targetEventInfo.filters || [], params, indexRef)
   if (eventFilterClause) {
     conditions.push(eventFilterClause)
   }
@@ -281,7 +300,6 @@ function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params:
 
 /** 构建归因权重逻辑 */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
-  // 统一封装需要的字段（确保转义一致性）
   const serviceTimeField = `f.${wrapFieldWithBacktick('$service_time')}`
   const sourcePageIdField = wrapFieldWithBacktick('$source_page_id')
   const attributionIndexField = wrapFieldWithBacktick('attribution_index')
@@ -309,19 +327,13 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   }
 }
 
-/**
- * 构建动态排序子句（核心优化：解决SQL注入+动态事件优先级）
- * 排序优先级：
- * 1. 事件优先级（入参attributionEvent的顺序即为优先级）
- * 2. 归因维度值（按传入顺序升序）
- * 3. 贡献度（降序）
- */
+/** 构建动态排序子句 */
 function buildDynamicOrderByClause(
   attributionEvents: { eventInfo: IEventAnalysisInfo }[],
   attributionEventDimension: string[],
-  params: Record<string, any>, // 新增：传入参数对象用于参数化事件名
+  params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
-  // 1. 动态生成事件优先级CASE语句（参数化处理，防止SQL注入）
   const eventNames = attributionEvents
     .map(item => item.eventInfo?.eventName)
     .filter(Boolean) as string[]
@@ -329,15 +341,12 @@ function buildDynamicOrderByClause(
   let eventPriorityCase = ''
   if (eventNames.length > 0) {
     const caseWhenParts: string[] = []
-    // 为每个事件名生成参数化的WHEN子句
     eventNames.forEach((name, index) => {
-      const paramKey = generateParamKey(`order_by_event_name_${index}`)
-      params[paramKey] = name // 将事件名存入参数（参数化）
+      const paramKey = generateParamKey(`order_by_event_name_${index}`, indexRef)
+      params[paramKey] = name
       caseWhenParts.push(`WHEN {${paramKey}:String} THEN ${index + 1}`)
     })
-    // 未匹配事件的默认优先级
     const defaultPriority = eventNames.length + 1
-    // 构建CASE语句（使用参数化的事件名）
     eventPriorityCase = `
       CASE ${wrapFieldWithBacktick('$event_name')}
         ${caseWhenParts.join('\n      ')}
@@ -346,27 +355,26 @@ function buildDynamicOrderByClause(
     `.trim()
   }
 
-  // 2. 构建维度排序（按传入的维度列表升序，确保字段转义）
   const dimensionOrderBy = attributionEventDimension
     .map(dim => `${wrapFieldWithBacktick(dim)} ASC`)
     .join(', ')
 
-  // 3. 组合排序条件（处理空值情况）
   const orderByParts: string[] = []
   if (eventPriorityCase) orderByParts.push(eventPriorityCase)
   if (dimensionOrderBy) orderByParts.push(dimensionOrderBy)
-  orderByParts.push('contribution_rate DESC') // 最后按贡献度降序
+  orderByParts.push('contribution_rate DESC')
 
   return `ORDER BY ${orderByParts.join(', ')}`
 }
 
 /** 生成适配表格展示的归因分析SQL */
 export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq): ISqlGenerateResult {
-  resetParamIndex()
+  // 局部索引，每个请求独立
+  const indexRef = { value: 0 }
+  resetParamIndex(indexRef)
   const sqlParams: Record<string, any> = {}
 
   try {
-    // 基础校验
     if (!params) return { sql: '', params: {}, error: '入参不能为空' }
     if (!params.attributionModel) return { sql: '', params: {}, error: '归因模型不能为空' }
     if (!params.targetMetric?.eventInfo) return { sql: '', params: {}, error: '转化目标指标不能为空' }
@@ -387,23 +395,23 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const targetEventInfo = targetMetric.eventInfo
     const conversionEventName = targetEventInfo.eventName || '未知事件'
 
-    // 1. 时间过滤（全局时间范围）
-    const startParamKey = generateParamKey('time_start')
-    const endParamKey = generateParamKey('time_end')
+    // 1. 时间过滤
+    const startParamKey = generateParamKey('time_start', indexRef)
+    const endParamKey = generateParamKey('time_end', indexRef)
     sqlParams[startParamKey] = `${startDate} 00:00:00.000`
     sqlParams[endParamKey] = `${endDate} 23:59:59.999`
     const timeFilter = `${wrapFieldWithBacktick('$service_time')} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
 
-    // 2. 全局过滤条件（非事件相关）
-    const globalFilterConditions = buildFilterClause(globalFilters, sqlParams)
+    // 2. 全局过滤条件
+    const globalFilterConditions = buildFilterClause(globalFilters, sqlParams, indexRef)
 
-    // 3. 构建归因事件过滤条件（触点事件）
-    const attributionEventFilter = buildAttributionEventFilter(attributionEvent, sqlParams)
+    // 3. 归因事件过滤条件
+    const attributionEventFilter = buildAttributionEventFilter(attributionEvent, sqlParams, indexRef)
 
-    // 4. 构建转化事件过滤条件（转化事件，仅用于子查询计算总转化量）
-    const conversionEventFilter = buildConversionEventFilter(targetEventInfo, sqlParams)
+    // 4. 转化事件过滤条件
+    const conversionEventFilter = buildConversionEventFilter(targetEventInfo, sqlParams, indexRef)
 
-    // 5. 合并WHERE子句（仅包含归因事件过滤+全局过滤+时间过滤，解决逻辑冲突）
+    // 5. 合并WHERE子句
     const whereConditions = [
       timeFilter,
       attributionEventFilter,
@@ -411,7 +419,7 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     ].filter(Boolean)
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
-    // 6. 维度处理（仅使用归因事件维度，转化维度通过关联处理）
+    // 6. 维度处理
     const allDimensions = [...new Set([...attributionEventDimension])].filter(Boolean)
     const dimensionFields = allDimensions.map(field => wrapFieldWithBacktick(field))
     const groupByFields = dimensionFields.length > 0 ? dimensionFields.join(', ') : ''
@@ -419,17 +427,19 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       ? `GROUP BY ${groupByFields}, ${wrapFieldWithBacktick('$event_name')}`
       : `GROUP BY ${wrapFieldWithBacktick('$event_name')}`
 
-    // 7. 核心归因计算逻辑（解决聚合嵌套问题）
+    // 7. 核心归因计算逻辑
     const weightLogic = buildAttributionWeightLogic(attributionModel)
-    const baseMetricLogic = getBaseMetricLogic(targetEventInfo.metrics) // 基础指标（非聚合）
-    const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics) // 转化指标聚合函数
-    const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT) // 归因事件总次数
-    const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true) // 归因事件用户数
+    const baseMetricLogic = getBaseMetricLogic(targetEventInfo.metrics)
+    const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics)
+    const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT)
+    const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true)
 
-    // 归因贡献值计算（非嵌套聚合：权重 * 基础指标，再SUM）
+    // 补充缺失的conversion_metric和conversion_rate字段
     const attributionValueExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS attribution_value`
+    const conversionMetricExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS conversion_metric`
+    const conversionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / NULLIF(SUM(${baseMetricLogic}), 0)) * 100, 2) AS conversion_rate`
 
-    // 总转化量计算（子查询：仅计算转化事件的总量，解决事件类型冲突）
+    // 总转化量计算
     const totalConversionSubQuery = `
       (SELECT COALESCE(${conversionMetricAggFunc}, 1) 
        FROM \`probe_x\`.\`final_event_log\` 
@@ -438,7 +448,6 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
        ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''})
     `.trim()
 
-    // 贡献度计算（归因值 / 总转化量）
     const contributionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / ${totalConversionSubQuery}) * 100, 2) AS contribution_rate`
     const contributionProgressExpr = `LEAST(${contributionRateExpr.replace(' AS contribution_rate', '')}, 100) AS contribution_progress`
 
@@ -450,13 +459,15 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     // 维度字段选择
     const dimensionSelect = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
 
-    // 最终SELECT子句
+    // 最终SELECT子句（补充缺失字段）
     const selectClause = `
       ${attributionEventNameExpr},
       ${dimensionSelect}
       ${attributionCountExpr},
       ${attributionUserExpr},
       ${attributionValueExpr},
+      ${conversionMetricExpr},
+      ${conversionRateExpr},
       ${contributionRateExpr},
       ${contributionProgressExpr}
     `.trim()
@@ -469,7 +480,7 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
 
     // 动态排序子句
-    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams)
+    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams, indexRef)
 
     // 拼接最终SQL
     const sql = `SELECT ${selectClause}
@@ -495,7 +506,7 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
   }
 }
 
-/** SQL生成结果类型（关键：补充headerConfig类型） */
+/** SQL生成结果类型 */
 export interface ISqlGenerateResult {
   sql: string;
   params: Record<string, any>;
