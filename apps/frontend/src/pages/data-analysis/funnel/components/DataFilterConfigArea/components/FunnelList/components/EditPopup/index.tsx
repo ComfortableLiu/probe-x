@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from "react"
-import { IAttributionAnalysisFilter, IFunnelInfo, MetaPropertyType } from "@probe-x/shared-types/src"
+import { IFunnelInfo } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 import { Input, Modal } from "antd"
 import EventItem from "@pages/data-analysis/components/EventItem"
@@ -56,6 +56,7 @@ function EditPopup(props: IEditPopupProps) {
         />
         <div>相关事件</div>
         <EventItem
+          showFilter
           singleMode
           key={index}
           eventInfo={info?.eventInfo}
@@ -64,20 +65,6 @@ function EditPopup(props: IEditPopupProps) {
             setInfo({
               ...info,
               eventInfo,
-            })
-          }}
-          addFilter={() => {
-            setInfo({
-              ...info,
-              eventInfo: {
-                ...info?.eventInfo,
-                filters: [...(info?.eventInfo?.filters || []), {
-                  propertyName: '',
-                  propertyType: MetaPropertyType.STRING,
-                  propertyValue: [],
-                  compareType: 'EQUAL',
-                } as IAttributionAnalysisFilter],
-              },
             })
           }}
         />

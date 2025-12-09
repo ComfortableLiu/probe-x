@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo } from "react"
 import EventItem from "../../../../../components/EventItem"
 import { useQuery, useRouter } from "@/hooks"
 import { IQuery } from "@pages/data-analysis/event/type"
-import { IAttributionAnalysisFilter, MetaPropertyType, Metrics } from "@probe-x/shared-types/src"
+import { Metrics } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 import { AddOne } from "@icon-park/react"
 
@@ -50,6 +50,7 @@ function EventSelector() {
   const renderEventList = useMemo(() => {
     return eventInfoList.map((eventInfo, index) => (
       <EventItem
+        showFilter
         key={index}
         eventInfo={eventInfo}
         index={index}
@@ -58,21 +59,6 @@ function EventSelector() {
         onChange={(eventInfo) => {
           const list = [...eventInfoList]
           list[index] = eventInfo
-          refresh({
-            eventInfoList: list,
-          }, true)
-        }}
-        addFilter={() => {
-          const list = [...eventInfoList]
-          list[index] = {
-            ...eventInfo,
-            filters: [...(eventInfo.filters || []), {
-              propertyName: '',
-              propertyType: MetaPropertyType.STRING,
-              propertyValue: [],
-              compareType: 'EQUAL',
-            } as IAttributionAnalysisFilter],
-          }
           refresh({
             eventInfoList: list,
           }, true)

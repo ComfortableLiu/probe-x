@@ -50,4 +50,7 @@
     <tree path="/apps/frontend/src/pages/data-analysis/components/WindowPeriod" title="窗口期选择" />
     <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/user-path-analysis.service.ts"
           title="用户路径分析逻辑" />
+    <tree path="/apps/frontend/src/pages/data-analysis/attribution/components/DataFilterConfigArea/components/AttributionModel"
+          title="归因模型" />
+    <tree path="/apps/frontend/src/pages/data-analysis/components/DimensionSelector" title="维度" />
 </trees>
