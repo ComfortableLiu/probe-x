@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common'
 import {
+  IAttributionAnalysisReq,
   IEventAnalysisReq,
   IEventAnalysisRes,
   IFunnelAnalysisReq,
@@ -13,7 +14,8 @@ import {
 import { User } from "@probe-x/shared-utils/src/lib/backend-common"
 import { EventAnalysisService } from "./event-analysis.service"
 import { FunnelAnalysisService } from "./funnel-analysis.service"
-import { UserPathAnalysisService } from "@src/api/data-analysis/user-path-analysis.service"
+import { UserPathAnalysisService } from "./user-path-analysis.service"
+import { AttributionAnalysisService } from "./attribution-analysis.service"
 
 @Controller('/data-analysis')
 export class DataAnalysisController {
@@ -21,6 +23,7 @@ export class DataAnalysisController {
     private readonly eventAnalysisService: EventAnalysisService,
     private readonly funnelAnalysisService: FunnelAnalysisService,
     private readonly userPathAnalysisService: UserPathAnalysisService,
+    private readonly attributionAnalysisService: AttributionAnalysisService,
   ) {
   }
 
@@ -82,7 +85,21 @@ export class DataAnalysisController {
     @User() user: IUser,
   ) {
     // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.userPathAnalysisService.queryEvent(data) || []
+    const res = await this.userPathAnalysisService.queryEvent(data) || {}
+    // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
+    return res
+  }
+
+  /**
+   * 归因分析 - 查询数据任务
+   */
+  @Post('/attribution/query')
+  async queryAttribution(
+    @Body() data: IAttributionAnalysisReq,
+    @User() user: IUser,
+  ) {
+    // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
+    const res = await this.attributionAnalysisService.queryEvent(data) || {}
     // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
     return res
   }

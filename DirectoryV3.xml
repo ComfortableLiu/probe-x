@@ -50,4 +50,17 @@
     <tree path="/apps/frontend/src/pages/data-analysis/components/WindowPeriod" title="窗口期选择" />
     <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/user-path-analysis.service.ts"
           title="用户路径分析逻辑" />
+    <tree path="/apps/frontend/src/pages/data-analysis/attribution/components/DataFilterConfigArea/components/AttributionModel"
+          title="归因模型" />
+    <tree path="/apps/frontend/src/pages/data-analysis/components/DimensionSelector" title="维度" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/attribution-analysis.service.ts"
+          title="归因分析逻辑" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/EventAnalysisSqlBuilder.ts"
+          title="SQL生成器 - 事件分析" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/FunnelAnalysisSqlBuilder.ts"
+          title="SQL生成器 - 漏斗分析" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/UserPathAnalysisSqlBuilder.ts"
+          title="SQL生成器 - 用户路径分析" />
+    <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/AttributionAnalysisSqlBuilder.ts"
+          title="SQL生成器 - 归因分析" />
 </trees>

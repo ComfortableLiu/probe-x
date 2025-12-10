@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react"
-import { IEventAnalysisInfo, Metrics } from "../../../../../../../libs/shared-types/src"
+import { IAttributionAnalysisFilter, IEventAnalysisInfo, MetaPropertyType, Metrics } from "@probe-x/shared-types/src"
 import { Select, Tooltip } from "antd"
 import { useModel } from "@/hooks"
 import { IPointState } from "@/store/models/point/type"
@@ -12,10 +12,10 @@ interface IEventItemProps {
   index: number
   // 单点模式
   singleMode?: boolean
+  // 是否展示筛选选项
+  showFilter?: boolean
   // 点击移除
   onRemove?: () => void
-  // 点击增加筛选
-  addFilter?: () => void
   // 点击复制
   onCopy?: () => void
   // 修改值
@@ -28,8 +28,8 @@ function EventItem(props: IEventItemProps) {
     singleMode,
     eventInfo,
     index,
+    showFilter,
     onCopy,
-    addFilter,
     onRemove,
     onChange,
   } = props
@@ -56,6 +56,19 @@ function EventItem(props: IEventItemProps) {
     value: event.eventName,
   })), [eventList])
 
+  const addFilter = useCallback(() => {
+    if (!onChange) return
+    onChange({
+      ...eventInfo,
+      filters: [...(eventInfo?.filters || []), {
+        propertyName: '',
+        propertyType: MetaPropertyType.STRING,
+        propertyValue: [],
+        compareType: 'EQUAL',
+      } as IAttributionAnalysisFilter],
+    })
+  }, [eventInfo, onChange])
+
   const onEventChange = useCallback((value: string) => {
     onChange({
       ...eventInfo,
@@ -73,10 +86,12 @@ function EventItem(props: IEventItemProps) {
 
   const renderOperate = useMemo(() => (
     <div className={styles.operate}>
-      <a href="#" className={styles.operateBtn} onClick={() => addFilter?.()}>
-        <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
-        增加筛选
-      </a>
+      {showFilter ?
+        <a href="#" className={styles.operateBtn} onClick={() => addFilter()}>
+          <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
+          增加筛选
+        </a>
+        : null}
       {singleMode ? null :
         <>
           <a href="#" className={styles.operateBtn} onClick={() => onCopy?.()}>
@@ -90,7 +105,7 @@ function EventItem(props: IEventItemProps) {
         </>
       }
     </div>
-  ), [addFilter, onCopy, onRemove, singleMode])
+  ), [addFilter, onCopy, onRemove, showFilter, singleMode])
 
   return (
     <div className={styles.container}>
