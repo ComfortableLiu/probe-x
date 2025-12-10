@@ -85,7 +85,7 @@ export class DataAnalysisController {
     @User() user: IUser,
   ) {
     // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.userPathAnalysisService.queryEvent(data) || []
+    const res = await this.userPathAnalysisService.queryEvent(data) || {}
     // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
     return res
   }
@@ -99,7 +99,7 @@ export class DataAnalysisController {
     @User() user: IUser,
   ) {
     // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.attributionAnalysisService.queryEvent(data) || []
+    const res = await this.attributionAnalysisService.queryEvent(data) || {}
     // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
     return res
   }
