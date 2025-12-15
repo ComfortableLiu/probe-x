@@ -15,14 +15,9 @@ export default {
     component: lazy(() => import('@pages/system-data/overview/index')),
   }, {
     path: '/system-data/analysis',
-    name: '分析数据',
+    name: '数分数据',
     key: 'system-data-analysis',
     component: lazy(() => import('@pages/system-data/analysis/index')),
-  }, {
-    path: '/system-data/kafka',
-    name: 'Kafka',
-    key: 'system-data-kafka',
-    component: lazy(() => import('@pages/system-data/kafka/index')),
   }, {
     path: '/system-data/meta',
     name: '元数据',
