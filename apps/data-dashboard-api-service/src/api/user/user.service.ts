@@ -149,8 +149,9 @@ export class UserService {
 
   /**
    * 验证密码
-   * @param password
-   * @param hash
+   * @param password 明文密码
+   * @param hash 密码哈希值
+   * @returns 密码是否匹配
    */
   private checkPassword(password: string, hash: string): boolean {
     // 使用bcrypt比较密码

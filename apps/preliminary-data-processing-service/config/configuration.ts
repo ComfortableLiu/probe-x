@@ -1,7 +1,7 @@
 export default () => ({
   client: {
     host: process.env.CLIENT_HOST || 'http://localhost',
-    port: parseInt(process.env.CLIENT_POST, 10) || 8000,
+    port: parseInt(process.env.CLIENT_PORT, 10) || 8000,
   },
   login: {
     secret: process.env.HMAC_SECRET || '',
@@ -15,19 +15,19 @@ export default () => ({
   services: {
     dataDashboardApi: {
       host: process.env.DATA_DASHBOARD_API_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 8101,
+      port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_PORT, 10) || 8101,
     },
     finalDataCleaning: {
       host: process.env.FINAL_DATA_CLEANING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_POST, 10) || 8102,
+      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_PORT, 10) || 8102,
     },
     preliminaryDataProcessing: {
       host: process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_POST, 10) || 8103,
+      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_PORT || '', 10) || 8103,
     },
     receivingPoint: {
       host: process.env.RECEIVING_POINT_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.RECEIVING_POINT_SERVICE_POST, 10) || 8104,
+      port: parseInt(process.env.RECEIVING_POINT_SERVICE_PORT || '', 10) || 8104,
     },
   },
   database: {

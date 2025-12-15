@@ -32,6 +32,9 @@ export class EventAnalysisService {
     const result = await this.clickhouseService.query<GenericEventAnalysisResult[]>(sql, params)
 
     console.log('数据查询结果：', result)
+    if (!result || result.length === 0) {
+      return []
+    }
     return result[0]
   }
 

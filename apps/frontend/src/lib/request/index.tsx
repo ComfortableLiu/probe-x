@@ -117,7 +117,8 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
     if (e.response && e.response.data) {
       return Promise.reject(e.response.data)
     }
-    return Promise.reject(e)
+    // 如果 response 存在但没有 data，返回包含状态码的错误对象
+    return Promise.reject({ msg: `HTTP ${status} - ${config.baseURL}${config.url}`, code: status, response: e.response })
   } finally {
     LoadingToast.destory()
   }

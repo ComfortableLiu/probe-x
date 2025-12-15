@@ -30,7 +30,14 @@ export class UserPathAnalysisService {
     // console.log('SQL参数：', params)
     // console.log('SQL错误：', error)
 
-    const originalResult = (await this.clickhouseService.query<any>(sql, params))[0]
+    const queryResult = await this.clickhouseService.query<any>(sql, params)
+    if (!queryResult || queryResult.length === 0) {
+      return {
+        eventList: [],
+        edgeList: [],
+      } as IUserPathAnalysisRes
+    }
+    const originalResult = queryResult[0]
     // const originalResult = {
     //   "eventList": ["page_load", "page_view", "button_click", "form_submit", "payment_success", "page_leave", "modal_open", "address_edit"],
     //   "edgeList": [
