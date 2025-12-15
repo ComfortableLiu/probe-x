@@ -1,7 +1,7 @@
 export default () => ({
   client: {
     host: process.env.CLIENT_HOST || 'http://localhost',
-    port: parseInt(process.env.CLIENT_POST, 10) || 8000,
+    port: parseInt(process.env.CLIENT_PORT, 10) || 8000,
   },
   login: {
     secret: process.env.HMAC_SECRET || '',
@@ -15,24 +15,24 @@ export default () => ({
   services: {
     dataDashboardApi: {
       host: process.env.DATA_DASHBOARD_API_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_POST, 10) || 8101,
+      port: parseInt(process.env.DATA_DASHBOARD_API_SERVICE_PORT, 10) || 8101,
     },
     finalDataCleaning: {
       host: process.env.FINAL_DATA_CLEANING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_POST, 10) || 8102,
+      port: parseInt(process.env.FINAL_DATA_CLEANING_SERVICE_PORT, 10) || 8102,
     },
     preliminaryDataProcessing: {
       host: process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_POST, 10) || 8103,
+      port: parseInt(process.env.PRELIMINARY_DATA_PROCESSING_SERVICE_PORT || '', 10) || 8103,
     },
     receivingPoint: {
       host: process.env.RECEIVING_POINT_SERVICE_HOST || 'http://localhost',
-      port: parseInt(process.env.RECEIVING_POINT_SERVICE_POST, 10) || 8104,
+      port: parseInt(process.env.RECEIVING_POINT_SERVICE_PORT || '', 10) || 8104,
     },
   },
   database: {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT, 10) || 3306,
+    port: parseInt(process.env.DB_PORT || '', 10) || 3306,
     username: process.env.DB_USERNAME || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_DATABASE || 'probe_x',
@@ -45,8 +45,8 @@ export default () => ({
     database: process.env.CLICKHOUSE_DATABASE || 'probe_x',
     tls: process.env.CLICKHOUSE_TLS === 'true',
     rejectUnauthorized: process.env.CLICKHOUSE_REJECT_UNAUTHORIZED !== 'false',
-    requestTimeout: parseInt(process.env.CLICKHOUSE_REQUEST_TIMEOUT, 10) || 30000,
-    connectionTimeout: parseInt(process.env.CLICKHOUSE_CONNECTION_TIMEOUT, 10) || 10000,
+    requestTimeout: parseInt(process.env.CLICKHOUSE_REQUEST_TIMEOUT || '', 10) || 30000,
+    connectionTimeout: parseInt(process.env.CLICKHOUSE_CONNECTION_TIMEOUT || '', 10) || 10000,
     compression: process.env.CLICKHOUSE_COMPRESSION !== 'false',
   },
   kafka: {
@@ -58,14 +58,14 @@ export default () => ({
     saslPassword: process.env.KAFKA_SASL_PASSWORD || '',
     sslEnabled: process.env.KAFKA_SSL_ENABLED === 'true',
     sslRejectUnauthorized: process.env.KAFKA_SSL_REJECT_UNAUTHORIZED !== 'false',
-    connectionTimeout: parseInt(process.env.KAFKA_CONNECTION_TIMEOUT, 10) || 10000,
-    requestTimeout: parseInt(process.env.KAFKA_REQUEST_TIMEOUT, 10) || 30000,
+    connectionTimeout: parseInt(process.env.KAFKA_CONNECTION_TIMEOUT || '', 10) || 10000,
+    requestTimeout: parseInt(process.env.KAFKA_REQUEST_TIMEOUT || '', 10) || 30000,
     retryCount: parseInt(process.env.KAFKA_RETRY_COUNT, 10) || 3,
     retryDelay: parseInt(process.env.KAFKA_RETRY_DELAY, 10) || 1000,
     consumerAutoOffsetReset: process.env.KAFKA_CONSUMER_AUTO_OFFSET_RESET || 'latest',
     consumerEnableAutoCommit: process.env.KAFKA_CONSUMER_ENABLE_AUTO_COMMIT === 'true',
-    consumerAutoCommitInterval: parseInt(process.env.KAFKA_CONSUMER_AUTO_COMMIT_INTERVAL, 10) || 5000,
-    consumerBatchSize: parseInt(process.env.KAFKA_CONSUMER_BATCH_SIZE, 10) || 100,
+    consumerAutoCommitInterval: parseInt(process.env.KAFKA_CONSUMER_AUTO_COMMIT_INTERVAL || '', 10) || 5000,
+    consumerBatchSize: parseInt(process.env.KAFKA_CONSUMER_BATCH_SIZE || '', 10) || 100,
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
