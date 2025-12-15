@@ -11,6 +11,10 @@ import dataAnalysisEventModel from "@pages/data-analysis/event/model"
 import dataAnalysisFunnelModel from "@pages/data-analysis/funnel/model"
 import dataAnalysisUserPathModel from "@pages/data-analysis/user-path/model"
 import dataAnalysisAttributionModel from "@pages/data-analysis/attribution/model"
+import systemDataOverviewModel from "@pages/system-data/overview/model"
+import analysisModel from "@pages/system-data/analysis/model"
+import computingNodeModel from "@pages/system-data/computing-node/model"
+import systemDataMetaModel from "@pages/system-data/meta/model"
 
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
@@ -26,6 +30,11 @@ export interface RootModel extends Models<RootModel> {
   dataAnalysisFunnelModel: typeof dataAnalysisFunnelModel
   dataAnalysisUserPathModel: typeof dataAnalysisUserPathModel
   dataAnalysisAttributionModel: typeof dataAnalysisAttributionModel
+
+  analysisModel: typeof analysisModel
+  computingNodeModel: typeof computingNodeModel
+  systemDataMetaModel: typeof systemDataMetaModel
+  systemDataOverviewModel: typeof systemDataOverviewModel
 }
 
 export const models: RootModel = {
@@ -41,4 +50,8 @@ export const models: RootModel = {
   dataAnalysisFunnelModel,
   dataAnalysisUserPathModel,
   dataAnalysisAttributionModel,
+  analysisModel,
+  computingNodeModel,
+  systemDataMetaModel,
+  systemDataOverviewModel,
 }

@@ -20,6 +20,7 @@ import { TrackingNodeModule } from "@src/api/tracking-node/tracking-node.module"
 import configuration from "../config/configuration"
 import { DataAnalysisModule } from "@src/api/data-analysis/data-analysis.module"
 import { BullModule } from "@nestjs/bullmq"
+import { SystemDataModule } from "@src/api/system-data/system-data.module"
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { BullModule } from "@nestjs/bullmq"
     PropertyModule,
     TrackingNodeModule,
     DataAnalysisModule,
+    SystemDataModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

@@ -63,4 +63,10 @@
           title="SQL生成器 - 用户路径分析" />
     <tree path="/apps/data-dashboard-api-service/src/api/data-analysis/AttributionAnalysisSqlBuilder.ts"
           title="SQL生成器 - 归因分析" />
+    <tree path="/apps/frontend/src/pages/system-data" title="系统数据" />
+    <tree path="/apps/frontend/src/pages/system-data/overview" title="总览" />
+    <tree path="/apps/frontend/src/pages/system-data/meta" title="元数据" extension="" presentableText=""
+          tooltipTitle="" icon="" textColor="" backgroundColor="" />
+    <tree path="/apps/frontend/src/pages/system-data/computing-node" title="计算节点" />
+    <tree path="/apps/frontend/src/pages/system-data/analysis" title="数分" />
 </trees>
