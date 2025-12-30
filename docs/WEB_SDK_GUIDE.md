@@ -33,7 +33,7 @@ import ProbeX from '@probe-x/web-sdk';
 ```javascript
 // 初始化SDK
 const probeX = new ProbeX({
-  apiUrl: 'http://localhost:3000/data/beacon',
+  apiUrl: 'http://localhost:3004/point/report',
   appId: 'your-app-id',
   debug: true
 });
@@ -57,7 +57,7 @@ probeX.setUser({
 ```javascript
 const probeX = new ProbeX({
   // 必需配置
-  apiUrl: 'http://localhost:3000/data/beacon',  // API地址
+  apiUrl: 'http://localhost:3004/point/report',  // API地址
   appId: 'your-app-id',                         // 应用ID
   
   // 可选配置

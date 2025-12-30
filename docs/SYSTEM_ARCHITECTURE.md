@@ -10,12 +10,12 @@ Probe-X 是一个大型埋点与数据分析系统，采用微服务架构，包
 
 1. **前端服务 (frontend)**
    - 技术栈: React + TypeScript + Rspack
-   - 端口: 3000
+   - 端口: 8000
    - 功能: 数据可视化仪表板，埋点管理界面
 
 2. **埋点接收服务 (receiving-point-service)**
    - 技术栈: NestJS + TypeORM + MySQL
-   - 端口: 3000 (原backend端口)
+   - 端口: 3004
    - 功能: 接收原始埋点数据，存储到数据库，发送到Kafka
 
 3. **数据仪表板API服务 (data-dashboard-api-service)**
@@ -25,12 +25,12 @@ Probe-X 是一个大型埋点与数据分析系统，采用微服务架构，包
 
 4. **初步数据处理服务 (preliminary-data-processing-service)**
    - 技术栈: NestJS + TypeORM + MySQL + Kafka
-   - 端口: 3002
+   - 端口: 3003
    - 功能: 数据清洗，数据增强，异常检测
 
 5. **最终数据清洗服务 (final-data-cleaning-service)**
    - 技术栈: NestJS + TypeORM + MySQL + Kafka
-   - 端口: 3003
+   - 端口: 3002
    - 功能: 深度数据清洗，质量评估，数据验证
 
 ### 数据流架构
@@ -122,10 +122,11 @@ REDIS_PASSWORD=
 REDIS_DB=0
 
 # 服务端口
-PORT=3000  # 埋点接收服务
+PORT=8000  # 前端服务
+PORT=3004  # 埋点接收服务
 PORT=3001  # 数据仪表板API服务
-PORT=3002  # 初步数据处理服务
-PORT=3003  # 最终数据清洗服务
+PORT=3002  # 最终数据清洗服务
+PORT=3003  # 初步数据处理服务
 ```
 
 #### 启动命令

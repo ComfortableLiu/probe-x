@@ -264,11 +264,11 @@ yarn restart:all
 ## 🔧 环境配置
 
 ### 开发环境
-- 前端: http://localhost:3000
-- 埋点接收服务: http://localhost:3000
+- 前端: http://localhost:8000
+- 埋点接收服务: http://localhost:3004
 - 数据仪表板API: http://localhost:3001
-- 初步数据处理服务: http://localhost:3002
-- 最终数据清洗服务: http://localhost:3003
+- 最终数据清洗服务: http://localhost:3002
+- 初步数据处理服务: http://localhost:3003
 
 ### 生产环境
 - 所有服务打包到 `dist/` 目录
