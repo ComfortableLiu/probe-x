@@ -28,5 +28,10 @@ export default {
     name: '计算节点',
     key: 'system-data-computing-node',
     component: lazy(() => import('@pages/system-data/computing-node/index')),
+  }, {
+    path: '/system-data/computing-node/:nodeId/logs',
+    name: '计算节点日志',
+    key: 'system-data-computing-node-logs',
+    component: lazy(() => import('@pages/system-data/computing-node/logs')),
   }],
 } as IRouteItem
