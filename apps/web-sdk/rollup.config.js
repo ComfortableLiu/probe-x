@@ -1,6 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import babel from '@rollup/plugin-babel';
+import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 import copy from 'rollup-plugin-copy';
@@ -9,7 +9,7 @@ import { readFileSync } from 'fs';
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 const baseConfig = {
-  input: 'src/index.js',
+  input: 'src/index.ts',
   external: ['uuid'],
   plugins: [
     resolve({
@@ -17,19 +17,10 @@ const baseConfig = {
       preferBuiltins: false,
     }),
     commonjs(),
-    babel({
-      babelHelpers: 'bundled',
-      exclude: 'node_modules/**',
-      presets: [
-        [
-          '@babel/preset-env',
-          {
-            targets: {
-              browsers: ['> 1%', 'last 2 versions', 'not ie <= 8'],
-            },
-          },
-        ],
-      ],
+    typescript({
+      tsconfig: './tsconfig.json',
+      declaration: false,
+      declarationMap: false,
     }),
   ],
 };
@@ -43,6 +34,9 @@ export default [
       format: 'umd',
       name: 'ProbeX',
       sourcemap: true,
+      globals: {
+        uuid: 'uuid',
+      },
     },
   },
   // UMD minified build
@@ -52,7 +46,11 @@ export default [
       ...baseConfig.plugins,
       terser({
         compress: {
-          drop_console: true,
+          drop_console: false, // 保留console.log用于调试
+          drop_debugger: true,
+        },
+        mangle: {
+          reserved: ['ProbeX'], // 保留主类名
         },
       }),
     ],
@@ -61,6 +59,9 @@ export default [
       format: 'umd',
       name: 'ProbeX',
       sourcemap: true,
+      globals: {
+        uuid: 'uuid',
+      },
     },
   },
   // ES module build
@@ -83,7 +84,7 @@ export default [
   },
   // TypeScript declarations
   {
-    input: 'src/index.d.ts',
+    input: 'src/index.ts',
     output: {
       file: 'dist/probe-x-sdk.d.ts',
       format: 'es',
@@ -92,7 +93,7 @@ export default [
   },
   // Copy files
   {
-    input: 'src/index.js',
+    input: 'src/index.ts',
     output: {
       file: 'dist/temp.js',
       format: 'es',

@@ -7,28 +7,28 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run build",
+        "command": "yarn build",
         "cwd": "apps/web-sdk"
       }
     },
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run dev",
+        "command": "yarn dev",
         "cwd": "apps/web-sdk"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run test",
+        "command": "yarn test",
         "cwd": "apps/web-sdk"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run lint",
+        "command": "yarn lint",
         "cwd": "apps/web-sdk"
       }
     }
