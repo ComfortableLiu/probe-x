@@ -52,26 +52,26 @@ const ComputingNode: React.FC = () => {
       {/* 状态说明 */}
       <div className={styles.statusLegend}>
         <div className={styles.legendItem}>
-          <div 
-            className={`${styles.legendLight} ${styles.healthyIdle}`} 
+          <div
+            className={`${styles.legendLight} ${styles.healthyIdle}`}
           />
           <span>健康空闲</span>
         </div>
         <div className={styles.legendItem}>
-          <div 
-            className={`${styles.legendLight} ${styles.healthyBusy}`} 
+          <div
+            className={`${styles.legendLight} ${styles.healthyBusy}`}
           />
           <span>健康忙碌</span>
         </div>
         <div className={styles.legendItem}>
-          <div 
-            className={`${styles.legendLight} ${styles.error}`} 
+          <div
+            className={`${styles.legendLight} ${styles.error}`}
           />
           <span>错误</span>
         </div>
         <div className={styles.legendItem}>
-          <div 
-            className={`${styles.legendLight} ${styles.offline}`} 
+          <div
+            className={`${styles.legendLight} ${styles.offline}`}
           />
           <span>离线</span>
         </div>
