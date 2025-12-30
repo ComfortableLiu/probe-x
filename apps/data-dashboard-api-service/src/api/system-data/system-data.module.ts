@@ -1,17 +1,15 @@
 import { Module } from '@nestjs/common'
-import { TypeOrmModule } from '@nestjs/typeorm'
 import { SystemDataController } from './system-data.controller'
 import { SystemDataService } from './system-data.service'
-import { UserModule } from '../user/user.module'
+import { ClickHouseModule } from '@probe-x/shared-utils/src/lib/backend-common'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([]),
-    UserModule,
+    ClickHouseModule,
   ],
   controllers: [SystemDataController],
   providers: [SystemDataService],
-  exports: [],
+  exports: [SystemDataService],
 })
 export class SystemDataModule {
 }

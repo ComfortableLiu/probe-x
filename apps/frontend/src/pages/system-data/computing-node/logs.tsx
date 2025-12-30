@@ -6,7 +6,7 @@ interface ComputingNodeLogsParams {
 }
 
 const ComputingNodeLogs: React.FC = () => {
-  const { nodeId } = useParams<ComputingNodeLogsParams>()
+  const { nodeId } = useParams<any>()
   const navigate = useNavigate()
 
   // 返回上一页的处理函数

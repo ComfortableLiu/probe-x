@@ -1,16 +1,136 @@
-import React, { useEffect, useRef } from "react"
-import { Card, Col, Progress, Row, Statistic } from "antd"
+import React, { useEffect, useRef, useState } from "react"
+import { Card, Col, DatePicker, Progress, Row, Spin, Statistic } from "antd"
 import * as styles from "./styles.module.scss"
 import * as echarts from "echarts"
+import { connect } from "react-redux"
+import { ISystemDataMetaState } from "./type"
+import dayjs from "dayjs"
 
-function Meta() {
+const { RangePicker } = DatePicker
+
+// 定义元数据页面组件的属性接口
+interface MetaProps {
+  // 系统数据元信息状态
+  systemDataMetaModel: ISystemDataMetaState;
+  // 获取元数据概览的方法
+  getMetaOverview: (params: { date?: string }) => void;
+  // 获取数据趋势的方法
+  getDataTrend: (params: { days?: number; startDate?: string; endDate?: string }) => void;
+  // 获取清洗统计的方法
+  getCleaningStats: (params: { date?: string }) => void;
+  // 获取初次清洗详情的方法
+  getFirstCleaningDetail: (params: { date?: string }) => void;
+  // 获取最终清洗详情的方法
+  getFinalCleaningDetail: (params: { date?: string }) => void;
+}
+
+// 元数据页面组件
+function Meta(props: MetaProps) {
+  // 图表DOM引用
   const chartRef = useRef<HTMLDivElement>(null)
+  // 图表实例引用
   const chartInstance = useRef<echarts.ECharts | null>(null)
+  // 加载状态
+  const [loading, setLoading] = useState(true)
+  // 日期范围选择状态
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
+  // 从props中解构状态和方法
+  const {
+    // 元数据概览信息
+    systemDataMetaModel: {
+      overview,
+      dataTrend,
+      cleaningStats,
+      firstCleaningDetail,
+      finalCleaningDetail,
+    },
+    // 获取元数据概览的方法
+    getMetaOverview,
+    // 获取数据趋势的方法
+    getDataTrend,
+    // 获取清洗统计的方法
+    getCleaningStats,
+    // 获取初次清洗详情的方法
+    getFirstCleaningDetail,
+    // 获取最终清洗详情的方法
+    getFinalCleaningDetail,
+  } = props
+
+  // 组件挂载时获取数据
+  useEffect(() => {
+    // 异步获取所有页面数据
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        // 默认获取昨天的数据
+        const yesterday = dayjs().subtract(1, 'day')
+        const dateStr = yesterday.format('YYYY-MM-DD')
+
+        // 并行获取所有需要的数据
+        await Promise.all([
+          getMetaOverview({ date: dateStr }),
+          getDataTrend({ startDate: dateStr, endDate: dateStr }),
+          getCleaningStats({ date: dateStr }),
+          getFirstCleaningDetail({ date: dateStr }),
+          getFinalCleaningDetail({ date: dateStr }),
+        ])
+      } catch (error) {
+        console.error('获取数据失败:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [getMetaOverview, getDataTrend, getCleaningStats, getFirstCleaningDetail, getFinalCleaningDetail])
+
+  // 日期范围选择处理
+  const handleDateChange = async (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
+    setDateRange(dates)
+    setLoading(true)
+
+    try {
+      if (dates) {
+        const [startDate, endDate] = dates
+        const startStr = startDate.format('YYYY-MM-DD')
+        const endStr = endDate.format('YYYY-MM-DD')
+
+        // 并行获取所有需要的数据
+        await Promise.all([
+          getMetaOverview({ date: startStr }),
+          getDataTrend({ startDate: startStr, endDate: endStr }),
+          getCleaningStats({ date: startStr }),
+          getFirstCleaningDetail({ date: startStr }),
+          getFinalCleaningDetail({ date: startStr }),
+        ])
+      } else {
+        // 如果没有选择日期，获取昨天的数据
+        const yesterday = dayjs().subtract(1, 'day')
+        const dateStr = yesterday.format('YYYY-MM-DD')
+
+        await Promise.all([
+          getMetaOverview({ date: dateStr }),
+          getDataTrend({ startDate: dateStr, endDate: dateStr }),
+          getCleaningStats({ date: dateStr }),
+          getFirstCleaningDetail({ date: dateStr }),
+          getFinalCleaningDetail({ date: dateStr }),
+        ])
+      }
+    } catch (error) {
+      console.error('获取数据失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 初始化和更新图表
   useEffect(() => {
     if (chartRef.current) {
+      // 初始化ECharts实例
       chartInstance.current = echarts.init(chartRef.current)
 
+      // 配置图表选项
       const option = {
         tooltip: {
           trigger: 'axis',
@@ -42,7 +162,8 @@ function Meta() {
         xAxis: [
           {
             type: 'category',
-            data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+            // 使用从API获取的X轴数据，如果不存在则使用默认值
+            data: dataTrend?.xAxis || ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
           },
         ],
         yAxis: [
@@ -55,7 +176,8 @@ function Meta() {
             name: '上报数据量',
             type: 'line',
             barWidth: '60%',
-            data: [1000, 1200, 1100, 1300, 1500, 1400, 1600],
+            // 使用从API获取的系列数据，如果不存在则使用默认值
+            data: dataTrend?.series[0]?.data || [1000, 1200, 1100, 1300, 1500, 1400, 1600],
             itemStyle: {
               color: '#536DFE',
             },
@@ -63,31 +185,62 @@ function Meta() {
         ],
       }
 
+      // 应用图表配置
       chartInstance.current.setOption(option)
 
+      // 定义窗口大小调整处理函数
       const handleResize = () => {
         chartInstance.current?.resize()
       }
 
+      // 监听窗口大小调整事件
       window.addEventListener('resize', handleResize)
 
+      // 清理函数：移除事件监听器和销毁图表实例
       return () => {
         window.removeEventListener('resize', handleResize)
         chartInstance.current?.dispose()
       }
     }
-  }, [])
+  }, [dataTrend]) // 依赖dataTrend，当数据更新时重新渲染图表
 
+  // 显示加载状态
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin size="large" />
+        </div>
+      </div>
+    )
+  }
+
+  // 渲染页面内容
   return (
     <div className={styles.container}>
-      <h2>元数据</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2>元数据</h2>
+        <div>
+          <RangePicker
+            value={dateRange}
+            onChange={handleDateChange}
+            placeholder={['开始日期', '结束日期']}
+            format="YYYY-MM-DD"
+            // 允许选择今天及以前的日期
+            disabledDate={(current) => {
+              return current && current > dayjs().endOf('day')
+            }}
+          />
+        </div>
+      </div>
 
+      {/* 元数据概览卡片行 */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
               title="原始数据总量"
-              value="123M"
+              value={overview.originalDataTotal} // 显示原始数据总量
               valueStyle={{ color: '#3f8cff' }}
             />
           </Card>
@@ -96,7 +249,7 @@ function Meta() {
           <Card>
             <Statistic
               title="最终清洗数据量"
-              value="567M"
+              value={overview.finalCleanedData} // 显示最终清洗数据量
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
@@ -105,7 +258,7 @@ function Meta() {
           <Card>
             <Statistic
               title="初次清洗成功率"
-              value="99.99%"
+              value={`${overview.firstCleaningSuccessRate}%`} // 显示初次清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -116,7 +269,7 @@ function Meta() {
           <Card>
             <Statistic
               title="最终清洗成功率"
-              value="99.99%"
+              value={`${overview.finalCleaningSuccessRate}%`} // 显示最终清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -125,6 +278,7 @@ function Meta() {
         </Col>
       </Row>
 
+      {/* 数据趋势图表卡片 */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col span={24}>
           <Card title="上报数据量趋势">
@@ -133,27 +287,30 @@ function Meta() {
         </Col>
       </Row>
 
+      {/* 清洗详情卡片行 */}
       <Row gutter={[24, 24]}>
+        {/* 初次清洗详情卡片 */}
         <Col xs={24} lg={12}>
           <Card title="初次数据清洗">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
-                  <span>99.99%</span>
+                  <span>{firstCleaningDetail.successRate}%</span> {/* 显示初次清洗成功率 */}
                 </div>
-                <Progress percent={99.99} strokeColor="#52c41a" />
+                <Progress percent={firstCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
 
               <Row gutter={16}>
                 <Col span={12}>
                   <Card size="small" title="清洗成功数">
-                    <Statistic value="123M" />
+                    <Statistic value={firstCleaningDetail.successCount} /> {/* 显示初次清洗成功数 */}
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card size="small" title="清洗失败数">
-                    <Statistic value="123k" valueStyle={{ color: '#ff4d4f' }} />
+                    <Statistic value={firstCleaningDetail.failCount}
+                      valueStyle={{ color: '#ff4d4f' }} /> {/* 显示初次清洗失败数 */}
                   </Card>
                 </Col>
               </Row>
@@ -161,26 +318,28 @@ function Meta() {
           </Card>
         </Col>
 
+        {/* 最终清洗详情卡片 */}
         <Col xs={24} lg={12}>
           <Card title="最终数据清洗">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
-                  <span>99.99%</span>
+                  <span>{finalCleaningDetail.successRate}%</span> {/* 显示最终清洗成功率 */}
                 </div>
-                <Progress percent={99.99} strokeColor="#52c41a" />
+                <Progress percent={finalCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
 
               <Row gutter={16}>
                 <Col span={12}>
                   <Card size="small" title="清洗成功数">
-                    <Statistic value="567M" />
+                    <Statistic value={finalCleaningDetail.successCount} /> {/* 显示最终清洗成功数 */}
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card size="small" title="清洗失败数">
-                    <Statistic value="567k" valueStyle={{ color: '#ff4d4f' }} />
+                    <Statistic value={finalCleaningDetail.failCount}
+                      valueStyle={{ color: '#ff4d4f' }} /> {/* 显示最终清洗失败数 */}
                   </Card>
                 </Col>
               </Row>
@@ -192,4 +351,20 @@ function Meta() {
   )
 }
 
-export default Meta
+// 连接Redux状态和组件
+export default connect(
+  // 映射状态到props
+  ({ systemDataMetaModel }) => ({ systemDataMetaModel }),
+  // 映射dispatch到props
+  (dispatch) => ({
+    getMetaOverview: (params: { date?: string }) => dispatch.systemDataMetaModel.getMetaOverview(params),
+    getDataTrend: (params: {
+      days?: number;
+      startDate?: string;
+      endDate?: string
+    }) => dispatch.systemDataMetaModel.getDataTrend(params),
+    getCleaningStats: (params: { date?: string }) => dispatch.systemDataMetaModel.getCleaningStats(params),
+    getFirstCleaningDetail: (params: { date?: string }) => dispatch.systemDataMetaModel.getFirstCleaningDetail(params),
+    getFinalCleaningDetail: (params: { date?: string }) => dispatch.systemDataMetaModel.getFinalCleaningDetail(params),
+  }),
+)(Meta)
