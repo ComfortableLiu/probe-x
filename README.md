@@ -23,7 +23,7 @@
 - **事件分析**: 基于事件的指标统计、筛选、分组等功能，来追踪用户行为或业务过程
 - **漏斗分析**: 用于分析一个多步骤过程中每一步的转化与流失情况
 - **用户路径分析**: 主要用于分析用户在使用产品时的路径分布情况
-- **归因分析**: 通过结果反向分析各个触电对于结果的贡献程度
+- **归因分析**: 通过结果反向分析各个触点对于结果的贡献程度
 
 ## 🏗️ 系统架构
 
@@ -38,7 +38,7 @@
 
 ### 技术栈
 - **前端**: React19, Redux, Rematch, Ant Design, TypeScript, Rspack
-- **Web SDK**: 原生JavaScript, Rollup, TypeScript
+- **Web SDK**: 原生JavaScript, TypeScript, Rollup (支持UMD/ESM/CJS多种模块格式)
 - **后端**: NestJS, TypeORM, gRPC, Redis
 - **数据储存**: MySQL
 - **大数据**: ClickHouse
@@ -71,21 +71,6 @@ yarn
 yarn dev
 ```
 
----
-
----
-# 以下废弃
-
-### 访问应用
-- 前端界面: http://localhost:8000
-- 电商Demo页面: http://localhost:9000
-- 埋点接收API服务: http://localhost:3004
-- 数据仪表板API服务: http://localhost:3001
-
-### 不可访问的服务
-- 数据初步清洗服务: http://localhost:3003
-- 数据最终清洗服务: http://localhost:3002
-
 ## 📋 常用命令
 
 ### 🎯 启动服务
@@ -94,11 +79,12 @@ yarn dev
 yarn dev
 
 # 启动单个服务
-yarn start:frontend              # 前端服务
-yarn start:receiving-point       # 埋点接收服务
-yarn start:dashboard-api         # 数据仪表板API服务
-yarn start:preliminary-processing # 初步数据处理服务
-yarn start:final-cleaning        # 最终数据清洗服务
+yarn start:frontend              # 前端服务 (端口: 8000)
+yarn start:receiving-point       # 埋点接收服务 (端口: 3004)
+yarn start:dashboard-api         # 数据仪表板API服务 (端口: 3001)
+yarn start:preliminary-processing # 初步数据处理服务 (端口: 3003)
+yarn start:final-cleaning        # 最终数据清洗服务 (端口: 3002)
+yarn start:ecommerce-demo        # 电商Demo服务 (端口: 9000)
 ```
 
 ### 📦 构建和部署
@@ -134,6 +120,8 @@ yarn status
 yarn logs:frontend
 yarn logs:receiving-point
 yarn logs:dashboard-api
+yarn logs:preliminary-processing
+yarn logs:final-cleaning
 
 # 重启服务
 yarn restart:all
@@ -150,14 +138,24 @@ yarn restart:all
 <script src="./probe-x-sdk.min.js"></script>
 ```
 
+### NPM安装
+```bash
+npm install @probe-x/web-sdk
+# 或
+yarn add @probe-x/web-sdk
+```
+
 ### 基础使用
 ```javascript
-// 初始化SDK
+// 浏览器环境中直接使用
 const probeX = new ProbeX({
-  apiUrl: 'http://localhost:3000/data/beacon',
+  apiUrl: 'http://localhost:3004/point/report',  // 埋点接收服务地址
   appId: 'your-app-id',
   debug: true
 });
+
+// 或通过ES模块导入
+import ProbeX from '@probe-x/web-sdk';
 
 // 手动埋点
 probeX.track('button_click', {
@@ -181,6 +179,20 @@ SDK会自动收集以下事件：
 - 错误事件 (javascript_error)
 - 性能事件 (page_performance)
 - 心跳事件 (heartbeat)
+
+## 🛠️ Web SDK 构建说明
+
+Web SDK使用Rollup进行构建，支持多种模块格式：
+- **UMD**: 适用于浏览器直接引入
+- **ESM**: 适用于现代打包工具
+- **CJS**: 适用于Node.js环境
+
+构建输出包括：
+- `probe-x-sdk.js` - UMD格式（开发版）
+- `probe-x-sdk.min.js` - UMD格式（压缩版）
+- `probe-x-sdk.esm.js` - ES模块格式
+- `probe-x-sdk.cjs.js` - CommonJS格式
+- `probe-x-sdk.d.ts` - TypeScript类型定义
 
 ## 🎯 快速脚本
 
@@ -218,7 +230,7 @@ scripts\start.bat dev
 yarn start:ecommerce-demo
 
 # 在浏览器中访问
-open http://localhost:4200
+open http://localhost:9000
 ```
 
 ### Demo功能
@@ -239,10 +251,18 @@ open http://localhost:4200
 
 ## 📚 文档
 
-- [快速启动指南](./QUICK_START.md) - 快速上手指南
-- [命令使用指南](./COMMANDS_GUIDE.md) - 详细命令说明
-- [系统架构文档](./SYSTEM_ARCHITECTURE.md) - 系统架构详解
-- [Web SDK使用指南](./WEB_SDK_GUIDE.md) - Web SDK详细使用说明
+### 主要文档
+- [快速启动指南](./docs/QUICK_START.md) - 快速上手指南
+- [命令使用指南](./docs/COMMANDS_GUIDE.md) - 详细命令说明
+- [系统架构文档](./docs/SYSTEM_ARCHITECTURE.md) - 系统架构详解
+- [Web SDK使用指南](./docs/WEB_SDK_GUIDE.md) - Web SDK详细使用说明
+- [准确系统架构文档](./docs/ACCURATE_SYSTEM_ARCHITECTURE.md) - 基于实际代码的详细架构说明
+
+### 开发指南
+- [快速启动指南](./docs/QUICK_START.md) - 环境搭建和快速开始
+- [命令使用指南](./docs/COMMANDS_GUIDE.md) - 项目命令详解
+- [系统架构文档](./docs/SYSTEM_ARCHITECTURE.md) - 系统架构和组件说明
+- [Web SDK使用指南](./docs/WEB_SDK_GUIDE.md) - SDK集成和使用方法
 
 ## 🔧 配置
 
@@ -269,12 +289,12 @@ REDIS_PORT=6379
 
 | 服务 | 端口 | 描述 |
 |------|------|------|
-| 前端 | 3000 | React 应用界面 |
-| 埋点接收服务 | 3001 | 接收埋点数据 |
-| 数据仪表板API | 3002 | 数据分析和API服务 |
+| 前端 | 8000 | React 应用界面 |
+| 埋点接收服务 | 3004 | 接收埋点数据 |
+| 数据仪表板API | 3001 | 数据分析和API服务 |
+| 最终数据清洗 | 3002 | 数据清洗服务 |
 | 初步数据处理 | 3003 | 数据处理服务 |
-| 最终数据清洗 | 3004 | 数据清洗服务 |
-| 电商Demo | 4200 | React+TypeScript电商演示网站 |
+| 电商Demo | 9000 | React+TypeScript电商演示网站 |
 
 ## 🤝 贡献
 
