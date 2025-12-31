@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Post, Req } from '@nestjs/common'
 import {
   IAttributionAnalysisReq,
   IEventAnalysisReq,
@@ -16,6 +16,8 @@ import { EventAnalysisService } from "./event-analysis.service"
 import { FunnelAnalysisService } from "./funnel-analysis.service"
 import { UserPathAnalysisService } from "./user-path-analysis.service"
 import { AttributionAnalysisService } from "./attribution-analysis.service"
+import { DataAnalysisRecordService } from "./record.service"
+import { Request } from 'express'
 
 @Controller('/data-analysis')
 export class DataAnalysisController {
@@ -24,6 +26,7 @@ export class DataAnalysisController {
     private readonly funnelAnalysisService: FunnelAnalysisService,
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
+    private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
 
@@ -34,11 +37,24 @@ export class DataAnalysisController {
   async queryEvent(
     @Body() data: IEventAnalysisReq,
     @User() user: IUser,
+    @Req() req: Request,
   ): Promise<IEventAnalysisRes> {
-    // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.eventAnalysisService.queryEvent(data)
-    // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
-    return res
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.eventAnalysisService.queryEvent(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true)
+      // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
   }
 
   /**
@@ -48,8 +64,15 @@ export class DataAnalysisController {
   async createDownloadTask(
     @Body() data: ISubmitDownloadTaskReq,
     @User() user: IUser,
+    @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    return await this.eventAnalysisService.createDownloadTask(data)
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download', req.ip, req.get('User-Agent') || undefined)
+
+    const res = await this.eventAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', '事件分析数据导出', data)
+    return res
   }
 
   /**
@@ -58,7 +81,12 @@ export class DataAnalysisController {
   @Post('/event/download/task')
   async queryDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download/task', req.ip, req.get('User-Agent') || undefined)
+
     return await this.eventAnalysisService.queryDownloadTask(data.taskId)
   }
 
@@ -69,11 +97,24 @@ export class DataAnalysisController {
   async queryFunnel(
     @Body() data: IFunnelAnalysisReq,
     @User() user: IUser,
+    @Req() req: Request,
   ) {
-    // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.funnelAnalysisService.queryEvent({ ...data, funnelMode: 'strict' }) || []
-    // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
-    return res
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.funnelAnalysisService.queryEvent(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true)
+      // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
   }
 
   /**
@@ -83,11 +124,24 @@ export class DataAnalysisController {
   async queryUserPath(
     @Body() data: IUserPathAnalysisReq,
     @User() user: IUser,
+    @Req() req: Request,
   ) {
-    // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.userPathAnalysisService.queryEvent(data) || {}
-    // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
-    return res
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.userPathAnalysisService.queryEvent(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true)
+      // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
   }
 
   /**
@@ -97,10 +151,23 @@ export class DataAnalysisController {
   async queryAttribution(
     @Body() data: IAttributionAnalysisReq,
     @User() user: IUser,
+    @Req() req: Request,
   ) {
-    // TODO 后续查询数据可以写成异步的，用Redis存任务，可以节省上多线程充分利用资源
-    const res = await this.attributionAnalysisService.queryEvent(data) || {}
-    // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
-    return res
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.attributionAnalysisService.queryEvent(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true)
+      // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
   }
 }

@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import {
   GenericEventAnalysisResult,
   IEventAnalysisReq,
   IQueryDownloadTaskRes,
   ISubmitDownloadTaskReq,
+  IUser,
 } from "@probe-x/shared-types/src"
 import { BusinessException, ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { v4 as uuidv4 } from "uuid"
@@ -11,6 +12,7 @@ import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_NAME, QUEUE_TASK_NAME } from "@
 import { InjectQueue } from "@nestjs/bullmq"
 import { Queue } from "bullmq"
 import { generateEventAnalysisSql } from "@src/api/data-analysis/EventAnalysisSqlBuilder"
+import { DataAnalysisRecordService } from "./record.service"
 
 @Injectable()
 export class EventAnalysisService {
@@ -19,10 +21,12 @@ export class EventAnalysisService {
     private readonly redisService: RedisService,
     @InjectQueue(QUEUE_NAME)
     private readonly exportQueue: Queue,
+    @Inject(DataAnalysisRecordService) private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
 
-  async queryEvent(data: IEventAnalysisReq): Promise<GenericEventAnalysisResult[]> {
+  // TODO 这里拼装sql有问题
+  async queryEvent(data: IEventAnalysisReq, user: IUser): Promise<GenericEventAnalysisResult[]> {
     // 拼接SQL语句
     const { sql, params, error } = generateEventAnalysisSql(data)
     //
@@ -38,7 +42,7 @@ export class EventAnalysisService {
     return result[0]
   }
 
-  async createDownloadTask(data: ISubmitDownloadTaskReq) {
+  async createDownloadTask(data: ISubmitDownloadTaskReq, user: IUser) {
     const taskId = uuidv4()
     // 拼接SQL语句
     const { sql, params, error } = generateEventAnalysisSql(data)
@@ -55,6 +59,9 @@ export class EventAnalysisService {
       status: 'RUNNING',
       createTime: Date.now(),
     }
+
+    // 记录任务
+    await this.dataAnalysisRecordService.recordTask(taskId, '事件分析数据导出', user, JSON.stringify(data))
 
     // 任务加入 BullMQ 队列（异步执行）
     const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })

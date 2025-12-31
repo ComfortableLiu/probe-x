@@ -1,35 +1,41 @@
 import { DynamicModule, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import {
-  EventPropertyRelationEntity,
-  MetaEventEntity,
-  MetaPropertyEntity,
-  Permission,
-  Role,
-  RolePermissionRelation,
-  TrackingNodeEntity,
-  UserEntity,
-  UserRoleRelation,
-} from "../../entity"
+import * as entityModule from '../../entity'
 
-const baseEntities = [
-  MetaEventEntity,
-  MetaPropertyEntity,
-  EventPropertyRelationEntity,
-  UserEntity,
-  Role,
-  UserRoleRelation,
-  Permission,
-  RolePermissionRelation,
-  TrackingNodeEntity,
-]
+// 动态获取所有实体类
+function extractEntities(): any[] {
+  const entities = []
+
+  // 遍历entity模块的所有导出
+  for (const key in entityModule) {
+    const entity = entityModule[key]
+    // 检查是否为类定义
+    if (entity &&
+      typeof entity === 'function' &&
+      entity.name &&
+      typeof entity.name === 'string' &&
+      entity.prototype) {
+      // 排除非实体类（如ResponseData）
+      if (key !== 'ResponseData') {
+        entities.push(entity)
+      }
+    }
+  }
+
+  return entities
+}
+
+const allEntities = extractEntities()
+
+console.log('l--==-=-=-', allEntities)
 
 @Module({
   exports: [TypeOrmModule],
 })
 export class MysqlModule {
-  static forRoot(entities?: any[]): DynamicModule {
+  static forRoot(additionalEntities?: any[]): DynamicModule {
+    console.log('lll--l==l-=l', additionalEntities)
     return {
       module: MysqlModule,
       imports: [
@@ -44,7 +50,7 @@ export class MysqlModule {
               username: configService.get('database.username', 'root'),
               password: configService.get('database.password', ''),
               database: configService.get('database.database', 'probe_x'),
-              entities: [...baseEntities, ...(entities || [])],
+              entities: [...allEntities, ...(additionalEntities || [])],
               synchronize: configService.get('database.synchronize'),
               logging: configService.get('NODE_ENV') === 'development',
             }

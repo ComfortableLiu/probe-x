@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common'
-import { IUserPathAnalysisReq, IUserPathAnalysisRes } from "@probe-x/shared-types/src"
+import { IUserPathAnalysisReq, IUserPathAnalysisRes, IUser } from "@probe-x/shared-types/src"
 import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { generateUserPathAnalysisSql } from "@src/api/data-analysis/UserPathAnalysisSqlBuilder"
+import { DataAnalysisRecordService } from "./record.service"
+import { Inject } from "@nestjs/common"
 
 // 原始边数据类型（适配 ClickHouse 查询结果）
 interface OriginalEdge {
@@ -21,9 +23,10 @@ interface SplitNode {
 export class UserPathAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
+    @Inject(DataAnalysisRecordService) private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) { }
 
-  async queryEvent(data: IUserPathAnalysisReq): Promise<IUserPathAnalysisRes> {
+  async queryEvent(data: IUserPathAnalysisReq, user: IUser): Promise<IUserPathAnalysisRes> {
     // 1. 执行 SQL 查询（原始数据，可能含循环）
     const { sql, params, error } = generateUserPathAnalysisSql(data)
     // console.log('SQL语句：', sql)
