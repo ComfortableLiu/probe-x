@@ -24,7 +24,7 @@ const MenuView = () => {
   const isLoginPage = location.pathname === '/login'
 
   // 当前选择的选项，根据路由展示的
-  const selectedKeys = useMemo(() => allRoutesWithAliasMap.get(location.pathname).key, [location.pathname])
+  const selectedKeys = useMemo(() => allRoutesWithAliasMap.get(location.pathname)?.key, [location.pathname])
 
   const items: MenuItem[] = allRoutes.filter(route => !route.meta.isHidden).map(route => ({
     key: route.key,
