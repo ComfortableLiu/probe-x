@@ -25,14 +25,14 @@ export class AnalysisService {
 
   async getAnalysisStatistics(date?: string): Promise<IDataAnalysisStatistics> {
     try {
-      // 构建日期条件
-      const dateCondition = date ? `DATE(create_time) = '${date}'` : '1=1'
+      // 构建日期条件参数
+      const dateParam = date ? { date } : undefined
 
       // 查询分析功能的查询次数
       const queryCountResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select('COUNT(*)', 'count')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const queryCount = parseInt(queryCountResult.count || '0', 10)
@@ -41,7 +41,7 @@ export class AnalysisService {
       const userCountResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select('COUNT(DISTINCT user_id)', 'count')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const userCount = parseInt(userCountResult.count || '0', 10)
@@ -50,7 +50,7 @@ export class AnalysisService {
       const avgDurationResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select('AVG(query_duration)', 'avg_duration')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const avgDuration = Math.round(parseFloat(avgDurationResult.avg_duration || '0'))
@@ -60,7 +60,7 @@ export class AnalysisService {
       const totalResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select('COUNT(*)', 'total')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const total = parseInt(totalResult.total || '0', 10)
@@ -69,7 +69,7 @@ export class AnalysisService {
         .createQueryBuilder('stats')
         .select('COUNT(*)', 'failed')
         .where('is_success = 0')
-        .andWhere(dateCondition)
+        .andWhere(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const failed = parseInt(failedResult.failed || '0', 10)
@@ -80,7 +80,7 @@ export class AnalysisService {
         .createQueryBuilder('task')
         .select('COUNT(*)', 'count')
         .where('status = 0')
-        .andWhere(dateCondition)
+        .andWhere(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const queuedTasks = parseInt(queuedTasksResult.count || '0', 10)
@@ -90,7 +90,7 @@ export class AnalysisService {
         .createQueryBuilder('task')
         .select('COUNT(*)', 'count')
         .where('status = 1')
-        .andWhere(dateCondition)
+        .andWhere(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const processingTasks = parseInt(processingTasksResult.count || '0', 10)
@@ -100,7 +100,7 @@ export class AnalysisService {
         .createQueryBuilder('task')
         .select('COUNT(*)', 'count')
         .where('status = 3')
-        .andWhere(dateCondition)
+        .andWhere(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const terminatedTasks = parseInt(terminatedTasksResult.count || '0', 10)
@@ -109,7 +109,7 @@ export class AnalysisService {
       const exportCountResult = await this.dataAnalysisExportLogRepository
         .createQueryBuilder('export')
         .select('COUNT(*)', 'count')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const exportCount = parseInt(exportCountResult.count || '0', 10)
@@ -118,7 +118,7 @@ export class AnalysisService {
       const exportUserCountResult = await this.dataAnalysisExportLogRepository
         .createQueryBuilder('export')
         .select('COUNT(DISTINCT user_id)', 'count')
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : '1=1', dateParam)
         .getRawOne()
 
       const exportUserCount = parseInt(exportUserCountResult.count || '0', 10)
@@ -152,12 +152,16 @@ export class AnalysisService {
 
   async getAnalysisTrend(days: number = 30, startDate?: string, endDate?: string): Promise<IDataAnalysisTrend> {
     try {
-      // 构建日期范围查询
-      let dateCondition = '1=1'
+      // 构建日期范围查询参数
+      let whereCondition: string
+      let whereParams: any = {}
+
       if (startDate && endDate) {
-        dateCondition = `DATE(create_time) BETWEEN '${startDate}' AND '${endDate}'`
+        whereCondition = 'DATE(create_time) BETWEEN :startDate AND :endDate'
+        whereParams = { startDate, endDate }
       } else {
-        dateCondition = `DATE(create_time) >= DATE_SUB(CURDATE(), INTERVAL ${days} DAY)`
+        whereCondition = 'DATE(create_time) >= DATE_SUB(CURDATE(), INTERVAL :days DAY)'
+        whereParams = { days }
       }
 
       // 查询每日查询次数趋势
@@ -167,7 +171,7 @@ export class AnalysisService {
           'DATE(create_time) as date',
           'COUNT(*) as count',
         ])
-        .where(dateCondition)
+        .where(whereCondition, whereParams)
         .groupBy('DATE(create_time)')
         .orderBy('DATE(create_time)', 'ASC')
         .getRawMany()
@@ -179,7 +183,7 @@ export class AnalysisService {
           'DATE(create_time) as date',
           'COUNT(DISTINCT user_id) as count',
         ])
-        .where(dateCondition)
+        .where(whereCondition, whereParams)
         .groupBy('DATE(create_time)')
         .orderBy('DATE(create_time)', 'ASC')
         .getRawMany()
@@ -246,7 +250,7 @@ export class AnalysisService {
       // 构建查询总数的查询构建器
       const countQueryBuilder = this.dataAnalysisTaskLogRepository.createQueryBuilder('task')
       if (status !== undefined) {
-        countQueryBuilder.where('status = :status', { status })
+        countQueryBuilder.where('task.status = :status', { status })
       }
 
       const total = await countQueryBuilder.getCount()
@@ -285,8 +289,8 @@ export class AnalysisService {
 
   async getHourlyAnalysisTrend(date?: string): Promise<any> {
     try {
-      // 构建日期条件
-      const dateCondition = date ? `DATE(create_time) = '${date}'` : 'DATE(create_time) = CURDATE()'
+      // 构建日期条件参数
+      const dateParam = date ? { date } : undefined
 
       // 查询每小时的查询次数
       const queryTrendResult = await this.dataAnalysisQueryStatsRepository
@@ -295,7 +299,7 @@ export class AnalysisService {
           'HOUR(create_time) as hour',
           'COUNT(*) as count',
         ])
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : 'DATE(create_time) = CURDATE()', dateParam)
         .groupBy('HOUR(create_time)')
         .orderBy('HOUR(create_time)', 'ASC')
         .getRawMany()
@@ -307,7 +311,7 @@ export class AnalysisService {
           'HOUR(create_time) as hour',
           'COUNT(DISTINCT user_id) as count',
         ])
-        .where(dateCondition)
+        .where(date ? 'DATE(create_time) = :date' : 'DATE(create_time) = CURDATE()', dateParam)
         .groupBy('HOUR(create_time)')
         .orderBy('HOUR(create_time)', 'ASC')
         .getRawMany()

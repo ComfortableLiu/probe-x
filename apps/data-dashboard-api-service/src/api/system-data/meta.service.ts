@@ -26,14 +26,21 @@ export class MetaService {
   async getMetaOverview(date?: string): Promise<ISystemDataMetaOverview> {
     // 从ClickHouse查询元数据概览信息
     try {
+      // 验证日期格式
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error('Invalid date format. Expected YYYY-MM-DD')
+      }
+
       // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = '${date}'` : ''
+      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
+      const params = date ? { date } : {}
 
       // 查询原始数据总量
       const originalDataTotalResult = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM event_log
          WHERE 1 = 1 ${dateCondition}`,
+        params,
       )
       const originalDataTotal = this.formatCount(originalDataTotalResult[0]?.count || '0')
 
@@ -42,6 +49,7 @@ export class MetaService {
         `SELECT toString(count(*)) as count
          FROM final_event_log
          WHERE 1 = 1 ${dateCondition}`,
+        params,
       )
       const finalCleanedData = this.formatCount(finalCleanedDataResult[0]?.count || '0')
 
@@ -72,12 +80,22 @@ export class MetaService {
    */
   async getDataTrend(days: number = 7, startDate?: string, endDate?: string): Promise<ISystemDataTrend> {
     try {
+      // 验证日期格式
+      if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+        throw new Error('Invalid start date format. Expected YYYY-MM-DD')
+      }
+      if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+        throw new Error('Invalid end date format. Expected YYYY-MM-DD')
+      }
+
       // 构建日期范围查询
       let dateCondition = ''
+      let params: any = { days: days }
       if (startDate && endDate) {
-        dateCondition = `AND toDate(\`$service_time\`) BETWEEN '${startDate}' AND '${endDate}'`
+        dateCondition = `AND toDate(\`$service_time\`) BETWEEN {startDate:String} AND {endDate:String}`
+        params = { ...params, startDate, endDate }
       } else {
-        dateCondition = `AND toDate(\`$service_time\`) >= today() - ${days}`
+        dateCondition = `AND toDate(\`$service_time\`) >= today() - {days:Int32}`
       }
 
       // 查询按日期分组的数据量趋势
@@ -88,10 +106,11 @@ export class MetaService {
           SELECT toDate(\`$service_time\`) as date,
                  count(*)                  as count
           FROM event_log
-          WHERE toDate(\`$service_time\`) >= today() - ${days} ${dateCondition}
+          WHERE toDate(\`$service_time\`) >= today() - {days:Int32}
+          group by \`$service_time\` ${dateCondition}
           GROUP BY date
           ORDER BY date
-      `)
+      `, params)
 
       // 准备返回数据
       const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -135,8 +154,14 @@ export class MetaService {
    */
   async getCleaningStats(date?: string): Promise<ISystemDataCleaningStats> {
     try {
+      // 验证日期格式
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error('Invalid date format. Expected YYYY-MM-DD')
+      }
+
       // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = '${date}'` : ''
+      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
+      const params = date ? { date } : {}
 
       // 查询初次清洗统计
       const [firstCleanResult, finalCleanResult] = await Promise.all([
@@ -144,11 +169,13 @@ export class MetaService {
           `SELECT toString(count(*)) as count
            FROM event_log
            WHERE 1 = 1 ${dateCondition}`,
+          params,
         ),
         this.clickhouseService.query<{ count: string }>(
           `SELECT toString(count(*)) as count
            FROM final_event_log
            WHERE 1 = 1 ${dateCondition}`,
+          params,
         ),
       ])
 
@@ -183,14 +210,21 @@ export class MetaService {
    */
   async getFirstCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
     try {
+      // 验证日期格式
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error('Invalid date format. Expected YYYY-MM-DD')
+      }
+
       // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = '${date}'` : ''
+      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
+      const params = date ? { date } : {}
 
       // 查询初次清洗详情
       const result = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM event_log
          WHERE 1 = 1 ${dateCondition}`,
+        params,
       )
 
       const count = result[0]?.count || '0'
@@ -217,14 +251,21 @@ export class MetaService {
    */
   async getFinalCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
     try {
+      // 验证日期格式
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error('Invalid date format. Expected YYYY-MM-DD')
+      }
+
       // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = '${date}'` : ''
+      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
+      const params = date ? { date } : {}
 
       // 查询最终清洗详情
       const result = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM final_event_log
          WHERE 1 = 1 ${dateCondition}`,
+        params,
       )
 
       const count = result[0]?.count || '0'
