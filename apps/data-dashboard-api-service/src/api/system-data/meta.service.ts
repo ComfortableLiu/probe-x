@@ -7,13 +7,22 @@ import {
   ISystemDataTrend,
 } from '@probe-x/shared-types/src'
 
+/**
+ * 元数据服务
+ * 提供系统数据的元数据相关功能，包括数据概览、趋势分析、清洗统计等
+ */
 @Injectable()
-export class SystemDataService {
+export class MetaService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
   ) {
   }
 
+  /**
+   * 获取元数据概览信息
+   * @param date 指定日期，格式为 YYYY-MM-DD
+   * @returns ISystemDataMetaOverview 元数据概览信息
+   */
   async getMetaOverview(date?: string): Promise<ISystemDataMetaOverview> {
     // 从ClickHouse查询元数据概览信息
     try {
@@ -54,6 +63,13 @@ export class SystemDataService {
     }
   }
 
+  /**
+   * 获取数据趋势信息
+   * @param days 查询天数，默认7天
+   * @param startDate 开始日期，格式为 YYYY-MM-DD
+   * @param endDate 结束日期，格式为 YYYY-MM-DD
+   * @returns ISystemDataTrend 数据趋势信息
+   */
   async getDataTrend(days: number = 7, startDate?: string, endDate?: string): Promise<ISystemDataTrend> {
     try {
       // 构建日期范围查询
@@ -112,6 +128,11 @@ export class SystemDataService {
     }
   }
 
+  /**
+   * 获取清洗统计信息
+   * @param date 指定日期，格式为 YYYY-MM-DD
+   * @returns ISystemDataCleaningStats 清洗统计信息
+   */
   async getCleaningStats(date?: string): Promise<ISystemDataCleaningStats> {
     try {
       // 构建日期条件
@@ -155,6 +176,11 @@ export class SystemDataService {
     }
   }
 
+  /**
+   * 获取初次清洗详情
+   * @param date 指定日期，格式为 YYYY-MM-DD
+   * @returns ISystemDataCleaningDetail 初次清洗详情
+   */
   async getFirstCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
     try {
       // 构建日期条件
@@ -184,6 +210,11 @@ export class SystemDataService {
     }
   }
 
+  /**
+   * 获取最终清洗详情
+   * @param date 指定日期，格式为 YYYY-MM-DD
+   * @returns ISystemDataCleaningDetail 最终清洗详情
+   */
   async getFinalCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
     try {
       // 构建日期条件

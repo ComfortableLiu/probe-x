@@ -14,7 +14,7 @@ import dataAnalysisFunnelModel from "@pages/data-analysis/funnel/model"
 import dataAnalysisUserPathModel from "@pages/data-analysis/user-path/model"
 import dataAnalysisAttributionModel from "@pages/data-analysis/attribution/model"
 
-import analysisModel from "@pages/system-data/analysis/model"
+import systemDataAnalysisModel from "@pages/system-data/analysis/model"
 import computingNodeModel from "@pages/system-data/computing-node/model"
 import systemDataMetaModel from "@pages/system-data/meta/model"
 import systemDataOverviewModel from "@pages/system-data/overview/model"
@@ -38,10 +38,10 @@ export interface RootModel extends Models<RootModel> {
   dataAnalysisAttributionModel: typeof dataAnalysisAttributionModel
 
   // 系统数据
-  analysisModel: typeof analysisModel
   computingNodeModel: typeof computingNodeModel
   systemDataMetaModel: typeof systemDataMetaModel
   systemDataOverviewModel: typeof systemDataOverviewModel
+  systemDataAnalysisModel: typeof systemDataAnalysisModel
 }
 
 export const models: RootModel = {
@@ -57,8 +57,8 @@ export const models: RootModel = {
   dataAnalysisFunnelModel,
   dataAnalysisUserPathModel,
   dataAnalysisAttributionModel,
-  analysisModel,
   computingNodeModel,
   systemDataMetaModel,
   systemDataOverviewModel,
+  systemDataAnalysisModel,
 }

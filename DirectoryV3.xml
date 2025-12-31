@@ -69,4 +69,6 @@
           tooltipTitle="" icon="" textColor="" backgroundColor="" />
     <tree path="/apps/frontend/src/pages/system-data/computing-node" title="计算节点" />
     <tree path="/apps/frontend/src/pages/system-data/analysis" title="数分" />
+    <tree path="/apps/data-dashboard-api-service/src/api/system-data/analysis.service.ts" title="数分数据"/>
+    <tree path="/apps/data-dashboard-api-service/src/api/system-data/meta.service.ts" title="元数据"/>
 </trees>

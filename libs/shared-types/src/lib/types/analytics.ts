@@ -328,3 +328,39 @@ export type DataQualityLevel = 'excellent' | 'good' | 'fair' | 'poor' | 'critica
  * 异常严重程度
  */
 export type AnomalySeverity = 'low' | 'medium' | 'high' | 'critical';
+
+// 数据分析相关类型定义
+export interface IDataAnalysisStatistics {
+  queryCount: number;          // 查询次数
+  userCount: number;           // 查询人数
+  avgDuration: string;         // 查询平均耗时
+  failureRate: string;         // 查询失败率
+  queuedTasks: number;         // 正在排队中任务数
+  processingTasks: number;     // 计算中的任务数
+  terminatedTasks: number;     // 已终止的任务数
+  exportCount: number;         // 导出数据次数
+  exportUserCount: number;     // 导出数据人数
+}
+
+export interface IDataAnalysisTrend {
+  dates: string[];             // 日期数组
+  queryCounts: number[];       // 查询次数趋势
+  userCounts: number[];        // 查询人数趋势
+}
+
+export interface IDataAnalysisTask {
+  id: number;
+  taskName: string;
+  initiator: string;
+  status: string;
+  startTime: string;
+  endTime: string;
+  duration: string;
+}
+
+export interface ISystemDataAnalysisState {
+  data: IDataAnalysisTask[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
