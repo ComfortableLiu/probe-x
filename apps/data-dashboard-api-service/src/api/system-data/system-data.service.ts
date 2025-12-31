@@ -24,7 +24,7 @@ export class SystemDataService {
       const originalDataTotalResult = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM event_log
-         WHERE 1=1 ${dateCondition}`,
+         WHERE 1 = 1 ${dateCondition}`,
       )
       const originalDataTotal = this.formatCount(originalDataTotalResult[0]?.count || '0')
 
@@ -32,15 +32,15 @@ export class SystemDataService {
       const finalCleanedDataResult = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM final_event_log
-         WHERE 1=1 ${dateCondition}`,
+         WHERE 1 = 1 ${dateCondition}`,
       )
       const finalCleanedData = this.formatCount(finalCleanedDataResult[0]?.count || '0')
 
       // 查询初次清洗成功率
-      const firstCleaningSuccessRate = 99.99 // 实际应用中可能需要通过比较原始数据和初次清洗数据来计算
+      const firstCleaningSuccessRate = null // TODO 实际应用中可能需要通过比较原始数据和初次清洗数据来计算
 
       // 查询最终清洗成功率
-      const finalCleaningSuccessRate = 99.99 // 实际应用中可能需要通过比较初次清洗数据和最终清洗数据来计算
+      const finalCleaningSuccessRate = null // TODO 实际应用中可能需要通过比较初次清洗数据和最终清洗数据来计算
 
       return {
         originalDataTotal,
@@ -50,13 +50,7 @@ export class SystemDataService {
       }
     } catch (error) {
       console.error('Error fetching meta overview:', error)
-      // 返回默认值
-      return {
-        originalDataTotal: '123M',
-        finalCleanedData: '567M',
-        firstCleaningSuccessRate: 99.99,
-        finalCleaningSuccessRate: 99.99,
-      }
+      return null
     }
   }
 
@@ -76,7 +70,7 @@ export class SystemDataService {
         count: number;
       }>(`
           SELECT toDate(\`$service_time\`) as date,
-          count(*) as count
+                 count(*)                  as count
           FROM event_log
           WHERE toDate(\`$service_time\`) >= today() - ${days} ${dateCondition}
           GROUP BY date
@@ -100,7 +94,7 @@ export class SystemDataService {
           xAxis: dayNames.slice(0, days),
           series: [{
             name: '上报数据量',
-            data: [1000, 1200, 1100, 1300, 1500, 1400, 1600].slice(0, days),
+            data: [],
           }],
         }
       }
@@ -114,14 +108,7 @@ export class SystemDataService {
       }
     } catch (error) {
       console.error('Error fetching data trend:', error)
-      const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-      return {
-        xAxis: dayNames.slice(0, days),
-        series: [{
-          name: '上报数据量',
-          data: [1000, 1200, 1100, 1300, 1500, 1400, 1600].slice(0, days),
-        }],
-      }
+      return null
     }
   }
 
@@ -135,44 +122,36 @@ export class SystemDataService {
         this.clickhouseService.query<{ count: string }>(
           `SELECT toString(count(*)) as count
            FROM event_log
-           WHERE 1=1 ${dateCondition}`,
+           WHERE 1 = 1 ${dateCondition}`,
         ),
         this.clickhouseService.query<{ count: string }>(
           `SELECT toString(count(*)) as count
            FROM final_event_log
-           WHERE 1=1 ${dateCondition}`,
+           WHERE 1 = 1 ${dateCondition}`,
         ),
       ])
 
       const firstCleanCount = firstCleanResult[0]?.count || '0'
       const finalCleanCount = finalCleanResult[0]?.count || '0'
 
+      const firstSuccessRate = null
+      const finalSuccessRate = null
+
       return {
         firstCleaning: {
-          successRate: 99.99, // 实际应用中需要计算成功率
+          successRate: firstSuccessRate, // TODO 实际应用中需要计算成功率
           successCount: this.formatCount(firstCleanCount),
-          failCount: this.calculateFailCount(firstCleanCount, 99.99), // 假设失败率是0.01%
+          failCount: this.calculateFailCount(firstCleanCount, firstSuccessRate),
         },
         finalCleaning: {
-          successRate: 99.99, // 实际应用中需要计算成功率
+          successRate: finalSuccessRate, // TODO 实际应用中需要计算成功率
           successCount: this.formatCount(finalCleanCount),
-          failCount: this.calculateFailCount(finalCleanCount, 99.99), // 假设失败率是0.01%
+          failCount: this.calculateFailCount(finalCleanCount, finalSuccessRate),
         },
       }
     } catch (error) {
       console.error('Error fetching cleaning stats:', error)
-      return {
-        firstCleaning: {
-          successRate: 99.99,
-          successCount: '123M',
-          failCount: '123k',
-        },
-        finalCleaning: {
-          successRate: 99.99,
-          successCount: '567M',
-          failCount: '567k',
-        },
-      }
+      return null
     }
   }
 
@@ -185,25 +164,23 @@ export class SystemDataService {
       const result = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM event_log
-         WHERE 1=1 ${dateCondition}`,
+         WHERE 1 = 1 ${dateCondition}`,
       )
 
       const count = result[0]?.count || '0'
 
+      // TODO
+      const successRate = null
+
       return {
-        successRate: 99.99,
+        successRate,
         successCount: this.formatCount(count),
-        failCount: this.calculateFailCount(count, 99.99),
+        failCount: this.calculateFailCount(count, successRate),
         detailList: [], // 可以扩展更多详细信息
       }
     } catch (error) {
       console.error('Error fetching first cleaning detail:', error)
-      return {
-        successRate: 99.99,
-        successCount: '123M',
-        failCount: '123k',
-        detailList: [],
-      }
+      return null
     }
   }
 
@@ -216,25 +193,22 @@ export class SystemDataService {
       const result = await this.clickhouseService.query<{ count: string }>(
         `SELECT toString(count(*)) as count
          FROM final_event_log
-         WHERE 1=1 ${dateCondition}`,
+         WHERE 1 = 1 ${dateCondition}`,
       )
 
       const count = result[0]?.count || '0'
+      // TODO
+      const successRate = null
 
       return {
-        successRate: 99.99,
+        successRate,
         successCount: this.formatCount(count),
-        failCount: this.calculateFailCount(count, 99.99),
+        failCount: this.calculateFailCount(count, successRate),
         detailList: [], // 可以扩展更多详细信息
       }
     } catch (error) {
       console.error('Error fetching final cleaning detail:', error)
-      return {
-        successRate: 99.99,
-        successCount: '567M',
-        failCount: '567k',
-        detailList: [],
-      }
+      return null
     }
   }
 

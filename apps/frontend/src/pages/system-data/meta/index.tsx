@@ -2,30 +2,16 @@ import React, { useEffect, useRef, useState } from "react"
 import { Card, Col, DatePicker, Progress, Row, Spin, Statistic } from "antd"
 import * as styles from "./styles.module.scss"
 import * as echarts from "echarts"
-import { connect } from "react-redux"
+import { useDispatch } from "react-redux"
 import { ISystemDataMetaState } from "./type"
 import dayjs from "dayjs"
+import { useHistoryListener, useModel, useQuery, useRouter } from "@/hooks"
+import { Dispatch } from "@/store/storeContext"
 
 const { RangePicker } = DatePicker
 
-// 定义元数据页面组件的属性接口
-interface MetaProps {
-  // 系统数据元信息状态
-  systemDataMetaModel: ISystemDataMetaState;
-  // 获取元数据概览的方法
-  getMetaOverview: (params: { date?: string }) => void;
-  // 获取数据趋势的方法
-  getDataTrend: (params: { days?: number; startDate?: string; endDate?: string }) => void;
-  // 获取清洗统计的方法
-  getCleaningStats: (params: { date?: string }) => void;
-  // 获取初次清洗详情的方法
-  getFirstCleaningDetail: (params: { date?: string }) => void;
-  // 获取最终清洗详情的方法
-  getFinalCleaningDetail: (params: { date?: string }) => void;
-}
-
 // 元数据页面组件
-function Meta(props: MetaProps) {
+function Meta() {
   // 图表DOM引用
   const chartRef = useRef<HTMLDivElement>(null)
   // 图表实例引用
@@ -35,55 +21,69 @@ function Meta(props: MetaProps) {
   // 日期范围选择状态
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
-  // 从props中解构状态和方法
+  // 使用useModel获取状态
   const {
-    // 元数据概览信息
-    systemDataMetaModel: {
-      overview,
-      dataTrend,
-      cleaningStats,
-      firstCleaningDetail,
-      finalCleaningDetail,
-    },
-    // 获取元数据概览的方法
+    overview,
+    dataTrend,
+    cleaningStats,
+    firstCleaningDetail,
+    finalCleaningDetail,
+  } = useModel<ISystemDataMetaState>('systemDataMetaModel')
+
+  // 使用useRouter和useQuery获取路由参数
+  const { refresh } = useRouter()
+  const query = useQuery()
+
+  // 使用useDispatch获取dispatch方法
+  const dispatch = useDispatch<Dispatch>()
+
+  // 从dispatch中获取方法
+  const {
     getMetaOverview,
-    // 获取数据趋势的方法
     getDataTrend,
-    // 获取清洗统计的方法
     getCleaningStats,
-    // 获取初次清洗详情的方法
     getFirstCleaningDetail,
-    // 获取最终清洗详情的方法
     getFinalCleaningDetail,
-  } = props
+  } = dispatch.systemDataMetaModel
+
+  // 监听路由变化
+  useHistoryListener((location) => {
+    if (location.pathname === '/system-data/meta') {
+      fetchData()
+    }
+  })
 
   // 组件挂载时获取数据
   useEffect(() => {
-    // 异步获取所有页面数据
-    const fetchData = async () => {
-      setLoading(true)
-      try {
+    fetchData()
+  }, [])
+
+  // 获取数据函数
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      // 获取日期参数，优先使用查询参数
+      let dateStr = query.date
+      if (!dateStr) {
         // 默认获取昨天的数据
         const yesterday = dayjs().subtract(1, 'day')
-        const dateStr = yesterday.format('YYYY-MM-DD')
-
-        // 并行获取所有需要的数据
-        await Promise.all([
-          getMetaOverview({ date: dateStr }),
-          getDataTrend({ startDate: dateStr, endDate: dateStr }),
-          getCleaningStats({ date: dateStr }),
-          getFirstCleaningDetail({ date: dateStr }),
-          getFinalCleaningDetail({ date: dateStr }),
-        ])
-      } catch (error) {
-        console.error('获取数据失败:', error)
-      } finally {
-        setLoading(false)
+        dateStr = yesterday.format('YYYY-MM-DD')
       }
-    }
 
-    fetchData()
-  }, [getMetaOverview, getDataTrend, getCleaningStats, getFirstCleaningDetail, getFinalCleaningDetail])
+      // 并行获取所有需要的数据
+      await Promise.all([
+        getMetaOverview({ date: dateStr }),
+        getDataTrend({ startDate: dateStr, endDate: dateStr }),
+        getCleaningStats({ date: dateStr }),
+        getFirstCleaningDetail({ date: dateStr }),
+        getFinalCleaningDetail({ date: dateStr }),
+      ])
+    } catch (error) {
+      console.error('获取数据失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // 日期范围选择处理
   const handleDateChange = async (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
@@ -104,6 +104,9 @@ function Meta(props: MetaProps) {
           getFirstCleaningDetail({ date: startStr }),
           getFinalCleaningDetail({ date: startStr }),
         ])
+
+        // 更新查询参数
+        refresh({ date: startStr, startDate: startStr, endDate: endStr }, false)
       } else {
         // 如果没有选择日期，获取昨天的数据
         const yesterday = dayjs().subtract(1, 'day')
@@ -116,6 +119,9 @@ function Meta(props: MetaProps) {
           getFirstCleaningDetail({ date: dateStr }),
           getFinalCleaningDetail({ date: dateStr }),
         ])
+
+        // 清除查询参数
+        refresh({}, false)
       }
     } catch (error) {
       console.error('获取数据失败:', error)
@@ -258,7 +264,7 @@ function Meta(props: MetaProps) {
           <Card>
             <Statistic
               title="初次清洗成功率"
-              value={`${overview.firstCleaningSuccessRate}%`} // 显示初次清洗成功率
+              value={overview.firstCleaningSuccessRate ?? '-'} // 显示初次清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -269,7 +275,7 @@ function Meta(props: MetaProps) {
           <Card>
             <Statistic
               title="最终清洗成功率"
-              value={`${overview.finalCleaningSuccessRate}%`} // 显示最终清洗成功率
+              value={overview.finalCleaningSuccessRate ?? '-'} // 显示最终清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -296,7 +302,6 @@ function Meta(props: MetaProps) {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
-                  <span>{firstCleaningDetail.successRate}%</span> {/* 显示初次清洗成功率 */}
                 </div>
                 <Progress percent={firstCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
@@ -325,7 +330,6 @@ function Meta(props: MetaProps) {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
-                  <span>{finalCleaningDetail.successRate}%</span> {/* 显示最终清洗成功率 */}
                 </div>
                 <Progress percent={finalCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
@@ -351,20 +355,5 @@ function Meta(props: MetaProps) {
   )
 }
 
-// 连接Redux状态和组件
-export default connect(
-  // 映射状态到props
-  ({ systemDataMetaModel }) => ({ systemDataMetaModel }),
-  // 映射dispatch到props
-  (dispatch) => ({
-    getMetaOverview: (params: { date?: string }) => dispatch.systemDataMetaModel.getMetaOverview(params),
-    getDataTrend: (params: {
-      days?: number;
-      startDate?: string;
-      endDate?: string
-    }) => dispatch.systemDataMetaModel.getDataTrend(params),
-    getCleaningStats: (params: { date?: string }) => dispatch.systemDataMetaModel.getCleaningStats(params),
-    getFirstCleaningDetail: (params: { date?: string }) => dispatch.systemDataMetaModel.getFirstCleaningDetail(params),
-    getFinalCleaningDetail: (params: { date?: string }) => dispatch.systemDataMetaModel.getFinalCleaningDetail(params),
-  }),
-)(Meta)
+// 直接导出组件，不再使用connect高阶组件
+export default Meta
