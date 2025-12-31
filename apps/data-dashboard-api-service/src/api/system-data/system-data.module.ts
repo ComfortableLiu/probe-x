@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { SystemDataController } from './system-data.controller'
 import { AnalysisService } from './analysis.service'
 import { MetaService } from './meta.service'
+import { OverviewService } from './overview.service'
 import {
   ClickHouseModule,
   DataAnalysisAccessStatsEntity,
@@ -22,8 +23,8 @@ import { TypeOrmModule } from '@nestjs/typeorm'
     ]),
   ],
   controllers: [SystemDataController],
-  providers: [AnalysisService, MetaService],
-  exports: [AnalysisService, MetaService],
+  providers: [AnalysisService, MetaService, OverviewService],
+  exports: [AnalysisService, MetaService, OverviewService],
 })
 export class SystemDataModule {
 }

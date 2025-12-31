@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common'
 import { MetaService } from './meta.service'
 import { AnalysisService } from './analysis.service'
+import { OverviewService } from './overview.service'
 import {
   IDataAnalysisStatistics,
   IDataAnalysisTrend,
@@ -9,6 +10,7 @@ import {
   ISystemDataCleaningStats,
   ISystemDataMetaOverview,
   ISystemDataTrend,
+  ISystemDataOverviewResponse,
 } from '@probe-x/shared-types/src'
 
 @Controller('/system-data')
@@ -16,7 +18,13 @@ export class SystemDataController {
   constructor(
     private readonly metaService: MetaService,
     private readonly dataAnalysisService: AnalysisService,
+    private readonly overviewService: OverviewService,
   ) {
+  }
+
+  @Get('overview')
+  async getSystemDataOverview(): Promise<ISystemDataOverviewResponse> {
+    return await this.overviewService.getSystemDataOverview()
   }
 
   @Get('meta/overview')

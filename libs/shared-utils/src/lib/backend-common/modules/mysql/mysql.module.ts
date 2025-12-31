@@ -9,6 +9,7 @@ function extractEntities(): any[] {
 
   // 遍历entity模块的所有导出
   for (const key in entityModule) {
+    // @ts-ignore
     const entity = entityModule[key]
     // 检查是否为类定义
     if (entity &&
@@ -28,14 +29,11 @@ function extractEntities(): any[] {
 
 const allEntities = extractEntities()
 
-console.log('l--==-=-=-', allEntities)
-
 @Module({
   exports: [TypeOrmModule],
 })
 export class MysqlModule {
   static forRoot(additionalEntities?: any[]): DynamicModule {
-    console.log('lll--l==l-=l', additionalEntities)
     return {
       module: MysqlModule,
       imports: [
