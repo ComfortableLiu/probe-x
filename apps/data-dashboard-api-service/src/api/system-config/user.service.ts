@@ -1,25 +1,18 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, In } from 'typeorm'
+import { In, Repository } from 'typeorm'
+import { ResponseData, Role, UserEntity, UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common'
 import {
-  ResponseData,
-  Role,
-  UserEntity,
-  UserRoleRelation,
-} from '@probe-x/shared-utils/src/lib/backend-common'
-import {
-  IQueryUserListReq,
-  IQueryUserListRes,
-  IUserListItem,
+  IAssignRolesRes,
   ICreateUserReq,
   ICreateUserRes,
+  IQueryRoleListRes,
+  IQueryUserListReq,
+  IQueryUserListRes,
+  IResetPasswordRes,
   IUpdateUserReq,
   IUpdateUserRes,
-  IResetPasswordReq,
-  IResetPasswordRes,
-  IAssignRolesReq,
-  IAssignRolesRes,
-  IQueryRoleListRes,
+  IUserListItem,
 } from '@probe-x/shared-types/src'
 import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'

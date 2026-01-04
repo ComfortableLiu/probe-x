@@ -134,3 +134,122 @@ export interface IRoleOption {
  */
 export type IQueryRoleListRes = IRoleOption[]
 
+/**
+ * 查询角色列表请求参数（管理页面）
+ */
+export interface IQueryRoleManageListReq extends IPageQuery {
+  roleName?: string
+  roleKey?: string
+  isSystemRole?: boolean
+}
+
+/**
+ * 角色管理列表项
+ */
+export interface IRoleManageListItem {
+  id: number
+  roleKey: string
+  roleName: string
+  description?: string
+  isSystemRole: boolean
+  isEnable: boolean
+  permissionCount: number
+  userCount: number
+  createTime?: Date
+  updateTime?: Date
+}
+
+/**
+ * 查询角色管理列表响应
+ */
+export type IQueryRoleManageListRes = IPageResult<IRoleManageListItem>
+
+/**
+ * 创建角色请求参数
+ */
+export interface ICreateRoleReq {
+  roleKey: string
+  roleName: string
+  description?: string
+  permissionIds?: number[]
+}
+
+/**
+ * 创建角色响应数据
+ */
+export interface ICreateRoleRes {
+  id: number
+  roleKey: string
+  roleName: string
+  description?: string
+}
+
+/**
+ * 更新角色请求参数
+ */
+export interface IUpdateRoleReq {
+  id: number
+  roleName?: string
+  description?: string
+  isEnable?: boolean
+  permissionIds?: number[]
+}
+
+/**
+ * 更新角色响应数据
+ */
+export interface IUpdateRoleRes {
+  id: number
+  roleKey: string
+  roleName: string
+  description?: string
+  isEnable: boolean
+}
+
+/**
+ * 删除角色请求参数
+ */
+export interface IDeleteRoleReq {
+  id: number
+}
+
+/**
+ * 删除角色响应数据
+ */
+export interface IDeleteRoleRes {
+  id: number
+}
+
+/**
+ * 分配权限请求参数
+ */
+export interface IAssignPermissionsReq {
+  roleId: number
+  permissionIds: number[]
+}
+
+/**
+ * 分配权限响应数据
+ */
+export interface IAssignPermissionsRes {
+  roleId: number
+  permissionIds: number[]
+}
+
+/**
+ * 权限选项
+ */
+export interface IPermissionOption {
+  id: number
+  permissionKey: string
+  permissionName: string
+  description?: string
+}
+
+/**
+ * 查询权限列表响应
+ */
+export interface IQueryPermissionListRes {
+  data: IPermissionOption[]
+}
+
