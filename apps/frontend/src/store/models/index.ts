@@ -19,6 +19,8 @@ import computingNodeModel from "@pages/system-data/computing-node/model"
 import systemDataMetaModel from "@pages/system-data/meta/model"
 import systemDataOverviewModel from "@pages/system-data/overview/model"
 
+import systemConfigUserManageModel from "@pages/system-config/user/model"
+
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
   userModel: typeof userModel
@@ -42,6 +44,9 @@ export interface RootModel extends Models<RootModel> {
   systemDataMetaModel: typeof systemDataMetaModel
   systemDataOverviewModel: typeof systemDataOverviewModel
   systemDataAnalysisModel: typeof systemDataAnalysisModel
+
+  // 系统配置
+  systemConfigUserManageModel: typeof systemConfigUserManageModel
 }
 
 export const models: RootModel = {
@@ -61,4 +66,5 @@ export const models: RootModel = {
   systemDataMetaModel,
   systemDataOverviewModel,
   systemDataAnalysisModel,
+  systemConfigUserManageModel,
 }
