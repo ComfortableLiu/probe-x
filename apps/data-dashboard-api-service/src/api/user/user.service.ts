@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository, SelectQueryBuilder } from "typeorm"
-import { timingSafeEqual } from "node:crypto"
+import { timingSafeEqual, createHmac } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
 import {
   Permission,
@@ -12,7 +12,7 @@ import {
   UserEntity,
   UserRoleRelation,
 } from "@probe-x/shared-utils/src/lib/backend-common"
-import { IPermissionRes, IUser } from "@probe-x/shared-types/src"
+import { IPermissionRes, IUser, IUpdateUserProfileReq, IUpdateUserProfileRes, IChangePasswordReq, IChangePasswordRes } from "@probe-x/shared-types/src"
 import { ConfigService } from "@nestjs/config"
 
 @Injectable()
@@ -110,9 +110,20 @@ export class UserService {
    * 获取所有的角色和权限
    */
   async getAllRoleAndPermission(): Promise<IPermissionRes> {
+    const roles = await this.roleRepo.find()
+    const permissions = await this.permissionRepo.find()
+    
     return {
-      roles: await this.roleRepo.find(),
-      allPermissions: await this.permissionRepo.find(),
+      roles: roles.map(role => ({
+        id: role.id!,
+        roleName: role.roleName!,
+        roleKey: role.roleKey!,
+      })),
+      allPermissions: permissions.map(permission => ({
+        id: permission.id!,
+        permissionKey: permission.permissionKey!,
+        permissionName: permission.permissionName!,
+      })),
     }
   }
 
@@ -154,8 +165,13 @@ export class UserService {
    * @returns 密码是否匹配
    */
   private checkPassword(password: string, hash: string): boolean {
-    // 使用bcrypt比较密码
-    return this.safeCompare(password, hash)
+    // 使用与登录相同的 HMAC-SHA512 加密方式
+    const salt = this.configService.get<string>('login.salt') || ''
+    const secret = this.configService.get<string>('login.secret') || ''
+    const hmac = createHmac('sha512', secret)
+    hmac.update(password + salt)
+    const passwordHash = hmac.digest('hex')
+    return this.safeCompare(passwordHash, hash)
   }
 
   private safeCompare(a: string, b: string): boolean {
@@ -163,5 +179,122 @@ export class UserService {
     const bufferB = Buffer.from(b)
     return bufferA.length === bufferB.length &&
       timingSafeEqual(bufferA, bufferB)
+  }
+
+  /**
+   * 获取当前用户信息
+   */
+  async getCurrentUser(userId: number): Promise<ResponseData<IUser>> {
+    const user = await this.userRepository.findOne({
+      where: { userId },
+    })
+
+    if (!user) {
+      return ResponseData.error('用户不存在')
+    }
+
+    const result: IUser = {
+      ...user,
+      passwordHash: '*******',
+    }
+    return ResponseData.success(result)
+  }
+
+  /**
+   * 更新用户个人信息
+   */
+  async updateUserProfile(userId: number, data: { email?: string; nickname?: string }): Promise<ResponseData<IUser>> {
+    // 参数验证
+    if (!data.email && !data.nickname) {
+      return ResponseData.error('至少需要更新一个字段')
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { userId },
+    })
+
+    if (!user) {
+      return ResponseData.error('用户不存在')
+    }
+
+    if (data.email !== undefined) {
+      // 邮箱格式验证
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(data.email)) {
+        return ResponseData.error('邮箱格式不正确')
+      }
+      // 检查邮箱是否已被其他用户使用
+      const existingUser = await this.userRepository.findOne({
+        where: { email: data.email },
+      })
+      if (existingUser && existingUser.userId !== userId) {
+        return ResponseData.error('邮箱已被其他用户使用')
+      }
+      user.email = data.email
+    }
+
+    if (data.nickname !== undefined) {
+      // 昵称长度验证
+      if (data.nickname.length > 50) {
+        return ResponseData.error('昵称长度不能超过50个字符')
+      }
+      user.nickname = data.nickname
+    }
+
+    await this.userRepository.save(user)
+
+    const result: IUser = {
+      ...user,
+      passwordHash: '*******',
+    }
+    return ResponseData.success(result)
+  }
+
+  /**
+   * 修改密码
+   */
+  async changePassword(userId: number, oldPassword: string, newPassword: string): Promise<ResponseData<{ userId: number }>> {
+    // 参数验证
+    if (!oldPassword || !newPassword) {
+      return ResponseData.error('旧密码和新密码不能为空')
+    }
+
+    if (oldPassword === newPassword) {
+      return ResponseData.error('新密码不能与旧密码相同')
+    }
+
+    // 密码长度验证
+    if (newPassword.length < 6) {
+      return ResponseData.error('新密码长度至少6个字符')
+    }
+
+    if (newPassword.length > 50) {
+      return ResponseData.error('新密码长度不能超过50个字符')
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { userId },
+    })
+
+    if (!user) {
+      return ResponseData.error('用户不存在')
+    }
+
+    // 验证旧密码
+    if (!this.checkPassword(oldPassword, user.passwordHash || '')) {
+      return ResponseData.error('旧密码错误')
+    }
+
+    // 加密新密码（使用与登录相同的加密方式）
+    const salt = this.configService.get<string>('login.salt') || ''
+    const secret = this.configService.get<string>('login.secret') || ''
+    const hmac = createHmac('sha512', secret)
+    hmac.update(newPassword + salt)
+    const newPasswordHash = hmac.digest('hex')
+
+    user.passwordHash = newPasswordHash
+    await this.userRepository.save(user)
+
+    return ResponseData.success({ userId })
   }
 }
