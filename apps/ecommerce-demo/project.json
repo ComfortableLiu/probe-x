@@ -5,68 +5,10 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/rspack:rspack",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "outputPath": "dist/apps/ecommerce-demo",
-        "main": "apps/ecommerce-demo/src/main.jsx",
-        "tsConfig": "apps/ecommerce-demo/tsconfig.app.json",
-        "assets": [
-          "apps/ecommerce-demo/src/favicon.ico",
-          "apps/ecommerce-demo/src/assets"
-        ],
-        "index": "apps/ecommerce-demo/src/index.html",
-        "baseHref": "/ecommerce-demo/",
-        "styles": [
-          "apps/ecommerce-demo/src/styles.css"
-        ],
-        "isolatedConfig": true,
-        "rspackConfig": "apps/ecommerce-demo/rspack.config.ts",
-        "skipTypeCheck": true,
-        "typeCheck": false,
-        "isolatedConfig": true
-      },
-      "configurations": {
-        "development": {
-          "extractLicenses": false,
-          "optimization": false,
-          "sourceMap": true,
-          "vendorChunk": true
-        },
-        "production": {
-          "fileReplacements": [
-            {
-              "replace": "apps/ecommerce-demo/src/environments/environment.ts",
-              "with": "apps/ecommerce-demo/src/environments/environment.prod.ts"
-            }
-          ],
-          "optimization": true,
-          "outputHashing": "all",
-          "sourceMap": false,
-          "namedChunks": false,
-          "extractLicenses": true,
-          "vendorChunk": false
-        }
-      }
+      "command": "cd apps/ecommerce-demo && yarn run build"
     },
     "serve": {
-      "executor": "@nx/rspack:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "ecommerce-demo:build",
-        "hmr": true,
-        "liveReload": true
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "ecommerce-demo:build:development"
-        },
-        "production": {
-          "buildTarget": "ecommerce-demo:build:production",
-          "hmr": false
-        }
-      }
+      "command": "cd apps/ecommerce-demo && yarn run dev"
     },
     "test": {
       "executor": "@nx/jest:jest",

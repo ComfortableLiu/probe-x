@@ -5,6 +5,7 @@ import zhCN from 'antd/locale/zh_CN';
 import { Layout } from 'antd';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import DevTools from './components/DevTools';
 import HomePage from './pages/HomePage';
 import ProductListPage from './pages/ProductListPage';
 import ProductDetailPage from './pages/ProductDetailPage';
@@ -44,6 +45,7 @@ const App: React.FC = () => {
             <Footer />
           </Layout>
         </Router>
+        <DevTools />
       </div>
     </ConfigProvider>
   );

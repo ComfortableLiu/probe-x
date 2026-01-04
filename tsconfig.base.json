@@ -28,6 +28,10 @@
       ],
       "@shared-types": [
         "lib/shared-types/src/index.ts"
+      ],
+      "@probe-x/web-sdk": [
+        "dist/apps/web-sdk/probe-x-sdk.d.ts",
+        "apps/web-sdk/src/index.ts"
       ]
     }
   }

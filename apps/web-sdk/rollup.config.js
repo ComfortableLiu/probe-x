@@ -5,8 +5,16 @@ import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 import copy from 'rollup-plugin-copy';
 
-import { readFileSync } from 'fs';
+import {readFileSync} from 'fs';
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
+
+const __filename = fileURLToPath(import.meta.url)
+const receivingPointServicePath = path.dirname(__filename)
+// 根目录路径
+const rootDir = path.resolve(receivingPointServicePath, '../..')
 
 const baseConfig = {
   input: 'src/index.ts',
@@ -30,7 +38,7 @@ export default [
   {
     ...baseConfig,
     output: {
-      file: 'dist/probe-x-sdk.js',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.js'),
       format: 'umd',
       name: 'ProbeX',
       sourcemap: true,
@@ -55,7 +63,7 @@ export default [
       }),
     ],
     output: {
-      file: 'dist/probe-x-sdk.min.js',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.min.js'),
       format: 'umd',
       name: 'ProbeX',
       sourcemap: true,
@@ -68,7 +76,7 @@ export default [
   {
     ...baseConfig,
     output: {
-      file: 'dist/probe-x-sdk.esm.js',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.esm.js'),
       format: 'es',
       sourcemap: true,
     },
@@ -77,7 +85,7 @@ export default [
   {
     ...baseConfig,
     output: {
-      file: 'dist/probe-x-sdk.cjs.js',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.cjs.js'),
       format: 'cjs',
       sourcemap: true,
     },
@@ -86,7 +94,7 @@ export default [
   {
     input: 'src/index.ts',
     output: {
-      file: 'dist/probe-x-sdk.d.ts',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.d.ts'),
       format: 'es',
     },
     plugins: [dts()],
@@ -95,14 +103,19 @@ export default [
   {
     input: 'src/index.ts',
     output: {
-      file: 'dist/temp.js',
+      file: path.resolve(rootDir, 'dist/apps/web-sdk/temp.js'),
       format: 'es',
     },
     plugins: [
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+      }),
       copy({
         targets: [
-          { src: 'README.md', dest: 'dist' },
-          { src: 'examples/**/*', dest: 'dist/examples' },
+          { src: 'README.md', dest: path.resolve(rootDir, 'dist/apps/web-sdk') },
+          { src: 'examples/**/*', dest: path.resolve(rootDir, 'dist/apps/web-sdk/examples') },
         ],
       }),
     ],
