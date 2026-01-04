@@ -1,4 +1,5 @@
 export * from "./request"
+export * from "./user"
 export * from "./property"
 export * from "./event"
 export * from "./tracking"

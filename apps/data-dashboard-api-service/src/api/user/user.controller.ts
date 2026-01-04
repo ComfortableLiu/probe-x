@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, Query, UnauthorizedException } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common'
 import { UserService } from './user.service'
-import type { IPermissionRes, IUser } from "@probe-x/shared-types/src/index"
-import { User } from "@probe-x/shared-utils/src/lib/backend-common"
+import type { IPermissionRes, IUser, IUpdateUserProfileReq, IUpdateUserProfileRes, IChangePasswordReq, IChangePasswordRes } from "@probe-x/shared-types/src/index"
+import { User, ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
 import { AuthService } from "@src/service/auth.service"
 import { ErrorCode } from "@probe-x/shared-utils/src"
+import { JwtAuthGuard } from "./JwtAuthGuard"
 
 @Controller('user')
 export class UserController {
@@ -19,6 +20,7 @@ export class UserController {
   }
 
   @Get('rolePermissionList')
+  @UseGuards(JwtAuthGuard)
   async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
     // 超管特判
     if (user.userId === 1) {
@@ -45,5 +47,38 @@ export class UserController {
       refreshToken: newRefreshToken,
       userInfo,
     }
+  }
+
+  /**
+   * 获取当前用户信息
+   */
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@User() user: IUser): Promise<ResponseData<IUser>> {
+    return await this.userService.getCurrentUser(user.userId!)
+  }
+
+  /**
+   * 更新用户个人信息
+   */
+  @Post('profile/update')
+  @UseGuards(JwtAuthGuard)
+  async updateUserProfile(
+    @User() user: IUser,
+    @Body() body: IUpdateUserProfileReq,
+  ): Promise<ResponseData<IUpdateUserProfileRes>> {
+    return await this.userService.updateUserProfile(user.userId!, body)
+  }
+
+  /**
+   * 修改密码
+   */
+  @Post('changePassword')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @User() user: IUser,
+    @Body() body: IChangePasswordReq,
+  ): Promise<ResponseData<IChangePasswordRes>> {
+    return await this.userService.changePassword(user.userId!, body.oldPassword, body.newPassword)
   }
 }
