@@ -5,8 +5,8 @@ import { ISystemDataComputingNodeState } from "./type"
 const initState: ISystemDataComputingNodeState = {
 }
 
-const ISystemDataComputingNodeState = createModel<RootModel>()({
-  name: 'ISystemDataComputingNodeState',
+const SystemDataComputingNodeModel = createModel<RootModel>()({
+  name: 'SystemDataComputingNodeModel',
   state: initState,
   reducers: {
     updateItem(state, payload) {
@@ -20,4 +20,4 @@ const ISystemDataComputingNodeState = createModel<RootModel>()({
   }),
 })
 
-export default ISystemDataComputingNodeState
+export default SystemDataComputingNodeModel

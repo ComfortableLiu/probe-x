@@ -106,8 +106,7 @@ export class MetaService {
           SELECT toDate(\`$service_time\`) as date,
                  count(*)                  as count
           FROM event_log
-          WHERE toDate(\`$service_time\`) >= today() - {days:Int32}
-          group by \`$service_time\` ${dateCondition}
+          WHERE toDate(\`$service_time\`) >= today() - {days:Int32} ${dateCondition}
           GROUP BY date
           ORDER BY date
       `, params)
