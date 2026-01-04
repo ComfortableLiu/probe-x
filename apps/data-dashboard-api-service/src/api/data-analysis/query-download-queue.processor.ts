@@ -2,10 +2,11 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Job } from 'bullmq'
 import ExcelJS from 'exceljs'
 import { ClickHouseService, MinioService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
-import { DimensionLayer } from "@probe-x/shared-types/src"
 import { DOWNLOAD_TASK_KEY, IDownloadTask, QUEUE_NAME } from "@src/api/data-analysis/type"
 import dayjs from "dayjs"
 import { PassThrough } from "node:stream"
+import { DataAnalysisRecordService } from "./record.service"
+import { Inject } from "@nestjs/common"
 
 @Processor(QUEUE_NAME)
 export class QueryDownloadQueueProcessor extends WorkerHost {
@@ -14,6 +15,7 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
     private redisService: RedisService,
     private clickHouseService: ClickHouseService,
     private minioService: MinioService,
+    @Inject(DataAnalysisRecordService) private dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
     super()
   }
@@ -29,7 +31,7 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
     const redisKey = DOWNLOAD_TASK_KEY + taskId
 
     try {
-      const result = await this.clickHouseService.query<DimensionLayer>(sql, sqlParams)
+      const result = await this.clickHouseService.query<any>(sql, sqlParams)
 
       // 创建 Excel 工作簿
       const workbook = new ExcelJS.Workbook()
@@ -64,12 +66,16 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
       // 生成 MinIO 预签名下载链接（默认有效期 30分钟）
       const downloadUrl = await this.minioService.getPresignedDownloadUrl(fileKey)
 
-      // 更新任务状态为“成功”，存储下载链接
+      // 更新任务状态为"成功"，存储下载链接
       await this.redisService.set(redisKey, {
         ...job.data,
         downloadUrl,
         status: 'SUCCESS',
       }, 30 * 60)
+
+      // 更新任务记录
+      const resultSize = Array.isArray(result) ? result.length : 0
+      await this.dataAnalysisRecordService.updateTaskStatus(taskId, 2, resultSize, undefined, Math.floor((Date.now() - createTime) / 1000))
 
       // 实时推送结果到前端
       // if (global.io) {
@@ -84,11 +90,14 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
     } catch (error) {
       console.error(`任务 ${taskId} 执行失败：`, error)
 
-      // 更新任务状态为“失败”，存储错误信息
+      // 更新任务状态为"失败"，存储错误信息
       await this.redisService.set(redisKey, {
         ...job.data,
         status: 'FAIL',
       }, 30 * 60)
+
+      // 更新任务记录为失败状态
+      await this.dataAnalysisRecordService.updateTaskStatus(taskId, 3, undefined, error.message)
 
       // TODO 推送失败通知到前端
       // if (global.io) {

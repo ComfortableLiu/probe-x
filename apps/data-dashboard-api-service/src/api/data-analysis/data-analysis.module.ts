@@ -10,18 +10,30 @@ import { EventAnalysisService } from "./event-analysis.service"
 import { FunnelAnalysisService } from "./funnel-analysis.service"
 import { UserPathAnalysisService } from "./user-path-analysis.service"
 import { AttributionAnalysisService } from "./attribution-analysis.service"
+import { DataAnalysisRecordService } from "./record.service"
+import {
+  DataAnalysisAccessStatsEntity,
+  DataAnalysisExportLogEntity,
+  DataAnalysisQueryStatsEntity,
+  DataAnalysisTaskLogEntity,
+} from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([]),
+    TypeOrmModule.forFeature([
+      DataAnalysisTaskLogEntity,
+      DataAnalysisQueryStatsEntity,
+      DataAnalysisExportLogEntity,
+      DataAnalysisAccessStatsEntity,
+    ]),
     UserModule,
     ClickHouseModule,
     BullModule.registerQueue({ name: QUEUE_NAME }),
     MinIOModule,
   ],
   controllers: [DataAnalysisController],
-  providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, QueryDownloadQueueProcessor],
-  exports: [],
+  providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, QueryDownloadQueueProcessor, DataAnalysisRecordService],
+  exports: [DataAnalysisRecordService],
 })
 export class DataAnalysisModule {
 }

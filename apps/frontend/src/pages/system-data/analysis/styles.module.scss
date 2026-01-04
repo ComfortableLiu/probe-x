@@ -1,0 +1,137 @@
+.container {
+  padding: 20px;
+  background-color: #f0f2f5;
+  min-height: 100%;
+}
+
+.header {
+  margin-bottom: 20px;
+
+  h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #1890ff;
+  }
+}
+
+.statisticRow {
+  margin-bottom: 20px;
+}
+
+.statisticCard {
+  :global(.ant-card-body) {
+    padding: 12px;
+  }
+
+  :global(.ant-statistic) {
+    .ant-statistic-title {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .ant-statistic-content {
+      font-size: 18px;
+
+      .ant-statistic-content-value {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+.chartRow {
+  margin-bottom: 20px;
+}
+
+.card {
+  margin-bottom: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  :global(.ant-card-body) {
+    padding: 20px;
+  }
+
+  :global(.ant-card-head) {
+    min-height: 40px;
+    padding: 0 16px;
+
+    .ant-card-head-title {
+      padding: 8px 0;
+      font-size: 16px;
+    }
+  }
+}
+
+.chartPlaceholder {
+  height: 300px;
+  background-color: #ffffff;
+  border: 1px dashed #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.datePickerContainer {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.table {
+  :global(.ant-table-wrapper) {
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  :global(.ant-table-thead > tr > th) {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #555;
+  }
+
+  :global(.ant-table-tbody > tr:hover) {
+    background-color: #f5f7fa;
+  }
+
+  :global(.ant-table-pagination) {
+    margin-top: 20px;
+    text-align: right;
+  }
+}
+
+.formRow {
+  margin-bottom: 10px;
+}
+
+.searchActions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.tabs {
+  :global(.ant-tabs-content-holder) {
+    padding: 20px 0;
+  }
+
+  :global(.ant-tabs-tab) {
+    font-weight: 500;
+  }
+}
+
+.statusSuccess {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.statusFailed {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+:global(.ant-form-item-label) {
+  label {
+    font-weight: 500;
+  }
+}

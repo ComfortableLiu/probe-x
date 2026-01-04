@@ -4,23 +4,26 @@ import {
   generateAttributionAnalysisSql,
   ISqlGenerateResult,
 } from "@src/api/data-analysis/AttributionAnalysisSqlBuilder"
-
 import {
   IAttributionAnalysisReq,
   IAttributionAnalysisRes,
   IAttributionRawRow,
   IAttributionTableHeader,
   IAttributionTableRow,
+  IUser,
 } from "@probe-x/shared-types/src"
+import { DataAnalysisRecordService } from "./record.service"
+import { Inject } from "@nestjs/common"
 
 @Injectable()
 export class AttributionAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
+    @Inject(DataAnalysisRecordService) private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
 
-  async queryEvent(data: IAttributionAnalysisReq): Promise<IAttributionAnalysisRes> {
+  async queryEvent(data: IAttributionAnalysisReq, user: IUser): Promise<IAttributionAnalysisRes> {
     // 1. 基础校验
     if (!data) throw new Error('入参不能为空')
     if (!data.attributionModel) throw new Error('归因模型不能为空')

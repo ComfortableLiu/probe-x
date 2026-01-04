@@ -14,10 +14,10 @@ export default {
     key: 'system-data-overview',
     component: lazy(() => import('@pages/system-data/overview/index')),
   }, {
-    path: '/system-data/kafka',
-    name: 'Kafka',
-    key: 'system-data-kafka',
-    component: lazy(() => import('@pages/system-data/kafka/index')),
+    path: '/system-data/analysis',
+    name: '数分数据',
+    key: 'system-data-analysis',
+    component: lazy(() => import('@pages/system-data/analysis/index')),
   }, {
     path: '/system-data/meta',
     name: '元数据',
@@ -28,5 +28,13 @@ export default {
     name: '计算节点',
     key: 'system-data-computing-node',
     component: lazy(() => import('@pages/system-data/computing-node/index')),
+  }, {
+    path: '/system-data/computing-node/:nodeId/logs',
+    name: '计算节点日志',
+    key: 'system-data-computing-node-logs',
+    component: lazy(() => import('@pages/system-data/computing-node/components/log')),
+    meta: {
+      isHidden: true,
+    },
   }],
 } as IRouteItem

@@ -1,0 +1,24 @@
+.computing-node-tree-container {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f9fafb;
+  padding: 20px; // 添加内边距以确保文字可见
+}
+
+.clickable-node {
+  cursor: pointer;
+}
+
+.blinking-light {
+  animation: blink 1.5s infinite ease-in-out;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

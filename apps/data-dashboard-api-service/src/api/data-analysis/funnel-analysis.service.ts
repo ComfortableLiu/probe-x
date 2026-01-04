@@ -1,16 +1,19 @@
 import { Injectable } from '@nestjs/common'
-import { IFunnelAnalysisReq, IFunnelAnalysisRes } from "@probe-x/shared-types/src"
+import { IFunnelAnalysisReq, IFunnelAnalysisRes, IUser } from "@probe-x/shared-types/src"
 import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { generateFunnelAnalysisSql } from "./FunnelAnalysisSqlBuilder"
+import { DataAnalysisRecordService } from "./record.service"
+import { Inject } from "@nestjs/common"
 
 @Injectable()
 export class FunnelAnalysisService {
   constructor(
     private readonly clickhouseService: ClickHouseService,
+    @Inject(DataAnalysisRecordService) private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
 
-  async queryEvent(data: IFunnelAnalysisReq): Promise<IFunnelAnalysisRes> {
+  async queryEvent(data: IFunnelAnalysisReq, user: IUser): Promise<IFunnelAnalysisRes> {
     // 拼接SQL语句
     const { sql, params, error } = generateFunnelAnalysisSql(data)
 
