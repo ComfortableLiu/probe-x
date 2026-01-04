@@ -454,7 +454,7 @@ probeX.use(new CustomPlugin(), { option1: 'value1' });
 import { ProbeX, Utils } from '@probe-x/web-sdk';
 
 // 或者使用tree-shaking
-import ProbeX from '@probe-x/web-sdk/dist/probe-x-sdk.esm.js';
+import ProbeX from '@probe-x/web-sdk';
 ```
 
 ### 异步加载

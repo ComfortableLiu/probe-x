@@ -5,13 +5,18 @@
   "main": "index.js",
   "scripts": {
     "start": "nx serve ecommerce-demo",
-    "build": "nx build ecommerce-demo",
-    "dev": "nx serve ecommerce-demo",
+    "build": "cross-env NODE_ENV=production rspack build",
+    "dev": "cross-env NODE_ENV=development rspack dev",
     "test": "nx test ecommerce-demo",
     "lint": "nx lint ecommerce-demo"
   },
   "dependencies": {
-    "@ant-design/icons": "^5.2.0"
+    "@ant-design/icons": "^5.2.0",
+    "@probe-x/web-sdk": "workspace: *",
+    "antd": "^5.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.7.1"
   },
   "keywords": [
     "ecommerce",

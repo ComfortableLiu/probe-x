@@ -24,7 +24,13 @@
     "resolveJsonModule": true,
     "checkJs": false,
     "allowUnreachableCode": true,
-    "allowUnusedLabels": true
+    "allowUnusedLabels": true,
+    "paths": {
+      "@probe-x/web-sdk": [
+        "../../dist/apps/web-sdk/probe-x-sdk.d.ts",
+        "../web-sdk/src/index.ts"
+      ]
+    }
   },
   "files": [
     "../../node_modules/@nx/react/typings/cssmodule.d.ts",

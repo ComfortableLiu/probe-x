@@ -3,19 +3,18 @@
   "version": "1.0.0",
   "description": "Probe-X Web SDK - 埋点数据收集SDK (TypeScript版本)",
   "type": "module",
-  "main": "dist/probe-x-sdk.js",
-  "module": "dist/probe-x-sdk.esm.js",
-  "types": "dist/probe-x-sdk.d.ts",
+  "main": "../../dist/apps/web-sdk/probe-x-sdk.js",
+  "module": "../../dist/apps/web-sdk/probe-x-sdk.esm.js",
+  "types": "../../dist/apps/web-sdk/probe-x-sdk.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/probe-x-sdk.d.ts",
-      "import": "./dist/probe-x-sdk.esm.js",
-      "require": "./dist/probe-x-sdk.cjs.js",
-      "default": "./dist/probe-x-sdk.js"
+      "types": "../../dist/apps/web-sdk/probe-x-sdk.d.ts",
+      "import": "../../dist/apps/web-sdk/probe-x-sdk.esm.js",
+      "require": "../../dist/apps/web-sdk/probe-x-sdk.cjs.js",
+      "default": "../../dist/apps/web-sdk/probe-x-sdk.js"
     }
   },
   "files": [
-    "dist",
     "README.md"
   ],
   "scripts": {
