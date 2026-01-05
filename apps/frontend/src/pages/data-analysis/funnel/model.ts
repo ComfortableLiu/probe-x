@@ -5,7 +5,7 @@ import { isEmpty } from "@probe-x/shared-utils/src"
 import { message } from "antd"
 import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/type"
 import { windowPeriodValue } from "@pages/data-analysis/components/WindowPeriod/utils"
-import { submitQueryTask } from "@pages/data-analysis/funnel/services"
+import { queryDownloadTask, submitDownloadTask, submitQueryTask } from "@pages/data-analysis/funnel/services"
 
 const initState: IDataAnalysisFunnelState = {}
 
@@ -79,6 +79,27 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
         data,
         updateTime: new Date(),
       })
+    },
+    // 下载数据
+    async downloadData() {
+      const query = getParamsOrQuery<IQuery>()
+      const { data, code, msg } = await submitDownloadTask(query)
+      if (code !== 200 || !data?.taskId) {
+        message.error(msg || '提交下载任务失败')
+        return
+      }
+      return data.taskId
+    },
+    // 查询下载任务
+    async queryDownloadTask({ taskId }: { taskId: string }) {
+      if (!taskId) return null
+      const { data, code, msg } = await queryDownloadTask({ taskId })
+
+      if (code !== 200 || !data) {
+        message.error(msg || '查询失败')
+        return
+      }
+      return data
     },
   }),
 })

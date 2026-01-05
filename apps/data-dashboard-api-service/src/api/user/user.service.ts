@@ -69,16 +69,13 @@ export class UserService {
     const queryBuilder: SelectQueryBuilder<UserRoleRelation> = this.userRoleRepo
       .createQueryBuilder('user_role')
       // 关联角色表：user_role → role
-      .leftJoinAndSelect(() => UserRoleRelation.prototype.role, 'role')
-      // .leftJoinAndSelect('user_role.role', 'role')
+      .leftJoinAndSelect('user_role.role', 'role')
 
       // 关联角色-权限关联表：role → role_permission
-      .leftJoinAndSelect(() => Role.prototype.permissionRelations, 'role_permission')
-      // .leftJoinAndSelect('role.permissionRelations', 'role_permission')
+      .leftJoinAndSelect('role.permissionRelations', 'role_permission')
 
       // 关联权限表：role_permission → permission
-      .leftJoinAndSelect(() => RolePermissionRelation.prototype.permission, 'permission')
-      // .leftJoinAndSelect('role_permission.permission', 'permission')
+      .leftJoinAndSelect('role_permission.permission', 'permission')
 
       // 筛选条件：指定用户ID
       .where('user_role.user_id = :userId', { userId })
