@@ -22,11 +22,13 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        clientId: configService.get('kafka.clientId', 'localhost:9092'),
+        // 默认使用服务名作为 clientId，避免误用 broker 地址字符串
+        clientId: configService.get('kafka.clientId', 'preliminary-data-processing-service'),
         brokers: configService.get('kafka.brokers', ['localhost:9092']),
       },
       consumer: {
-        groupId: configService.get('kafka.groupId', 'localhost:9092'),
+        // 为消费组提供更合理的默认名称
+        groupId: configService.get('kafka.groupId', 'preliminary-data-processing-consumer'),
       },
     },
   })
