@@ -238,8 +238,8 @@ class ProbeX {
         page_path: window.location.pathname,
       });
 
-      // 立即发送队列中的数据
-      this.sender.flush();
+      // 使用同步发送（优先使用 sendBeacon，适合页面卸载场景）
+      this.sender.flushSync();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
