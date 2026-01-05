@@ -16,6 +16,8 @@ export class SsoAuthGuard implements CanActivate {
   private readonly whiteList = [
     '/api/user/login',
     '/api/user/refreshToken',
+    '/point/report',
+    '/point/track.gif',
   ]
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

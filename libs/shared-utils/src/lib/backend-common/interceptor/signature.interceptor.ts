@@ -16,8 +16,20 @@ export class SignatureInterceptor implements NestInterceptor {
   // 签名有效时间（毫秒），5分钟
   private readonly MAX_TIME_DIFF = 5 * 60 * 1000
 
+  // 签名验证白名单（不需要签名的接口）
+  private readonly whiteList = [
+    '/point/report',
+    '/point/track.gif',
+  ]
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> | Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest<Request>()
+    
+    // 检查是否在白名单中
+    if (this.whiteList.includes(request.path)) {
+      return next.handle()
+    }
+
     //签名字段
     const receivedSignature = request.header('X-Signature') || request.body.signature
     const timestamp = parseInt(request.header('X-Timestamp') || '') || request.body.timestamp
@@ -71,7 +83,7 @@ export class SignatureInterceptor implements NestInterceptor {
     const query: IAnyObj = {}
     if (request.query) {
       Object.keys(request.query)
-        .filter(key => !!request.query[key])
+        .filter(key => request.query[key] !== undefined && request.query[key] !== null && request.query[key] !== '')
         .forEach(key => {
           query[key] = `${request.query[key]}`
         })

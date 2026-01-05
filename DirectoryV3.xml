@@ -72,4 +72,8 @@
     <tree path="/apps/data-dashboard-api-service/src/api/system-data/analysis.service.ts" title="数分数据"/>
     <tree path="/apps/data-dashboard-api-service/src/api/system-data/meta.service.ts" title="元数据"/>
     <tree path="/apps/frontend/src/pages/system-config" title="系统配置"/>
+    <tree path="/apps/frontend/src/pages/system-config/computing-node" title="计算节点设置"/>
+    <tree path="/apps/frontend/src/pages/system-config/role" title="角色管理"/>
+    <tree path="/apps/frontend/src/pages/system-config/permission" title="权限管理"/>
+    <tree path="/apps/frontend/src/pages/system-config/user" title="用户管理"/>
 </trees>
