@@ -71,7 +71,7 @@ export class SignatureInterceptor implements NestInterceptor {
     const query: IAnyObj = {}
     if (request.query) {
       Object.keys(request.query)
-        .filter(key => !!request.query[key])
+        .filter(key => request.query[key] !== undefined && request.query[key] !== null && request.query[key] !== '')
         .forEach(key => {
           query[key] = `${request.query[key]}`
         })

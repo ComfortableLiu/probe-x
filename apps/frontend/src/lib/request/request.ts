@@ -26,7 +26,7 @@ apiClient.interceptors.request.use(
     const query = {}
     if (config.params) {
       Object.keys(config.params)
-        .filter(key => !!config.params[key])
+        .filter(key => config.params[key] !== undefined && config.params[key] !== null && config.params[key] !== '')
         .forEach(key => {
           query[key] = `${config.params[key]}`
         })
