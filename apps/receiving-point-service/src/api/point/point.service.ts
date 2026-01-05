@@ -17,14 +17,18 @@ export class PointService {
   }
 
   private validateBeaconData(data: any): { isValid: boolean; errors: string[] } {
-    const requiredList: Array<keyof IEventLog> = ['$event_name', '$web_site', '$device_id', '$log_time', '$zoon']
+    const errors: string[] = []
 
-    const errors: string[] = requiredList.map(key => {
-      if (!data[key] || typeof data.eventName !== 'string' || data.eventName.trim() === '') {
-        return `${key} is required and must be a non-empty string`
-      }
-      return ''
-    }).filter(Boolean)
+    // 检查必需字段
+    if (!data.eventName || typeof data.eventName !== 'string' || data.eventName.trim() === '') {
+      errors.push('eventName is required and must be a non-empty string')
+    }
+    if (!data.webSite || typeof data.webSite !== 'string' || data.webSite.trim() === '') {
+      errors.push('webSite is required and must be a non-empty string')
+    }
+    if (!data.deviceId || typeof data.deviceId !== 'string' || data.deviceId.trim() === '') {
+      errors.push('deviceId is required and must be a non-empty string')
+    }
 
     return {
       isValid: errors.length === 0,
@@ -33,6 +37,25 @@ export class PointService {
   }
 
   saveBeaconData(data: IAnyObj) {
+    // 处理批量数据（SDK发送的格式）
+    if (data.events && Array.isArray(data.events)) {
+      // 批量处理
+      const promises = data.events.map((event: any) => {
+        const eventData = {
+          ...event,
+          ip: data.ip || event.ip,
+          ua: data.ua || event.ua,
+        }
+        return this.saveSingleEvent(eventData)
+      })
+      return Promise.all(promises).then(() => true)
+    } else {
+      // 单个事件处理
+      return this.saveSingleEvent(data)
+    }
+  }
+
+  private saveSingleEvent(data: IAnyObj) {
     // 校验必需参数
     const validation = this.validateBeaconData(data)
     if (!validation.isValid) {
@@ -43,8 +66,8 @@ export class PointService {
     const event: IEventLog = {
       // 根据传入的数据填充实体字段，这里明确协定的目的是为了可精细化管理，去管理每一个公参的逻辑
       $event_name: data.eventName,
-      $ip: data.ip,
-      $ua: data.ua,
+      $ip: data.ip || '',
+      $ua: data.ua || '',
 
       $web_params: data.webParams || '',
       $web_site: data.webSite || '',
@@ -72,9 +95,9 @@ export class PointService {
       $scroll_height: data.scrollHeight || -1,
       $viewport_height: data.viewportHeight || -1,
       $viewport_width: data.viewportWidth || -1,
-      $zoon: data.$zoon || -1,
+      $zoon: data.zoon || data.$zoon || -1,
       // 最后把业务参数直接放到event中
-      ...data.data,
+      ...(data.data || {}),
     }
 
     // 用kafka通知初步清洗服务

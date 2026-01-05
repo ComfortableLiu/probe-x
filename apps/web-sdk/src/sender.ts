@@ -83,6 +83,81 @@ export class DataSender {
   }
 
   /**
+   * 同步批量发送（用于页面卸载场景，优先使用 sendBeacon）
+   */
+  flushSync(): void {
+    if (this.queue.length === 0) {
+      return;
+    }
+
+    const events = this.queue.splice(0, this.batchSize);
+    const apiUrl = this.config.get('apiUrl');
+    const appId = this.config.get('appId');
+
+    if (!apiUrl || !appId) {
+      return;
+    }
+
+    // 准备发送数据
+    const payload = {
+      appId,
+      events: events.map(event => this.prepareEvent(event)),
+      timestamp: Date.now(),
+      batchId: this.generateBatchId(),
+      sdk: {
+        name: 'probe-x-web-sdk',
+        version: '2.0.0',
+      },
+    };
+
+    // 优先使用 sendBeacon（同步，不阻塞页面卸载）
+    if (this.canUseBeacon()) {
+      try {
+        // 使用 Blob 设置正确的 Content-Type
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        const success = navigator.sendBeacon(apiUrl, blob);
+        if (success) {
+          if (this.config.get('debug')) {
+            console.log('ProbeX: Events sent via sendBeacon', events);
+          }
+          return;
+        }
+      } catch (error) {
+        if (this.config.get('debug')) {
+          console.warn('ProbeX: sendBeacon failed, trying gif fallback', error);
+        }
+      }
+    }
+
+    // sendBeacon 不可用或失败，使用 gif 图片请求（同步）
+    try {
+      const gifUrl = apiUrl.replace(/\/report$/, '/track.gif');
+      const params = new URLSearchParams();
+      params.append('data', JSON.stringify(payload));
+      const fullUrl = `${gifUrl}?${params.toString()}`;
+      
+      // 如果URL太长，使用压缩
+      if (fullUrl.length > 2000) {
+        const compressedData = this.compressData(payload);
+        const compressedParams = new URLSearchParams();
+        compressedParams.append('data', compressedData);
+        const compressedUrl = `${gifUrl}?${compressedParams.toString()}`;
+        if (compressedUrl.length <= 2000) {
+          new Image().src = compressedUrl;
+          return;
+        }
+      } else {
+        new Image().src = fullUrl;
+        return;
+      }
+    } catch (error) {
+      if (this.config.get('debug')) {
+        console.error('ProbeX: gif fallback failed', error);
+      }
+    }
+  }
+
+  /**
    * 发送批量数据
    */
   private async sendBatch(events: ProbeXEvent[]): Promise<void> {
@@ -165,40 +240,75 @@ export class DataSender {
 
   /**
    * 发送HTTP请求
+   * 按优先级顺序尝试：sendBeacon → fetch → XMLHttpRequest → gif图片请求
    */
   private async makeRequest(url: string, data: any): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.sendTimeout);
+    // 1. 优先使用 sendBeacon（适合页面卸载场景，异步发送，不阻塞页面）
+    if (this.canUseBeacon()) {
+      try {
+        // 使用 Blob 设置正确的 Content-Type，确保服务器能正确解析 JSON
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const success = navigator.sendBeacon(url, blob);
+        if (success) {
+          return {
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+          } as Response;
+        }
+      } catch (error) {
+        // sendBeacon 失败，继续尝试其他方式
+        if (this.config.get('debug')) {
+          console.warn('ProbeX: sendBeacon failed, trying fallback methods', error);
+        }
+      }
+    }
 
-    const options: RequestInit = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    };
+    // 2. 其次使用 fetch
+    if (typeof fetch !== 'undefined') {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.sendTimeout);
 
-    try {
-      // 优先使用fetch
-      if (typeof fetch !== 'undefined') {
+        const options: RequestInit = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal,
+        };
+
         const response = await fetch(url, options);
         clearTimeout(timeoutId);
         return response;
+      } catch (error) {
+        // fetch 失败，继续尝试其他方式
+        if (this.config.get('debug')) {
+          console.warn('ProbeX: fetch failed, trying fallback methods', error);
+        }
       }
+    }
 
-      // 降级到XMLHttpRequest
+    // 3. 降级到 XMLHttpRequest
+    try {
+      const options: RequestInit = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      };
       return await this.xhrRequest(url, options);
     } catch (error) {
-      clearTimeout(timeoutId);
-      
-      // 如果是网络错误，尝试使用Beacon API作为降级方案
-      if (this.isNetworkError(error) && this.canUseBeacon()) {
-        return this.beaconRequest(url, data);
+      // XMLHttpRequest 失败，继续尝试 gif 图片请求
+      if (this.config.get('debug')) {
+        console.warn('ProbeX: XMLHttpRequest failed, trying gif fallback', error);
       }
-      
-      throw error;
     }
+
+    // 4. 最后降级到 gif 图片请求
+    return await this.gifRequest(url, data);
   }
 
   /**
@@ -244,20 +354,56 @@ export class DataSender {
   }
 
   /**
-   * Beacon API请求（降级方案）
+   * 检查是否可以使用Beacon API
    */
-  private beaconRequest(url: string, data: any): Promise<Response> {
+  private canUseBeacon(): boolean {
+    return typeof navigator !== 'undefined' && 
+           typeof navigator.sendBeacon === 'function';
+  }
+
+  /**
+   * GIF图片请求（最终降级方案）
+   * 将数据编码到URL参数中，请求一个1x1的透明gif图片
+   */
+  private async gifRequest(url: string, data: any): Promise<Response> {
     return new Promise((resolve, reject) => {
       try {
-        const success = navigator.sendBeacon(url, JSON.stringify(data));
-        if (success) {
-          resolve({
-            ok: true,
-            status: 200,
-            statusText: 'OK',
-          } as Response);
+        // 将 POST URL 转换为 GET URL（gif 接口）
+        // 例如：http://example.com/point/report -> http://example.com/point/track.gif
+        const gifUrl = url.replace(/\/report$/, '/track.gif');
+        
+        // 将数据编码为URL参数
+        const params = new URLSearchParams();
+        params.append('data', JSON.stringify(data));
+        
+        // 如果URL太长，使用压缩或分批
+        const fullUrl = `${gifUrl}?${params.toString()}`;
+        
+        // 检查URL长度限制（大多数浏览器限制约2000字符）
+        if (fullUrl.length > 2000) {
+          // URL太长，尝试压缩数据
+          const compressedData = this.compressData(data);
+          const compressedParams = new URLSearchParams();
+          compressedParams.append('data', compressedData);
+          const compressedUrl = `${gifUrl}?${compressedParams.toString()}`;
+          
+          if (compressedUrl.length > 2000) {
+            // 仍然太长，只发送关键数据
+            const minimalData = {
+              appId: data.appId,
+              batchId: data.batchId,
+              timestamp: data.timestamp,
+              eventCount: data.events?.length || 0,
+            };
+            const minimalParams = new URLSearchParams();
+            minimalParams.append('data', JSON.stringify(minimalData));
+            const minimalUrl = `${gifUrl}?${minimalParams.toString()}`;
+            this.loadGifImage(minimalUrl, resolve, reject);
+          } else {
+            this.loadGifImage(compressedUrl, resolve, reject);
+          }
         } else {
-          reject(new Error('Beacon send failed'));
+          this.loadGifImage(fullUrl, resolve, reject);
         }
       } catch (error) {
         reject(error);
@@ -266,20 +412,47 @@ export class DataSender {
   }
 
   /**
-   * 检查是否为网络错误
+   * 加载GIF图片
    */
-  private isNetworkError(error: any): boolean {
-    return error instanceof TypeError || 
-           error.message.includes('network') ||
-           error.message.includes('fetch');
+  private loadGifImage(url: string, resolve: (value: Response) => void, reject: (reason?: any) => void): void {
+    const img = new Image();
+    
+    // 设置超时
+    const timeoutId = setTimeout(() => {
+      img.onload = null;
+      img.onerror = null;
+      reject(new Error('GIF image load timeout'));
+    }, this.sendTimeout);
+    
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      resolve({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+      } as Response);
+    };
+    
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      reject(new Error('GIF image load failed'));
+    };
+    
+    img.src = url;
   }
 
   /**
-   * 检查是否可以使用Beacon API
+   * 压缩数据（简单的Base64编码）
    */
-  private canUseBeacon(): boolean {
-    return typeof navigator !== 'undefined' && 
-           typeof navigator.sendBeacon === 'function';
+  private compressData(data: any): string {
+    try {
+      const jsonString = JSON.stringify(data);
+      // 使用 Base64 编码（虽然不会真正压缩，但可以确保数据安全传输）
+      return btoa(encodeURIComponent(jsonString));
+    } catch (error) {
+      // 压缩失败，返回原始JSON字符串
+      return JSON.stringify(data);
+    }
   }
 
   /**
