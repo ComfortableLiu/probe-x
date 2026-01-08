@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisUserPathState } from "@pages/data-analysis/user-path/type"
-import { Spin } from "antd"
+import { message, Spin } from "antd"
 import * as styles from "./styles.module.scss"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
 import DataFilterConfigArea from "@pages/data-analysis/user-path/components/DataFilterConfigArea"
 import DataChat from "@pages/data-analysis/user-path/components/DataChat"
+import DownloadPopup from "@pages/data-analysis/components/DownloadPopup"
 import dayjs from "dayjs"
 import { IQuery } from "@pages/data-analysis/event/type"
 
@@ -27,9 +28,23 @@ function UserPathAnalysis() {
     refresh,
   } = useRouter()
 
+  const timer = useRef<NodeJS.Timeout>()
+
   const loading = useLoading()
 
   const pageLoading = useMemo(() => loading.dataAnalysisUserPathModel.init, [loading.dataAnalysisUserPathModel.init])
+
+  // 显示下载弹窗
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) {
+        clearInterval(timer.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     dispatch.dataAnalysisUserPathModel.init()
@@ -43,16 +58,53 @@ function UserPathAnalysis() {
     }
   }, [timeRange])
 
+  const queryDownloadTask = useCallback(async (taskId: string) => {
+    const res = await dispatch.dataAnalysisUserPathModel.queryDownloadTask({ taskId })
+    if (res?.status === 'SUCCESS' && res.downloadUrl) {
+      // 下载文件
+      setDownloadUrl(res.downloadUrl)
+      if (timer.current) {
+        clearInterval(timer.current)
+      }
+    }
+  }, [dispatch.dataAnalysisUserPathModel])
+
+  const download = useCallback(async () => {
+    // 先检查填写项
+    const flag = await dispatch.dataAnalysisUserPathModel.checkQueryParams()
+    if (flag) {
+      message.error(flag)
+      return
+    }
+    setShowDownloadPopup(true)
+    setDownloadUrl(null)
+    if (timer.current) {
+      clearInterval(timer.current)
+    }
+    const taskId = await dispatch.dataAnalysisUserPathModel.downloadData()
+    if (taskId) {
+      timer.current = setInterval(() => {
+        queryDownloadTask(taskId)
+      }, 1000)
+    }
+  }, [dispatch.dataAnalysisUserPathModel, queryDownloadTask])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
         <DataAnalysisHeader
           title="用户路径分析"
           updateTime={updateTime}
+          download={download}
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
         <DataChat />
+        <DownloadPopup
+          downloadUrl={downloadUrl}
+          onClose={() => setShowDownloadPopup(false)}
+          show={showDownloadPopup}
+        />
       </div>
     </Spin>
   )

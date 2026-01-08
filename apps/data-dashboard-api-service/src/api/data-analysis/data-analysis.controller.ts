@@ -118,6 +118,39 @@ export class DataAnalysisController {
   }
 
   /**
+   * 漏斗分析 - 创建数据下载
+   */
+  @Post('/funnel/download')
+  async createFunnelDownloadTask(
+    @Body() data: ISubmitDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISubmitDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download', req.ip, req.get('User-Agent') || undefined)
+
+    const res = await this.funnelAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', '漏斗分析数据导出', data)
+    return res
+  }
+
+  /**
+   * 漏斗分析 - 查询下载数据任务进度
+   */
+  @Post('/funnel/download/task')
+  async queryFunnelDownloadTask(
+    @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download/task', req.ip, req.get('User-Agent') || undefined)
+
+    return await this.funnelAnalysisService.queryDownloadTask(data.taskId)
+  }
+
+  /**
    * 用户路径分析 - 查询数据任务
    */
   @Post('/user-path/query')
@@ -145,6 +178,39 @@ export class DataAnalysisController {
   }
 
   /**
+   * 用户路径分析 - 创建数据下载
+   */
+  @Post('/user-path/download')
+  async createUserPathDownloadTask(
+    @Body() data: ISubmitDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISubmitDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download', req.ip, req.get('User-Agent') || undefined)
+
+    const res = await this.userPathAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', '用户路径分析数据导出', data)
+    return res
+  }
+
+  /**
+   * 用户路径分析 - 查询下载数据任务进度
+   */
+  @Post('/user-path/download/task')
+  async queryUserPathDownloadTask(
+    @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download/task', req.ip, req.get('User-Agent') || undefined)
+
+    return await this.userPathAnalysisService.queryDownloadTask(data.taskId)
+  }
+
+  /**
    * 归因分析 - 查询数据任务
    */
   @Post('/attribution/query')
@@ -169,5 +235,38 @@ export class DataAnalysisController {
       await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
       throw error
     }
+  }
+
+  /**
+   * 归因分析 - 创建数据下载
+   */
+  @Post('/attribution/download')
+  async createAttributionDownloadTask(
+    @Body() data: ISubmitDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISubmitDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download', req.ip, req.get('User-Agent') || undefined)
+
+    const res = await this.attributionAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', '归因分析数据导出', data)
+    return res
+  }
+
+  /**
+   * 归因分析 - 查询下载数据任务进度
+   */
+  @Post('/attribution/download/task')
+  async queryAttributionDownloadTask(
+    @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download/task', req.ip, req.get('User-Agent') || undefined)
+
+    return await this.attributionAnalysisService.queryDownloadTask(data.taskId)
   }
 }
