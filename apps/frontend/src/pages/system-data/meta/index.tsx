@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Card, Col, DatePicker, Progress, Row, Spin, Statistic } from "antd"
+import PageHeader from "@components/PageHeader"
 import * as styles from "./styles.module.scss"
 import * as echarts from "echarts"
 import { useDispatch } from "react-redux"
@@ -224,9 +225,11 @@ function Meta() {
   // 渲染页面内容
   return (
     <div className={styles.container}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2>元数据</h2>
-        <div>
+      <PageHeader
+        title="元数据"
+        onRefresh={fetchData}
+        loading={loading}
+        extra={
           <RangePicker
             value={dateRange}
             onChange={handleDateChange}
@@ -237,11 +240,11 @@ function Meta() {
               return current && current > dayjs().endOf('day')
             }}
           />
-        </div>
-      </div>
+        }
+      />
 
       {/* 元数据概览卡片行 */}
-      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
@@ -285,7 +288,7 @@ function Meta() {
       </Row>
 
       {/* 数据趋势图表卡片 */}
-      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={24}>
           <Card title="上报数据量趋势">
             <div ref={chartRef} style={{ height: '400px', width: '100%' }} />
@@ -294,7 +297,7 @@ function Meta() {
       </Row>
 
       {/* 清洗详情卡片行 */}
-      <Row gutter={[24, 24]}>
+      <Row gutter={[16, 16]}>
         {/* 初次清洗详情卡片 */}
         <Col xs={24} lg={12}>
           <Card title="初次数据清洗">
