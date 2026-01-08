@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Card, Col, DatePicker, Row, Space, Statistic, Table } from "antd"
+import PageHeader from "@components/PageHeader"
 import {
   BarChartOutlined,
   ClockCircleOutlined,
@@ -106,6 +107,14 @@ function Analysis() {
       // 如果清空日期范围，获取最近30天的数据
       dispatch.systemDataAnalysisModel.getAnalysisTrend({ days: 30 })
     }
+  }
+
+  // 刷新数据
+  const handleRefresh = () => {
+    dispatch.systemDataAnalysisModel.getAnalysisStatistics({})
+    dispatch.systemDataAnalysisModel.getHourlyAnalysisTrend({})
+    dispatch.systemDataAnalysisModel.getAnalysisTrend({ days: 30 })
+    dispatch.systemDataAnalysisModel.getAnalysisTasks({ page, pageSize })
   }
 
   // 初始化24小时内图表
@@ -265,12 +274,14 @@ function Analysis() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2>数分数据</h2>
-      </div>
+      <PageHeader
+        title="数分数据"
+        onRefresh={handleRefresh}
+        loading={loading.systemDataAnalysisModel.getAnalysisStatistics || loading.systemDataAnalysisModel.getHourlyAnalysisTrend}
+      />
 
       {/* 统计卡片区域 */}
-      <Row gutter={[8, 8]} className={styles.statisticRow}>
+      <Row gutter={[16, 16]} className={styles.statisticRow}>
         {statisticData.map((item, index) => (
           <Col xs={24} sm={12} md={8} lg={8} xl={8} key={index}>
             <Card className={styles.statisticCard}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react"
 import { Anchor, Col, Row, Spin } from "antd"
+import PageHeader from "@components/PageHeader"
 import * as styles from "./styles.module.scss"
 import MetaEvent from "@pages/system-data/overview/components/MetaEvent"
 import ComputingNodeStatus from "@pages/system-data/overview/components/ComputingNodeStatus"
@@ -30,6 +31,11 @@ function Overview() {
   useEffect(() => {
     dispatch.systemDataOverviewModel.fetchSystemDataOverview()
   }, [])
+
+  // 刷新数据
+  const handleRefresh = () => {
+    dispatch.systemDataOverviewModel.fetchSystemDataOverview()
+  }
 
   // 内容
   const content = useMemo(() => [{
@@ -93,6 +99,11 @@ function Overview() {
 
   return (
     <div className={styles.container}>
+      <PageHeader
+        title="系统数据总览"
+        onRefresh={handleRefresh}
+        loading={loading}
+      />
       <Spin spinning={loading}>
         <Row>
           <Col span={20} className={styles.content}>

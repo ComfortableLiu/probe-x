@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import PageHeader from "@components/PageHeader"
 import ComputingNodeTree, {
   ComputingNode,
 } from "@pages/system-data/computing-node/components/ComputingNodeTree/ComputingNodeTree"
@@ -17,7 +18,7 @@ const statusLightColorMap: Record<NodeStatus, string> = {
 
 const ComputingNode: React.FC = () => {
   // 模拟计算节点数据 - 不包括根节点，根节点默认存在
-  const [nodes] = useState<ComputingNode[]>([
+  const [nodes, setNodes] = useState<ComputingNode[]>([
     {
       id: 'node1',
       name: '计算节点1',
@@ -44,9 +45,19 @@ const ComputingNode: React.FC = () => {
     },
   ])
 
+  // 刷新数据
+  const handleRefresh = () => {
+    // TODO: 当有数据获取方法时，在这里调用
+    // 目前是静态数据，刷新时重新设置状态以触发重新渲染
+    setNodes([...nodes])
+  }
+
   return (
-    <div className={styles.computingNodePage}>
-      <h2 className={styles.pageTitle}>计算节点</h2>
+    <div className={styles.container}>
+      <PageHeader
+        title="计算节点"
+        onRefresh={handleRefresh}
+      />
       <ComputingNodeTree nodes={nodes} />
 
       {/* 状态说明 */}
