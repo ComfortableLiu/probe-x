@@ -31,6 +31,47 @@ function Meta() {
     finalCleaningDetail,
   } = useModel<ISystemDataMetaState>('systemDataMetaModel')
 
+  // 防御性编程：确保 overview 不为 null
+  const safeOverview = overview || {
+    originalDataTotal: '',
+    finalCleanedData: '',
+    firstCleaningSuccessRate: 0,
+    finalCleaningSuccessRate: 0,
+  }
+
+  // 防御性编程：确保其他数据不为 null
+  const safeDataTrend = dataTrend || {
+    xAxis: [],
+    series: [],
+  }
+
+  const safeCleaningStats = cleaningStats || {
+    firstCleaning: {
+      successRate: 0,
+      successCount: '',
+      failCount: '',
+    },
+    finalCleaning: {
+      successRate: 0,
+      successCount: '',
+      failCount: '',
+    },
+  }
+
+  const safeFirstCleaningDetail = firstCleaningDetail || {
+    successRate: 0,
+    successCount: '',
+    failCount: '',
+    detailList: [],
+  }
+
+  const safeFinalCleaningDetail = finalCleaningDetail || {
+    successRate: 0,
+    successCount: '',
+    failCount: '',
+    detailList: [],
+  }
+
   // 使用useRouter和useQuery获取路由参数
   const { refresh } = useRouter()
   const query = useQuery()
@@ -170,7 +211,7 @@ function Meta() {
           {
             type: 'category',
             // 使用从API获取的X轴数据，如果不存在则使用默认值
-            data: dataTrend?.xAxis || ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+            data: safeDataTrend?.xAxis || ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
           },
         ],
         yAxis: [
@@ -184,7 +225,7 @@ function Meta() {
             type: 'line',
             barWidth: '60%',
             // 使用从API获取的系列数据，如果不存在则使用默认值
-            data: dataTrend?.series[0]?.data || [1000, 1200, 1100, 1300, 1500, 1400, 1600],
+            data: safeDataTrend?.series?.[0]?.data || [1000, 1200, 1100, 1300, 1500, 1400, 1600],
             itemStyle: {
               color: '#536DFE',
             },
@@ -209,7 +250,7 @@ function Meta() {
         chartInstance.current?.dispose()
       }
     }
-  }, [dataTrend]) // 依赖dataTrend，当数据更新时重新渲染图表
+  }, [safeDataTrend]) // 依赖safeDataTrend，当数据更新时重新渲染图表
 
   // 显示加载状态
   if (loading) {
@@ -249,7 +290,7 @@ function Meta() {
           <Card>
             <Statistic
               title="原始数据总量"
-              value={overview.originalDataTotal} // 显示原始数据总量
+              value={safeOverview.originalDataTotal} // 显示原始数据总量
               valueStyle={{ color: '#3f8cff' }}
             />
           </Card>
@@ -258,7 +299,7 @@ function Meta() {
           <Card>
             <Statistic
               title="最终清洗数据量"
-              value={overview.finalCleanedData} // 显示最终清洗数据量
+              value={safeOverview.finalCleanedData} // 显示最终清洗数据量
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
@@ -267,7 +308,7 @@ function Meta() {
           <Card>
             <Statistic
               title="初次清洗成功率"
-              value={overview.firstCleaningSuccessRate ?? '-'} // 显示初次清洗成功率
+              value={safeOverview.firstCleaningSuccessRate ?? '-'} // 显示初次清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -278,7 +319,7 @@ function Meta() {
           <Card>
             <Statistic
               title="最终清洗成功率"
-              value={overview.finalCleaningSuccessRate ?? '-'} // 显示最终清洗成功率
+              value={safeOverview.finalCleaningSuccessRate ?? '-'} // 显示最终清洗成功率
               precision={2}
               valueStyle={{ color: '#52c41a' }}
               suffix="%"
@@ -306,18 +347,18 @@ function Meta() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
                 </div>
-                <Progress percent={firstCleaningDetail.successRate} strokeColor="#52c41a" />
+                <Progress percent={safeFirstCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
 
               <Row gutter={16}>
                 <Col span={12}>
                   <Card size="small" title="清洗成功数">
-                    <Statistic value={firstCleaningDetail.successCount} /> {/* 显示初次清洗成功数 */}
+                    <Statistic value={safeFirstCleaningDetail.successCount} /> {/* 显示初次清洗成功数 */}
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card size="small" title="清洗失败数">
-                    <Statistic value={firstCleaningDetail.failCount}
+                    <Statistic value={safeFirstCleaningDetail.failCount}
                       valueStyle={{ color: '#ff4d4f' }} /> {/* 显示初次清洗失败数 */}
                   </Card>
                 </Col>
@@ -334,18 +375,18 @@ function Meta() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span>清洗成功率</span>
                 </div>
-                <Progress percent={finalCleaningDetail.successRate} strokeColor="#52c41a" />
+                <Progress percent={safeFinalCleaningDetail.successRate} strokeColor="#52c41a" />
               </div>
 
               <Row gutter={16}>
                 <Col span={12}>
                   <Card size="small" title="清洗成功数">
-                    <Statistic value={finalCleaningDetail.successCount} /> {/* 显示最终清洗成功数 */}
+                    <Statistic value={safeFinalCleaningDetail.successCount} /> {/* 显示最终清洗成功数 */}
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card size="small" title="清洗失败数">
-                    <Statistic value={finalCleaningDetail.failCount}
+                    <Statistic value={safeFinalCleaningDetail.failCount}
                       valueStyle={{ color: '#ff4d4f' }} /> {/* 显示最终清洗失败数 */}
                   </Card>
                 </Col>

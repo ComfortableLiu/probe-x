@@ -101,7 +101,14 @@ const systemDataMetaModel = createModel<RootModel>()({
     async getMetaOverview(params: IDateParams) {
       try {
         const response = await getMetaOverview(params)
-        dispatch.systemDataMetaModel.setOverview(response.data)
+        // 确保 overview 不为 null，如果为 null 则使用默认值
+        const overview = response.data || {
+          originalDataTotal: '',
+          finalCleanedData: '',
+          firstCleaningSuccessRate: 0,
+          finalCleaningSuccessRate: 0,
+        }
+        dispatch.systemDataMetaModel.setOverview(overview)
         return response
       } catch (error) {
         console.error('获取元数据概览失败:', error)
@@ -112,7 +119,12 @@ const systemDataMetaModel = createModel<RootModel>()({
     async getDataTrend(params: IDataTrendParams) {
       try {
         const response = await getDataTrend(params)
-        dispatch.systemDataMetaModel.setDataTrend(response.data)
+        // 确保 dataTrend 不为 null，如果为 null 则使用默认值
+        const dataTrend = response.data || {
+          xAxis: [],
+          series: [],
+        }
+        dispatch.systemDataMetaModel.setDataTrend(dataTrend)
         return response
       } catch (error) {
         console.error('获取数据趋势失败:', error)
@@ -123,7 +135,20 @@ const systemDataMetaModel = createModel<RootModel>()({
     async getCleaningStats(params: IDateParams) {
       try {
         const response = await getCleaningStats(params)
-        dispatch.systemDataMetaModel.setCleaningStats(response.data)
+        // 确保 cleaningStats 不为 null，如果为 null 则使用默认值
+        const cleaningStats = response.data || {
+          firstCleaning: {
+            successRate: 0,
+            successCount: '',
+            failCount: '',
+          },
+          finalCleaning: {
+            successRate: 0,
+            successCount: '',
+            failCount: '',
+          },
+        }
+        dispatch.systemDataMetaModel.setCleaningStats(cleaningStats)
         return response
       } catch (error) {
         console.error('获取清洗统计失败:', error)
@@ -134,7 +159,14 @@ const systemDataMetaModel = createModel<RootModel>()({
     async getFirstCleaningDetail(params: IDateParams) {
       try {
         const response = await getFirstCleaningDetail(params)
-        dispatch.systemDataMetaModel.setFirstCleaningDetail(response.data)
+        // 确保 firstCleaningDetail 不为 null，如果为 null 则使用默认值
+        const firstCleaningDetail = response.data || {
+          successRate: 0,
+          successCount: '',
+          failCount: '',
+          detailList: [],
+        }
+        dispatch.systemDataMetaModel.setFirstCleaningDetail(firstCleaningDetail)
         return response
       } catch (error) {
         console.error('获取初次清洗详情失败:', error)
@@ -145,7 +177,14 @@ const systemDataMetaModel = createModel<RootModel>()({
     async getFinalCleaningDetail(params: IDateParams) {
       try {
         const response = await getFinalCleaningDetail(params)
-        dispatch.systemDataMetaModel.setFinalCleaningDetail(response.data)
+        // 确保 finalCleaningDetail 不为 null，如果为 null 则使用默认值
+        const finalCleaningDetail = response.data || {
+          successRate: 0,
+          successCount: '',
+          failCount: '',
+          detailList: [],
+        }
+        dispatch.systemDataMetaModel.setFinalCleaningDetail(finalCleaningDetail)
         return response
       } catch (error) {
         console.error('获取最终清洗详情失败:', error)

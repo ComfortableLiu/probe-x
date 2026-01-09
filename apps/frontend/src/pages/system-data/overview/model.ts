@@ -72,7 +72,18 @@ const systemDataOverviewModel = createModel<RootModel>()({
         dispatch.systemDataOverviewModel.setLoading(true)
         const res = await getSystemDataOverview()
 
-        dispatch.systemDataOverviewModel.updateItem(res.data)
+        // 确保 metaOverview 不为 null，如果为 null 则使用默认值
+        const data = res.data || {}
+        if (!data.metaOverview) {
+          data.metaOverview = {
+            originalDataTotal: '0',
+            finalCleanedData: '0',
+            firstCleaningSuccessRate: 0,
+            finalCleaningSuccessRate: 0,
+          }
+        }
+
+        dispatch.systemDataOverviewModel.updateItem(data)
       } catch (error) {
         console.error('Failed to fetch system data overview:', error)
       } finally {

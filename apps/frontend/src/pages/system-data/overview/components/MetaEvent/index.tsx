@@ -9,6 +9,23 @@ interface MetaEventProps {
 }
 
 function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
+  // 防御性编程：确保 metaOverview 不为 null
+  const safeMetaOverview = metaOverview || {
+    originalDataTotal: '0',
+    finalCleanedData: '0',
+    firstCleaningSuccessRate: 0,
+    finalCleaningSuccessRate: 0,
+  }
+
+  // 防御性编程：确保 eventCollectionMetrics 不为 null
+  const safeEventCollectionMetrics = eventCollectionMetrics || {
+    todayCollection: 0,
+    yesterdayCollection: 0,
+    weekCollection: 0,
+    monthCollection: 0,
+    totalAmount: 0,
+  }
+
   return (
     <div>
       <Row gutter={16} className={styles.metricGroup}>
@@ -16,7 +33,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
             <Statistic
               title="元事件数量"
-              value={metaOverview.originalDataTotal}
+              value={safeMetaOverview.originalDataTotal}
               precision={0}
               valueStyle={{ color: '#3f8600' }}
             />
@@ -26,7 +43,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
             <Statistic
               title="清洗后数据量"
-              value={metaOverview.finalCleanedData}
+              value={safeMetaOverview.finalCleanedData}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
             />
@@ -36,7 +53,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
             <Statistic
               title="数据清洗率"
-              value={metaOverview.finalCleaningSuccessRate || '-'}
+              value={safeMetaOverview.finalCleaningSuccessRate || '-'}
               suffix="%"
               precision={2}
               valueStyle={{ color: '#722ed1' }}
@@ -49,7 +66,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.metricCard}`}>
             <Statistic
               title="今日新增"
-              value={eventCollectionMetrics.todayCollection}
+              value={safeEventCollectionMetrics.todayCollection}
               precision={0}
             />
           </Card>
@@ -58,7 +75,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.metricCard}`}>
             <Statistic
               title="本周新增"
-              value={eventCollectionMetrics.weekCollection}
+              value={safeEventCollectionMetrics.weekCollection}
               precision={0}
             />
           </Card>
@@ -67,7 +84,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.metricCard}`}>
             <Statistic
               title="本月新增"
-              value={eventCollectionMetrics.monthCollection}
+              value={safeEventCollectionMetrics.monthCollection}
               precision={0}
             />
           </Card>
@@ -76,7 +93,7 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
           <Card className={`${styles.metricCard} ${styles.metricCard}`}>
             <Statistic
               title="累计总量"
-              value={eventCollectionMetrics.totalAmount}
+              value={safeEventCollectionMetrics.totalAmount}
               precision={0}
             />
           </Card>

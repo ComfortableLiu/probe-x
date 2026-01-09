@@ -184,16 +184,17 @@ function DataChat() {
         chart.current = null
       }
     }
-  }, [initECharts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!chart.current) return
-    if (loading.dataAnalysisFunnelModel.submitQuery) {
+    if (loading.dataAnalysisUserPathModel.submitQuery) {
       chart.current.showLoading()
     } else {
       chart.current.hideLoading()
     }
-  }, [loading.dataAnalysisFunnelModel.submitQuery])
+  }, [loading.dataAnalysisUserPathModel.submitQuery])
 
   useEffect(() => {
     if (!chart.current || !data) return
@@ -213,6 +214,7 @@ function DataChat() {
         },
       ],
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
   return (

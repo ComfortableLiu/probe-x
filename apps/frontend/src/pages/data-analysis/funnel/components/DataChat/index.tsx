@@ -59,9 +59,7 @@ function DataChat() {
           saveAsImage: {},
         },
       },
-      legend: {
-        data: ['Show', 'Click', 'Visit', 'Inquiry', 'Order'],
-      },
+      // 移除硬编码的 legend，漏斗图不需要图例，每个漏斗段都有自己的标签
       series: [
         {
           name: '转化率',

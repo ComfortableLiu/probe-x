@@ -48,15 +48,22 @@ function UserPathAnalysis() {
 
   useEffect(() => {
     dispatch.dataAnalysisUserPathModel.init()
-  }, [dispatch.dataAnalysisUserPathModel])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
+  // 使用 ref 跟踪是否已经初始化，避免重复刷新
+  const timeRangeInitialized = useRef(false)
+  
   useEffect(() => {
-    if (!timeRange) {
+    // 只在首次加载且 timeRange 为空时设置默认值
+    if (!timeRangeInitialized.current && !timeRange) {
+      timeRangeInitialized.current = true
       refresh({
         timeRange: [dayjs().subtract(7, 'day').format('YYYY-MM-DD'), dayjs().format('YYYY-MM-DD')],
       }, true)
     }
-  }, [timeRange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const queryDownloadTask = useCallback(async (taskId: string) => {
     const res = await dispatch.dataAnalysisUserPathModel.queryDownloadTask({ taskId })
