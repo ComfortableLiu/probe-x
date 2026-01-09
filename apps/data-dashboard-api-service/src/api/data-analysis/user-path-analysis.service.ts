@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { IQueryDownloadTaskRes, ISubmitDownloadTaskReq, ISubmitDownloadTaskRes, IUserPathAnalysisReq, IUserPathAnalysisRes, IUser } from "@probe-x/shared-types/src"
+import {
+  IQueryDownloadTaskRes,
+  ISubmitDownloadTaskReq,
+  IUser,
+  IUserPathAnalysisReq,
+  IUserPathAnalysisRes,
+} from "@probe-x/shared-types/src"
 import { BusinessException, ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { generateUserPathAnalysisSql } from "@src/api/data-analysis/UserPathAnalysisSqlBuilder"
 import { DataAnalysisRecordService } from "./record.service"
@@ -100,9 +106,18 @@ export class UserPathAnalysisService {
     // }
     // console.log('原始查询结果：', originalResult)
 
-    // 2. 提取原始数据（适配 ClickHouse 返回格式，确保 eventList 和 edgeList 存在）
+    // 2. 提取原始数据（适配 ClickHouse 返回格式）
+    // eventList: 字符串数组
+    // edgeList: tuple数组 [(source, target, value), ...]，需要转换为对象数组
     const originalEventList = originalResult?.eventList || []
-    const originalEdgeList = (originalResult?.edgeList || []) as OriginalEdge[]
+    const edgeListTuples = (originalResult?.edgeList || []) as Array<[string | null, string, number]>
+
+    // 将tuple数组转换为对象数组
+    const originalEdgeList: OriginalEdge[] = edgeListTuples.map(tuple => ({
+      source: tuple[0],
+      target: tuple[1],
+      value: tuple[2],
+    }))
 
     // 3. 核心：处理循环数据（拆分为无环结构）
     const { splitEventList, splitEdgeList } = this.processCycleData(originalEventList, originalEdgeList)

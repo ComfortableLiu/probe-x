@@ -19,7 +19,7 @@ export const META_TYPE_TO_CH_TYPE: Record<MetaPropertyType, string> = {
 }
 
 /**
- * 生成唯一占位符名称（复用项目Demo逻辑）
+ * 生成唯一占位符名称
  */
 let paramIndex = 0
 function generateParamKey(prefix: string): string {
@@ -28,28 +28,28 @@ function generateParamKey(prefix: string): string {
 }
 
 /**
- * 重置占位符索引（复用项目Demo逻辑）
+ * 重置占位符索引
  */
 function resetParamIndex() {
   paramIndex = 0
 }
 
 /**
- * 强制用反引号包裹字段名（复用项目Demo逻辑）
+ * 用反引号包裹字段名，防止字段名包含特殊字符导致SQL错误
  */
 function wrapFieldWithBacktick(field: string): string {
   return `\`${field.replace(/`/g, "``")}\``
 }
 
 /**
- * 清理参数名中的特殊字符（复用项目Demo逻辑）
+ * 清理参数名中的特殊字符，确保参数名合法
  */
 function sanitizeParamName(name: string): string {
   return name.replace(/[\$\-\.\s]/g, "_")
 }
 
 /**
- * 构建过滤条件子句（严格对齐IAttributionAnalysisFilter接口）
+ * 构建过滤条件子句
  */
 function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record<string, any>): string {
   if (filters.length === 0) return ""
@@ -235,12 +235,12 @@ function buildRegexFilter(
 }
 
 /**
- * 获取漏斗类型对应的聚合函数（核心修复：COUNT模式用COUNT(*)，无$event_unique_id）
+ * 获取漏斗类型对应的聚合函数
  */
 function getFunnelAggregationFunc(funnelType: FunnelTypeEnum): string {
   switch (funnelType) {
     case FunnelTypeEnum.COUNT:
-      return `COUNT(*)` // 修复：直接COUNT(*)，不需要任何字段
+      return `COUNT(*)`
     case FunnelTypeEnum.USER:
       return `COUNT(DISTINCT ${wrapFieldWithBacktick("$uid")})`
     case FunnelTypeEnum.SESSION:
@@ -251,18 +251,20 @@ function getFunnelAggregationFunc(funnelType: FunnelTypeEnum): string {
 }
 
 /**
- * 生成步骤事件条件（核心修复：每个步骤唯一别名，最终用CASE WHEN合并为一个step字段）
+ * 生成步骤事件条件
+ * 使用CASE WHEN将所有步骤判断合并为一个step字段，避免重复别名
+ * @returns stepCaseExpr: step字段表达式，stepFilterExpr: 过滤有效步骤的表达式
  */
 function buildStepCaseExpr(
   funnelSteps: IFunnelInfo[],
   params: Record<string, any>,
 ): {
-  stepCaseExpr: string; // 最终的step字段表达式（无重复别名）
-  stepFilterExpr: string; // 过滤有效步骤的表达式
+  stepCaseExpr: string;
+  stepFilterExpr: string;
 } {
   let caseWhenParts: string[] = []
 
-  // 生成多分支CASE WHEN（一个字段包含所有步骤判断）
+  // 为每个步骤生成CASE WHEN分支，最终合并为一个step字段
   funnelSteps.forEach((step, index) => {
     const { eventInfo } = step
     const stepNum = index + 1
@@ -284,16 +286,19 @@ function buildStepCaseExpr(
     caseWhenParts.push(`WHEN ${condition} THEN ${stepNum}`)
   })
 
-  // 最终CASE WHEN表达式（一个step字段，无重复别名）
+  // 构建CASE WHEN表达式：匹配到步骤则返回步骤编号，否则返回0
   const stepCaseExpr = `CASE ${caseWhenParts.join(" ")} ELSE 0 END AS ${wrapFieldWithBacktick("step")}`
-  // 过滤条件：仅保留有效步骤（step > 0）
+  // 过滤条件：仅保留有效步骤（step > 0表示匹配到某个步骤）
   const stepFilterExpr = `${wrapFieldWithBacktick("step")} > 0`
 
   return { stepCaseExpr, stepFilterExpr }
 }
 
 /**
- * 工具函数：生成ClickHouse查询SQL（最终适配版，贴合实际场景）
+ * 生成漏斗分析SQL
+ * 功能：分析用户在指定时间窗口内完成漏斗步骤的转化情况
+ * @param params 漏斗分析请求参数
+ * @returns SQL生成结果，包含SQL语句、参数和错误信息
  */
 export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGenerateResult {
   resetParamIndex()
@@ -317,12 +322,13 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const [startDate, endDate] = params.timeRange
     const { funnelType, funnelMode, dimension = [], globalFilters = [] } = params
 
-    // 2. 时间范围过滤（用toDateTime兼容老版本）
+    // 2. 时间范围过滤（使用$log_time，即用户事件产生的时间）
+    // 统一使用toDateTime64保持精度一致
     const startParamKey = generateParamKey("time_start")
     const endParamKey = generateParamKey("time_end")
-    sqlParams[startParamKey] = `${startDate}`
-    sqlParams[endParamKey] = `${endDate}`
-    const timeFilter = `${wrapFieldWithBacktick("$log_time")} BETWEEN toDateTime({${startParamKey}:String}) AND toDateTime({${endParamKey}:String})`
+    sqlParams[startParamKey] = `${startDate} 00:00:00.000`
+    sqlParams[endParamKey] = `${endDate} 23:59:59.999`
+    const timeFilter = `${wrapFieldWithBacktick("$log_time")} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
 
     // 3. 全局过滤条件
     const globalWhereClause = buildFilterClause(globalFilters, sqlParams)
@@ -335,10 +341,10 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const groupByClause = dimensionStr ? `GROUP BY ${dimensionStr}` : ""
     const orderByClause = dimensionStr ? `ORDER BY ${dimensionStr} ASC` : ""
 
-    // 5. 构建step字段（核心修复：一个CASE WHEN表达式，无重复别名）
+    // 5. 构建step字段：使用CASE WHEN将所有步骤判断合并为一个字段
     const { stepCaseExpr, stepFilterExpr } = buildStepCaseExpr(params.funnelInfoList, sqlParams)
 
-    // 6. 窗口期配置（用INTERVAL原生语法，100%兼容）
+    // 6. 窗口期配置：使用INTERVAL语法计算时间窗口
     const windowValueParamKey = generateParamKey("window_value")
     sqlParams[windowValueParamKey] = params.windowPeriod.value
     const unitMap: Record<string, string> = { m: "MINUTE", h: "HOUR", d: "DAY" }
@@ -365,15 +371,18 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const partitionByFields = [...dimensionFields, ...requiredFields.slice(1)]
     const partitionByClause = partitionByFields.length > 0 ? partitionByFields.join(", ") : "1"
 
-    // 11. 最终SQL构建（核心修改：用stepName生成结果字段名，空值兜底）
+    // 11. 构建最终SQL
+    // 正确处理WHERE子句：如果已有whereClause则追加AND，否则使用WHERE
     const tableName = "`probe_x`.`final_event_log`"
+    const baseWhereClause = whereClause 
+      ? `${whereClause} AND ${stepFilterExpr}` 
+      : `WHERE ${stepFilterExpr}`
     const sql = `WITH
 base_data AS (
   SELECT
     ${[...dimensionFields, ...requiredFields, stepCaseExpr].join(", ")}
   FROM ${tableName}
-  ${whereClause}
-  AND ${stepFilterExpr}
+  ${baseWhereClause}
 ),
 ordered_steps AS (
   SELECT
@@ -392,15 +401,14 @@ valid_steps AS (
       OR
       ${modePlaceholder} = 'loose' AND ${wrapFieldWithBacktick("step")} > 0
     )
-    AND (
-      ${wrapFieldWithBacktick("prev_step")} IS NULL
-      OR (
-        -- 兼容所有版本：isNull + CASE WHEN
-        ${wrapFieldWithBacktick("step")} = (CASE WHEN isNull(${wrapFieldWithBacktick("prev_step")}) THEN 0 ELSE ${wrapFieldWithBacktick("prev_step")} END) + 1
-        -- 原生INTERVAL语法，无兼容问题
-        AND ${wrapFieldWithBacktick("$log_time")} <= ${intervalExpr}
+      AND (
+        ${wrapFieldWithBacktick("prev_step")} IS NULL
+        OR (
+          -- 步骤连续性检查：当前步骤必须是上一个步骤+1，且必须在时间窗口内
+          ${wrapFieldWithBacktick("step")} = (CASE WHEN isNull(${wrapFieldWithBacktick("prev_step")}) THEN 0 ELSE ${wrapFieldWithBacktick("prev_step")} END) + 1
+          AND ${wrapFieldWithBacktick("$log_time")} <= ${intervalExpr}
+        )
       )
-    )
 ),
 step_agg AS (
   SELECT
@@ -414,10 +422,10 @@ SELECT
   ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")},
   ${params.funnelInfoList.map((stepInfo, index) => {
       const stepNum = index + 1
-      // 核心修改：优先使用stepName，为空则用默认命名（step_${stepNum}_value）
+      // 优先使用stepName作为字段名，为空则使用默认命名
       const stepFieldName = stepInfo.stepName
-        ? stepInfo.stepName  // 用传入的stepName 作为字段名
-        : `step_${stepNum}_value`       // 兜底：避免字段名空值
+        ? stepInfo.stepName
+        : `step_${stepNum}_value`
       return `MAX(CASE WHEN ${wrapFieldWithBacktick("step")} = ${stepNum} THEN ${wrapFieldWithBacktick("value")} ELSE 0 END) AS ${wrapFieldWithBacktick(stepFieldName)}`
     }).join(", ")}
 FROM step_agg

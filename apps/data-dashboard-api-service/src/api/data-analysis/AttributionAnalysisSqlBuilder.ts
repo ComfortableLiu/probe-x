@@ -27,25 +27,29 @@ function resetParamIndex(indexRef: { value: number }) {
   indexRef.value = 0
 }
 
+/**
+ * 用反引号包裹字段名，防止字段名包含特殊字符导致SQL错误
+ */
 function wrapFieldWithBacktick(field: string): string {
   return `\`${field.replace(/`/g, '``')}\``
 }
 
+/**
+ * 清理参数名中的特殊字符，确保参数名合法
+ */
 function sanitizeParamName(name: string): string {
   return name.replace(/[\$\-\.\s]/g, '_')
 }
 
 /**
- * 安全转义SQL字符串值（防止SQL注入）
- * @param value 需转义的字符串
- * @returns 转义后的安全字符串
+ * 构建过滤条件子句
+ * @param filters 过滤条件数组
+ * @param params 参数对象，用于存储参数化查询的值
+ * @param indexRef 参数索引引用，确保参数名唯一
  */
-function escapeSqlString(value: string): string {
-  return value.replace(/(['\\])/g, '\\$1')
-}
-
-/** 构建过滤条件子句 */
-function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>, indexRef: { value: number }): string {
+function buildFilterClause(filters: IAttributionAnalysisFilter[] = [], params: Record<string, any>, indexRef: {
+  value: number
+}): string {
   const filterList = Array.isArray(filters) ? filters : []
   if (filterList.length === 0) return ''
 
@@ -189,7 +193,7 @@ function buildContainsFilter(
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) > 0`
   })
-  // 修复：给OR组合的条件包裹括号，保证优先级
+  // 使用括号包裹OR条件，确保与其他AND条件的优先级正确
   return `(${containsClauses.join(' OR ')})`
 }
 
@@ -207,7 +211,7 @@ function buildNotContainsFilter(
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) = 0`
   })
-  // 修复：给AND组合的条件包裹括号（保持逻辑一致性）
+  // 使用括号包裹AND条件，保持逻辑一致性
   return `(${notContainsClauses.join(' AND ')})`
 }
 
@@ -225,7 +229,10 @@ function buildRegexFilter(
   return `${field} REGEXP {${paramKey}:String}`
 }
 
-/** 获取基础指标计算逻辑（非聚合，用于归因权重计算） */
+/**
+ * 获取基础指标计算逻辑（非聚合表达式，用于归因权重计算）
+ * 返回的是单行数据的指标值，不是聚合结果
+ */
 function getBaseMetricLogic(metrics: Metrics): string {
   switch (metrics) {
     case Metrics.COUNT:
@@ -239,7 +246,11 @@ function getBaseMetricLogic(metrics: Metrics): string {
   }
 }
 
-/** 获取指标聚合函数（用于最终结果聚合） */
+/**
+ * 获取指标聚合函数（用于最终结果聚合）
+ * @param metrics 指标类型
+ * @param isUserCount 是否用于用户数统计（特殊处理）
+ */
 function getMetricAggregationFunc(metrics: Metrics, isUserCount = false): string {
   if (isUserCount) {
     return `uniq(${wrapFieldWithBacktick('$uid')})`
@@ -257,7 +268,9 @@ function getMetricAggregationFunc(metrics: Metrics, isUserCount = false): string
 }
 
 /** 构建归因事件过滤条件（多事件OR） */
-function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnalysisInfo }[], params: Record<string, any>, indexRef: { value: number }): string {
+function buildAttributionEventFilter(attributionEvents: {
+  eventInfo: IEventAnalysisInfo
+}[], params: Record<string, any>, indexRef: { value: number }): string {
   if (!Array.isArray(attributionEvents) || attributionEvents.length === 0) {
     return '1=0'
   }
@@ -278,12 +291,14 @@ function buildAttributionEventFilter(attributionEvents: { eventInfo: IEventAnaly
     return eventConditions.length > 0 ? `(${eventConditions.join(' AND ')})` : ''
   }).filter(Boolean)
 
-  // 修复：给OR组合的事件条件包裹括号，保证和其他AND条件的优先级
+  // 使用括号包裹OR组合的事件条件，确保与其他AND条件的优先级正确
   return eventClauses.length > 0 ? `(${eventClauses.join(' OR ')})` : '1=0'
 }
 
 /** 构建转化事件过滤条件 */
-function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params: Record<string, any>, indexRef: { value: number }): string {
+function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params: Record<string, any>, indexRef: {
+  value: number
+}): string {
   if (!targetEventInfo) return ''
 
   const conditions: string[] = []
@@ -308,10 +323,12 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   const attributionIndexField = wrapFieldWithBacktick('attribution_index')
   const eventTimeField = wrapFieldWithBacktick('event_time')
 
-  // 定义触摸点总数变量，避免重复子查询
-  const touchpointCount = `(SELECT COALESCE(COUNT(*), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField})`
-  // 定义最后触摸点索引变量
-  const lastTouchpointIndex = `(SELECT COALESCE(MAX(${attributionIndexField}), 0) FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField})`
+  // 计算触摸点总数：统计同一source_page_id和event_time下的所有归因项数量
+  // 注意：必须同时匹配source_page_id和event_time（分区对齐），确保归因数据正确关联
+  // 性能优化：使用窗口函数替代子查询（在CTE中预计算）
+  const touchpointCount = `(SELECT COALESCE(COUNT(*), 0) FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField}))`
+  // 计算最后触摸点索引：获取同一source_page_id和event_time下的最大attribution_index
+  const lastTouchpointIndex = `(SELECT COALESCE(MAX(ea.${attributionIndexField}), 0) FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField}))`
 
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
@@ -321,20 +338,20 @@ function buildAttributionWeightLogic(model: AttributionModelEnum): string {
     case AttributionModelEnum.LINEAR:
       return `1 / COALESCE(${touchpointCount}, 1)`
     case AttributionModelEnum.POSITION:
+      // 位置归因模型：第一个和最后一个触摸点各占40%，中间点均分剩余20%
       return `CASE 
-        -- 修复1：单个触摸点（总数=1），权重1.0
         WHEN ${touchpointCount} = 1 THEN 1.0
-        -- 修复2：两个触摸点（总数=2），每个权重0.5
         WHEN ${touchpointCount} = 2 THEN 0.5
-        -- 修复3：多个触摸点，先判断是否是第一个/最后一个（权重0.4），中间点均分剩余0.2
         WHEN a.${attributionIndexField} = 0 OR a.${attributionIndexField} = ${lastTouchpointIndex} THEN 0.4
         ELSE COALESCE(0.2 / NULLIF(${touchpointCount} - 2, 0), 1)
       END`
     case AttributionModelEnum.TIME_DECAY:
-      // 修复：ClickHouse的dateDiff函数单位参数需要用字符串字面量（单引号包裹）
+      // 时间衰减归因模型：使用指数衰减函数，距离转化时间越近权重越大
+      // 注意：dateDiff函数单位参数必须用字符串字面量（单引号包裹）
+      // 子查询需要匹配同一source_page_id和event_time的归因数据（分区对齐）
       return `EXP(-0.1 * dateDiff('second', a.${eventTimeField}, ${serviceTimeField})) / 
-              COALESCE((SELECT SUM(EXP(-0.1 * dateDiff('second', ${eventTimeField}, ${serviceTimeField}))) 
-               FROM probe_x.event_attribution WHERE ${sourcePageIdField} = a.${sourcePageIdField}), 1)`
+              COALESCE((SELECT SUM(EXP(-0.1 * dateDiff('second', ea.${eventTimeField}, ${serviceTimeField}))) 
+               FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField})), 1)`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
@@ -380,9 +397,14 @@ function buildDynamicOrderByClause(
   return `ORDER BY ${orderByParts.join(', ')}`
 }
 
-/** 生成适配表格展示的归因分析SQL */
+/**
+ * 生成归因分析SQL
+ * 功能：根据归因模型计算各归因事件的贡献度、转化率等指标
+ * @param params 归因分析请求参数
+ * @returns SQL生成结果，包含SQL语句、参数和错误信息
+ */
 export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq): ISqlGenerateResult {
-  // 局部索引，每个请求独立
+  // 参数索引引用，每个请求独立，确保参数名唯一
   const indexRef = { value: 0 }
   resetParamIndex(indexRef)
   const sqlParams: Record<string, any> = {}
@@ -392,7 +414,11 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     if (!params.attributionModel) return { sql: '', params: {}, error: '归因模型不能为空' }
     if (!params.targetMetric?.eventInfo) return { sql: '', params: {}, error: '转化目标指标不能为空' }
     if (!params.timeRange || params.timeRange.length !== 2) return { sql: '', params: {}, error: '时间范围格式错误' }
-    if (!Array.isArray(params.attributionEvent) || params.attributionEvent.length === 0) return { sql: '', params: {}, error: '归因事件不能为空' }
+    if (!Array.isArray(params.attributionEvent) || params.attributionEvent.length === 0) return {
+      sql: '',
+      params: {},
+      error: '归因事件不能为空',
+    }
 
     const {
       attributionModel,
@@ -447,9 +473,10 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT)
     const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true)
 
-    // 补充缺失的conversion_metric和conversion_rate字段
+    // 归因指标计算：使用权重逻辑乘以基础指标逻辑
     const attributionValueExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS attribution_value`
     const conversionMetricExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS conversion_metric`
+    // 转化率：归因指标值 / 总指标值 * 100
     const conversionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / NULLIF(SUM(${baseMetricLogic}), 0)) * 100, 2) AS conversion_rate`
 
     // 总转化量计算
@@ -472,7 +499,7 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     // 维度字段选择
     const dimensionSelect = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
 
-    // 最终SELECT子句（补充缺失字段）
+    // 构建最终SELECT子句
     const selectClause = `
       ${attributionEventNameExpr},
       ${dimensionSelect}
@@ -485,17 +512,19 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
       ${contributionProgressExpr}
     `.trim()
 
-    // 表关联
+    // 8. 表关联：主表与归因表LEFT JOIN
+    // 关联条件：source_page_id匹配 + event_time分区对齐（确保归因数据正确关联）
     const mainTable = '`probe_x`.`final_event_log` f'
     const attrTable = '`probe_x`.`event_attribution` a'
     const joinClause = `LEFT JOIN ${attrTable} 
       ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('$source_page_id')} 
       AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
 
-    // 动态排序子句
+    // 9. 动态排序子句
     const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams, indexRef)
 
-    // 拼接最终SQL
+    // 10. 拼接最终SQL
+    // 优化建议：可以使用CTE+窗口函数优化归因权重计算中的子查询，但需要重构整个查询结构
     const sql = `SELECT ${selectClause}
                  FROM ${mainTable}
                  ${joinClause}

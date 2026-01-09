@@ -244,16 +244,18 @@ function buildRegexFilter(
 }
 
 /**
- * 获取指标对应的聚合函数
+ * 获取指标对应的聚合表达式
+ * COUNT: 使用SUM计数
+ * USERS/SESSIONS: 使用uniqIf进行条件去重统计（ClickHouse内置函数）
  */
-function getMetricAggregationFunc(metrics: Metrics): string {
+function getMetricAggregationExpr(metrics: Metrics, condition: string): string {
   switch (metrics) {
     case Metrics.COUNT:
-      return '1' // SUM(1) 等价于 COUNT()
+      return `SUM(CASE WHEN ${condition} THEN 1 ELSE 0 END)`
     case Metrics.USERS:
-      return `if(uniqMergeState(user_uniq), 1, 0)`
+      return `uniqIf(${condition}, ${wrapFieldWithBacktick('$uid')})`
     case Metrics.SESSIONS:
-      return `if(uniqMergeState(session_uniq), 1, 0)`
+      return `uniqIf(${condition}, ${wrapFieldWithBacktick('$session_id')})`
     default:
       throw new Error(`不支持的指标类型：${metrics}`)
   }
@@ -277,7 +279,10 @@ function getEventDateAlias(eventInfo: IEventAnalysisInfo, date: string, index: n
 }
 
 /**
- * 工具函数：生成ClickHouse查询SQL（添加维度排序，适配表格合并）
+ * 生成事件分析SQL
+ * 功能：按事件和日期维度统计各事件的指标数据（支持COUNT/USERS/SESSIONS）
+ * @param params 事件分析请求参数
+ * @returns SQL生成结果，包含SQL语句、参数和错误信息
  */
 export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerateResult {
   resetParamIndex()
@@ -307,26 +312,18 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
     const whereClauses = [timeFilter, globalWhereClause].filter(Boolean)
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
 
-    // 3. 维度字段（去重 + 反引号包裹）
+    // 3. 维度字段处理（去重 + 反引号包裹）
     const dimensionFields = [...new Set(params.dimension)].map(field => wrapFieldWithBacktick(field))
     const groupByClause = dimensionFields.length > 0 ? `GROUP BY ${dimensionFields.join(', ')}` : ''
 
-    // ===================== 新增：按维度顺序生成ORDER BY子句 =====================
-    // 排序规则：按维度数组顺序升序排序（一级：维度1，二级：维度2，以此类推）
+    // 4. 按维度顺序生成ORDER BY子句
+    // 排序规则：按维度数组顺序升序排序，用于适配前端表格合并展示
     const orderByClause = dimensionFields.length > 0
-      ? `ORDER BY ${dimensionFields.join(', ')} ASC`  // 统一升序，适配表格合并
+      ? `ORDER BY ${dimensionFields.join(', ')} ASC`
       : ''
 
-    // 4. 预定义需要的聚合状态（用于USERS/SESSIONS指标）
-    const aggregationStates = []
-    if (params.eventInfoList.some(info => info.metrics === Metrics.USERS)) {
-      aggregationStates.push(`uniqState(${wrapFieldWithBacktick('$uid')}) AS user_uniq`)
-    }
-    if (params.eventInfoList.some(info => info.metrics === Metrics.SESSIONS)) {
-      aggregationStates.push(`uniqState(${wrapFieldWithBacktick('$session_id')}) AS session_uniq`)
-    }
-
-    // 5. 生成事件指标SQL片段（核心修复：使用SUM+CASE WHEN替代IF）
+    // 5. 生成事件指标SQL片段
+    // 使用统一的聚合表达式生成函数，支持COUNT/USERS/SESSIONS
     const eventMetricFragments = params.eventInfoList.map((eventInfo, index) => {
       const { eventName, filters = [], metrics } = eventInfo
       const eventAlias = getEventAlias(eventInfo, index)
@@ -347,8 +344,7 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
         eventCondition = `${eventCondition} AND ${eventFilterClause}`
       }
 
-      // 按日期生成指标列（SUM+CASE WHEN 避免非聚合字段问题）
-      const metricExpr = getMetricAggregationFunc(metrics)
+      // 按日期生成指标列：为每个日期生成一个聚合列
       const dateMetrics = dateList.map(date => {
         const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`)
         sqlParams[dateParamKey] = date
@@ -356,18 +352,8 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
         const dateCondition = `toDate(${wrapFieldWithBacktick('$service_time')}) = toDate({${dateParamKey}:String})`
         const fullCondition = `${eventCondition} AND ${dateCondition}`
 
-        // 不同指标的聚合逻辑
-        let aggregationExpr = ''
-        switch (metrics) {
-          case Metrics.COUNT:
-            aggregationExpr = `SUM(CASE WHEN ${fullCondition} THEN 1 ELSE 0 END)`
-            break
-          case Metrics.USERS:
-          case Metrics.SESSIONS:
-            aggregationExpr = `SUM(CASE WHEN ${fullCondition} THEN ${metricExpr} ELSE 0 END)`
-            break
-        }
-
+        // 使用统一的聚合表达式生成函数
+        const aggregationExpr = getMetricAggregationExpr(metrics, fullCondition)
         return `${aggregationExpr} AS ${getEventDateAlias(eventInfo, date, index)}`
       }).join(', ')
 
@@ -385,13 +371,12 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
     // 6. 拼接SELECT子句
     const selectParts = [
       ...dimensionFields,
-      ...aggregationStates, // 聚合状态（仅USERS/SESSIONS需要）
       ...eventMetricFragments.flatMap(frag => [frag.eventNameColumn, frag.dateMetrics]),
     ].filter(Boolean)
 
     const selectClause = selectParts.join(', ')
 
-    // 7. 最终SQL（拼接ORDER BY，表名反引号包裹）
+    // 7. 构建最终SQL
     const tableName = '`probe_x`.`final_event_log`'
     const sql = `SELECT ${selectClause}
                  FROM ${tableName} ${whereClause} ${groupByClause} ${orderByClause}`

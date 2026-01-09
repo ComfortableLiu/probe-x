@@ -350,27 +350,47 @@ export function generateUserPathAnalysisSql(params: IUserPathAnalysisReq): ISqlG
           ${params.endEvent ? `AND session_has_end_event = 1 AND log_time <= last_end_event_time` : ''}
       )`,
 
-      // CTE4: 按「用户+Session+事件对」去重（同一Session内同一流转只算1次）
+      // CTE4: 按「用户+Session+事件对」去重（同一Session内同一流转只统计1次）
+      // 使用ROW_NUMBER窗口函数实现去重（ClickHouse不支持DISTINCT ON语法）
       `distinct_session_pairs AS (
-        SELECT DISTINCT ON (uid, session_id, source, target)
+        SELECT
           source,
           target
-        FROM valid_session_events
-        -- 按事件顺序取第一次出现的流转（避免重复统计）
-        ORDER BY uid, session_id, source, target, event_order
+        FROM (
+          SELECT
+            source,
+            target,
+            ROW_NUMBER() OVER (PARTITION BY uid, session_id, source, target ORDER BY event_order) AS rn
+          FROM valid_session_events
+        )
+        WHERE rn = 1
       )`,
     ]
 
-    // 8. 最终查询：统计事件对流转次数（跨用户+Session的总次数）
+    // 8. 最终查询：同时返回eventList和edgeList
+    // eventList: 从base_data中提取所有唯一的事件名
+    // edgeList: 统计事件对流转次数（跨所有用户+Session的总次数）
+    // 注意：ClickHouse返回edgeList为数组格式，service需要转换为对象数组
     const finalQuery = `
-      WITH ${cteExpressions.filter(Boolean).join(', ')}
+      WITH ${cteExpressions.filter(Boolean).join(', ')},
+      edge_data AS (
+        SELECT
+          source,
+          target,
+          COUNT(*) AS value
+        FROM distinct_session_pairs
+        GROUP BY source, target
+        ORDER BY value DESC
+      ),
+      event_data AS (
+        SELECT DISTINCT event_name AS event
+        FROM base_data
+        WHERE event_name IS NOT NULL AND event_name != ''
+        ORDER BY event
+      )
       SELECT
-        source,
-        target,
-        COUNT() AS value
-      FROM distinct_session_pairs
-      GROUP BY source, target
-      ORDER BY value DESC
+        (SELECT groupArray(event) FROM event_data) AS eventList,
+        (SELECT groupArray(tuple(source, target, value)) FROM edge_data) AS edgeList
     `
 
     // 9. 格式化SQL（去除多余空行）
