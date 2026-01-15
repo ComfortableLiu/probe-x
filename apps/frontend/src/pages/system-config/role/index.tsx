@@ -4,7 +4,8 @@ import TableComponent from "@components/TableComponent"
 import { IFormItem } from "@components/FormComponent/type"
 import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Popconfirm, Space, TableProps, Tag } from "antd"
-import { AddOne } from "@icon-park/react"
+import { AddOne, ViewList } from "@icon-park/react"
+import { useNavigate } from "react-router-dom"
 import dayjs from "dayjs"
 import { useHistoryListener, useLoading, useModel } from "@/hooks"
 import { useDispatch } from "react-redux"
@@ -21,6 +22,7 @@ import AssignPermissionsPopup from "./components/assign-permissions"
  * 用途：用于定义系统中的角色，为角色分配权限，实现基于角色的访问控制（RBAC）
  */
 function RoleManage() {
+  const navigate = useNavigate()
   const dispatch = useDispatch<Dispatch>()
   const loading = useLoading()
   const { roleList, pagination } = useModel<IRoleManageState>('systemConfigRoleManageModel')
@@ -100,6 +102,10 @@ function RoleManage() {
     // 系统角色不可删除
     return !role.isSystemRole
   }, [])
+
+  const handleViewPermissions = useCallback(() => {
+    navigate('/system-config/permission-list')
+  }, [navigate])
 
   const columns: TableProps<IRoleListItem>['columns'] = useMemo(() => [
     {
@@ -187,10 +193,16 @@ function RoleManage() {
       <FormComponent formItems={formItems} />
       <TableComponent<IRoleListItem>
         exButtons={(
-          <Button type="primary" onClick={handleAddRole}>
-            新增角色
-            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-          </Button>
+          <Space>
+            <Button onClick={handleViewPermissions}>
+              <ViewList style={{ display: "flex" }} theme="outline" size="14" />
+              查看权限列表
+            </Button>
+            <Button type="primary" onClick={handleAddRole}>
+              新增角色
+              <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+            </Button>
+          </Space>
         )}
         dataSource={roleList}
         columns={columns}

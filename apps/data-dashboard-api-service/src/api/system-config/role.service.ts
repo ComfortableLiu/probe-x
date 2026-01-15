@@ -21,17 +21,8 @@ import {
   IRoleManageListItem,
   IUpdateRoleReq,
   IUpdateRoleRes,
+  RoleType,
 } from '@probe-x/shared-types/src'
-
-/**
- * 系统角色标识
- */
-export const SYSTEM_ROLE_KEYS = {
-  SUPER_ADMIN: 'super_admin',
-  ADMIN: 'admin',
-  DEVELOPER: 'developer',
-  DATA_ANALYST: 'data_analyst',
-}
 
 @Injectable()
 export class SystemConfigRoleService {
@@ -75,12 +66,11 @@ export class SystemConfigRoleService {
       })
     }
     if (isSystemRole !== undefined) {
-      // 判断是否为系统角色：roleKey 在系统角色列表中
-      const systemRoleKeys = Object.values(SYSTEM_ROLE_KEYS)
+      // 判断是否为系统角色：使用 roleType 字段
       if (isSystemRole) {
-        queryBuilder.andWhere('role.roleKey IN (:...systemRoleKeys)', { systemRoleKeys })
+        queryBuilder.andWhere('role.roleType = :roleType', { roleType: RoleType.SYSTEM })
       } else {
-        queryBuilder.andWhere('role.roleKey NOT IN (:...systemRoleKeys)', { systemRoleKeys })
+        queryBuilder.andWhere('role.roleType = :roleType', { roleType: RoleType.CUSTOM })
       }
     }
 
@@ -96,7 +86,7 @@ export class SystemConfigRoleService {
 
     // 格式化返回数据
     const data: IRoleManageListItem[] = roles.map((role) => {
-      const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+      const isSystemRole = role.roleType === RoleType.SYSTEM
       // 只统计启用的权限
       const permissionCount = role.permissionRelations?.filter(
         rel => rel.permission?.isEnable !== 0,
@@ -157,17 +147,20 @@ export class SystemConfigRoleService {
       return ResponseData.error('角色名称已存在')
     }
 
-    // 检查是否为系统角色
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(roleKey as any)
-    if (isSystemRole) {
-      return ResponseData.error('不能创建系统角色，系统角色已预定义')
+    // 检查数据库中是否已存在该 roleKey 的系统角色（不允许创建与系统角色相同的 roleKey）
+    const existingSystemRole = await this.roleRepo.findOne({
+      where: { roleKey, roleType: RoleType.SYSTEM },
+    })
+    if (existingSystemRole) {
+      return ResponseData.error('该角色标识已被系统角色使用，无法创建')
     }
 
-    // 创建角色
+    // 创建角色（默认为自定义角色）
     const role = this.roleRepo.create({
       roleKey,
       roleName,
       description,
+      roleType: RoleType.CUSTOM,
       isEnable: 1,
     })
 
@@ -214,10 +207,10 @@ export class SystemConfigRoleService {
     }
 
     // 检查是否为系统角色
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+    const isSystemRole = role.roleType === RoleType.SYSTEM
     if (isSystemRole) {
-      // 系统角色中，超管不可编辑
-      if (role.roleKey === SYSTEM_ROLE_KEYS.SUPER_ADMIN) {
+      // 系统角色中，超管（super_admin）不可编辑
+      if (role.roleKey === 'super_admin') {
         return ResponseData.error('超管角色不可编辑')
       }
       // 其他系统角色只能更新描述
@@ -291,7 +284,7 @@ export class SystemConfigRoleService {
     }
 
     // 检查是否为系统角色
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+    const isSystemRole = role.roleType === RoleType.SYSTEM
     if (isSystemRole) {
       return ResponseData.error('系统角色不可删除')
     }
@@ -329,10 +322,10 @@ export class SystemConfigRoleService {
     }
 
     // 检查是否为系统角色
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+    const isSystemRole = role.roleType === RoleType.SYSTEM
     if (isSystemRole) {
-      // 超管角色拥有所有权限，无需分配
-      if (role.roleKey === SYSTEM_ROLE_KEYS.SUPER_ADMIN) {
+      // 超管角色（super_admin）拥有所有权限，无需分配
+      if (role.roleKey === 'super_admin') {
         return ResponseData.error('超管角色拥有所有权限，无需分配')
       }
       // 其他系统角色的权限由系统配置决定，不允许手动修改
@@ -371,20 +364,30 @@ export class SystemConfigRoleService {
   }
 
   /**
-   * 获取权限列表
+   * 获取权限列表（树形结构）
    */
   async getPermissionList(): Promise<IQueryPermissionListRes> {
     const permissions = await this.permissionRepo.find({
       where: { isEnable: 1 },
-      order: { createdAt: 'ASC' },
+      order: { level: 'ASC', createdAt: 'ASC' },
     })
 
-    const data: IPermissionOption[] = permissions.map((permission) => ({
-      id: permission.id!,
-      permissionKey: permission.permissionKey!,
-      permissionName: permission.permissionName!,
-      description: permission.description,
-    }))
+    // 构建树形结构
+    const buildTree = (items: Permission[], parentId: number | null = null): IPermissionOption[] => {
+      return items
+        .filter(item => (item.parentId ?? null) === parentId)
+        .map(item => ({
+          id: item.id!,
+          permissionKey: item.permissionKey!,
+          permissionName: item.permissionName!,
+          description: item.description,
+          parentId: item.parentId ?? null,
+          level: item.level ?? 1,
+          children: buildTree(items, item.id!),
+        }))
+    }
+
+    const data = buildTree(permissions)
 
     return { data }
   }
@@ -413,7 +416,7 @@ export class SystemConfigRoleService {
       return ResponseData.error('角色不存在')
     }
 
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+    const isSystemRole = role.roleType === RoleType.SYSTEM
     const permissionCount = role.permissionRelations?.length || 0
     const userCount = role.userRelations?.length || 0
 
@@ -433,56 +436,6 @@ export class SystemConfigRoleService {
     return ResponseData.success(result)
   }
 
-  /**
-   * 初始化系统角色（确保系统角色存在）
-   */
-  async initSystemRoles(): Promise<void> {
-    const systemRoles = [
-      {
-        roleKey: SYSTEM_ROLE_KEYS.SUPER_ADMIN,
-        roleName: '超管',
-        description: '系统超级管理员，拥有所有权限，唯一账号为admin，无法进行任何新增或删除操作',
-      },
-      {
-        roleKey: SYSTEM_ROLE_KEYS.ADMIN,
-        roleName: '管理员',
-        description: '系统管理员，拥有除了管理超管角色以外的所有权限',
-      },
-      {
-        roleKey: SYSTEM_ROLE_KEYS.DEVELOPER,
-        roleName: '研发',
-        description: '研发人员角色，拥有开发和配置相关权限',
-      },
-      {
-        roleKey: SYSTEM_ROLE_KEYS.DATA_ANALYST,
-        roleName: '数据分析师',
-        description: '数据分析师角色，拥有数据分析和查看相关权限',
-      },
-    ]
-
-    for (const systemRole of systemRoles) {
-      const existingRole = await this.roleRepo.findOne({
-        where: { roleKey: systemRole.roleKey },
-      })
-
-      if (!existingRole) {
-        const role = this.roleRepo.create({
-          roleKey: systemRole.roleKey,
-          roleName: systemRole.roleName,
-          description: systemRole.description,
-          isEnable: 1,
-        })
-        await this.roleRepo.save(role)
-      } else {
-        // 更新系统角色的名称和描述（如果数据库中的不一致）
-        if (existingRole.roleName !== systemRole.roleName || existingRole.description !== systemRole.description) {
-          existingRole.roleName = systemRole.roleName
-          existingRole.description = systemRole.description
-          await this.roleRepo.save(existingRole)
-        }
-      }
-    }
-  }
 
   /**
    * 启用/禁用角色
@@ -497,7 +450,7 @@ export class SystemConfigRoleService {
     }
 
     // 系统角色不可禁用
-    const isSystemRole = Object.values(SYSTEM_ROLE_KEYS).includes(role.roleKey as any)
+    const isSystemRole = role.roleType === RoleType.SYSTEM
     if (isSystemRole && !isEnable) {
       return ResponseData.error('系统角色不可禁用')
     }

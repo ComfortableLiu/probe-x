@@ -24,6 +24,14 @@ export default {
     path: '/system-config/role',
     component: lazy(() => import('@pages/system-config/role')),
   }, {
+    name: '权限列表',
+    key: 'system-config-permission-list',
+    path: '/system-config/permission-list',
+    component: lazy(() => import('@pages/system-config/permission-list')),
+    meta: {
+      isHidden: true, // 隐藏菜单，只能通过角色管理页面跳转
+    },
+  }, {
   //   name: '权限管理',
   //   key: 'system-config-permission',
   //   path: '/system-config/permission',

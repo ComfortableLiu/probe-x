@@ -204,15 +204,6 @@ export class SystemConfigController {
   }
 
   /**
-   * 初始化系统角色
-   */
-  @Post('role/initSystemRoles')
-  async initSystemRoles(): Promise<ResponseData<null>> {
-    await this.roleService.initSystemRoles()
-    return ResponseData.success(null)
-  }
-
-  /**
    * 启用/禁用角色
    */
   @Post('role/toggleStatus')

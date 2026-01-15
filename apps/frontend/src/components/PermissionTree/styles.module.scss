@@ -1,0 +1,36 @@
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  .permission-name {
+    color: #262626;
+    font-size: 14px;
+  }
+
+  .permission-key {
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+
+  .permission-desc {
+    color: #595959;
+    font-size: 12px;
+    font-style: italic;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
