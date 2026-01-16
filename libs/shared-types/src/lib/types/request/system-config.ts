@@ -351,3 +351,135 @@ export interface IQueryPermissionListRes {
   data: IPermissionOption[]
 }
 
+// ============================================
+// 系统管理相关类型定义
+// ============================================
+
+/**
+ * 查询系统列表请求参数
+ */
+export interface IQuerySystemListReq extends IPageQuery {
+  /** 系统标识（模糊搜索） */
+  systemKey?: string
+  /** 系统名称（模糊搜索） */
+  systemName?: string
+  /** 是否启用 */
+  isEnable?: boolean
+}
+
+/**
+ * 系统列表项
+ */
+export interface ISystemListItem {
+  /** 系统ID */
+  id: number
+  /** 系统标识 */
+  systemKey: string
+  /** 系统名称 */
+  systemName: string
+  /** 系统描述 */
+  description?: string
+  /** 关联的SPM第一层节点Code */
+  trackingNodeCode?: string
+  /** 关联的SPM第一层节点名称 */
+  trackingNodeName?: string
+  /** 是否启用 */
+  isEnable: boolean
+  /** 创建时间 */
+  createdAt?: Date
+  /** 更新时间 */
+  updatedAt?: Date
+}
+
+/**
+ * 查询系统列表响应
+ */
+export type IQuerySystemListRes = IPageResult<ISystemListItem>
+
+/**
+ * 创建系统请求参数
+ */
+export interface ICreateSystemReq {
+  /** 系统标识（必填，唯一） */
+  systemKey: string
+  /** 系统名称（必填，唯一） */
+  systemName: string
+  /** 系统描述（可选） */
+  description?: string
+  /** 关联的SPM第一层节点Code（可选） */
+  trackingNodeCode?: string
+  /** 是否启用（默认 true） */
+  isEnable?: boolean
+}
+
+/**
+ * 创建系统响应数据
+ */
+export interface ICreateSystemRes {
+  /** 系统ID */
+  id: number
+  /** 系统标识 */
+  systemKey: string
+  /** 系统名称 */
+  systemName: string
+  /** 系统描述 */
+  description?: string
+  /** 关联的SPM第一层节点Code */
+  trackingNodeCode?: string
+  /** 是否启用 */
+  isEnable: boolean
+}
+
+/**
+ * 更新系统请求参数
+ */
+export interface IUpdateSystemReq {
+  /** 系统ID（必填） */
+  id: number
+  /** 系统名称（可选） */
+  systemName?: string
+  /** 系统描述（可选） */
+  description?: string
+  /** 关联的SPM第一层节点Code（可选） */
+  trackingNodeCode?: string
+  /** 是否启用（可选） */
+  isEnable?: boolean
+}
+
+/**
+ * 更新系统响应数据
+ */
+export interface IUpdateSystemRes {
+  /** 系统ID */
+  id: number
+  /** 系统标识 */
+  systemKey: string
+  /** 系统名称 */
+  systemName: string
+  /** 系统描述 */
+  description?: string
+  /** 关联的SPM第一层节点Code */
+  trackingNodeCode?: string
+  /** 是否启用 */
+  isEnable: boolean
+}
+
+/**
+ * 删除系统请求参数
+ */
+export interface IDeleteSystemReq {
+  /** 系统ID */
+  id: number
+}
+
+/**
+ * 系统选项（用于下拉选择）
+ */
+export interface ISystemOption {
+  /** 系统ID */
+  id: number
+  /** 系统标识 */
+  systemKey: string
+  /** 系统名称 */
+  systemName: string
+}

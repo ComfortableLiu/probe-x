@@ -65,7 +65,7 @@ export function assignPermissions(data: IAssignPermissionsReq) {
 }
 
 /**
- * 获取权限列表
+ * 获取权限列表（全局）
  */
 export function queryPermissionList() {
   return request<IQueryPermissionListRes>({

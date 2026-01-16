@@ -4,14 +4,12 @@ import { InjectRepository } from "@nestjs/typeorm"
 import { Repository, SelectQueryBuilder } from "typeorm"
 import { timingSafeEqual, createHmac } from "node:crypto"
 import { AuthService } from "@src/service/auth.service"
-import {
-  Permission,
-  ResponseData,
-  Role,
-  RolePermissionRelation,
-  UserEntity,
-  UserRoleRelation,
-} from "@probe-x/shared-utils/src/lib/backend-common"
+import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common/entity/response.entity"
+import { Permission } from "@probe-x/shared-utils/src/lib/backend-common/entity/Permission.entity"
+import { Role } from "@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity"
+import { RolePermissionRelation } from "@probe-x/shared-utils/src/lib/backend-common/entity/RolePermissionRelation.entity"
+import { UserEntity } from "@probe-x/shared-utils/src/lib/backend-common/entity/User.entity"
+import { UserRoleRelation } from "@probe-x/shared-utils/src/lib/backend-common/entity/UserRoleRelation.entity"
 import { IPermissionRes, IUser, IUpdateUserProfileReq, IUpdateUserProfileRes, IChangePasswordReq, IChangePasswordRes } from "@probe-x/shared-types/src"
 import { ConfigService } from "@nestjs/config"
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
 import { IFormItem } from "@components/FormComponent/type"
@@ -12,6 +12,8 @@ import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import { ICreateRoleReq, IUpdateRoleReq, IDeleteRoleReq, IAssignPermissionsReq, IRoleListItem, IRoleManageState } from "./type"
 import { SystemRoleKey } from "@/constant/permissions"
+import { querySystemOptions } from "../system/services"
+import { ISystemOption } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 import RoleEditPopup from "./components/edit"
 import AssignPermissionsPopup from "./components/assign-permissions"
@@ -30,13 +32,24 @@ function RoleManage() {
   const [editPopupOpen, setEditPopupOpen] = useState(false)
   const [assignPermissionsPopupOpen, setAssignPermissionsPopupOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<IRoleListItem | null>(null)
+  const [systemOptions, setSystemOptions] = useState<ISystemOption[]>([])
 
   useHistoryListener((location) => {
     const { pathname } = location
     if (pathname === '/system-config/role') {
       dispatch.systemConfigRoleManageModel.getRoleList()
+      loadSystemOptions()
     }
   })
+
+  const loadSystemOptions = async () => {
+    try {
+      const { data } = await querySystemOptions()
+      setSystemOptions(data || [])
+    } catch (error) {
+      console.error('获取系统选项失败:', error)
+    }
+  }
 
   const formItems: IFormItem[] = useMemo(() => [{
     key: 'roleName',
@@ -55,7 +68,19 @@ function RoleManage() {
       { label: '系统角色', value: true },
       { label: '自定义角色', value: false },
     ],
-  }], [])
+  }, {
+    key: 'systemId',
+    label: '所属系统',
+    type: FormItemType.SELECT,
+    options: [
+      { label: '全部', value: '' },
+      { label: '全局角色', value: 'null' },
+      ...systemOptions.map(opt => ({
+        label: `${opt.systemName} (${opt.systemKey})`,
+        value: String(opt.id),
+      })),
+    ],
+  }], [systemOptions])
 
   const handleAddRole = useCallback(() => {
     setSelectedRole(null)
@@ -126,6 +151,16 @@ function RoleManage() {
           {isSystemRole ? '系统角色' : '自定义角色'}
         </Tag>
       ),
+    }, {
+      title: '所属系统',
+      dataIndex: 'systemName',
+      width: 150,
+      render: (systemName: string, record: IRoleListItem) => {
+        if (record.systemId === null || record.systemId === undefined) {
+          return <Tag color="default">全局角色</Tag>
+        }
+        return systemName ? <Tag color="blue">{systemName}</Tag> : '-'
+      },
     }, {
       title: '角色描述',
       dataIndex: 'description',

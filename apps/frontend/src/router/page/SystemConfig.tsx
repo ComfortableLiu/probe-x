@@ -14,6 +14,11 @@ export default {
     path: '/system-config/user',
     component: lazy(() => import('@pages/system-config/user')),
   }, {
+    name: '系统管理',
+    key: 'system-config-system',
+    path: '/system-config/system',
+    component: lazy(() => import('@pages/system-config/system')),
+  }, {
     name: '计算节点配置',
     key: 'system-config-computing-node',
     path: '/system-config/computing-node',

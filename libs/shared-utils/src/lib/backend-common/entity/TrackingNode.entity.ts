@@ -26,6 +26,7 @@ export class TrackingNodeEntity {
     type: 'varchar',
     comment: '节点编码，生成规则是0-9a-zA-Z随机16个',
     length: 16,
+    collation: 'utf8mb4_unicode_ci', // 显式指定 collation，确保与 system.tracking_node_code 一致
   })
   @Index()
   code?: string

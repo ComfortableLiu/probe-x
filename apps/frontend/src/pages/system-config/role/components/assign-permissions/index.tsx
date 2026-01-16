@@ -23,9 +23,10 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
   const isSuperAdmin = role?.roleKey === SystemRoleKey.SUPER_ADMIN
 
   useEffect(() => {
-    if (open && !permissionList.length) {
+    if (open) {
       loadPermissions()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {

@@ -21,6 +21,7 @@ import systemDataOverviewModel from "@pages/system-data/overview/model"
 
 import systemConfigUserManageModel from "@pages/system-config/user/model"
 import systemConfigRoleManageModel from "@pages/system-config/role/model"
+import systemConfigSystemManageModel from "@pages/system-config/system/model"
 
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
@@ -49,6 +50,7 @@ export interface RootModel extends Models<RootModel> {
   // 系统配置
   systemConfigUserManageModel: typeof systemConfigUserManageModel
   systemConfigRoleManageModel: typeof systemConfigRoleManageModel
+  systemConfigSystemManageModel: typeof systemConfigSystemManageModel
 }
 
 export const models: RootModel = {
@@ -70,4 +72,5 @@ export const models: RootModel = {
   systemDataAnalysisModel,
   systemConfigUserManageModel,
   systemConfigRoleManageModel,
+  systemConfigSystemManageModel,
 }
