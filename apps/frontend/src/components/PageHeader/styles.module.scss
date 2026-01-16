@@ -1,15 +1,14 @@
-.pageHeader {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
   width: 100%;
   min-height: 32px;
-  flex-wrap: nowrap;
 }
 
-.titleSection {
-  display: inline-flex;
+.title-section {
+  display: flex;
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
@@ -17,16 +16,21 @@
 }
 
 .title {
-  margin: 0;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
   padding: 0;
   font-size: 24px;
   font-weight: 600;
   color: #1a1a1a;
-  line-height: 32px;
+  line-height: 1;
   white-space: nowrap;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  height: 32px;
 }
 
-.refreshBtn {
+.refresh-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -35,8 +39,8 @@
   padding: 0;
 }
 
-.extraSection {
-  display: inline-flex;
+.extra-section {
+  display: flex;
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;

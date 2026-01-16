@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 通知设置
@@ -89,7 +90,7 @@ function Notification() {
 
   return (
     <div className={styles.notification}>
-      <h2>通知设置</h2>
+      <PageHeader title="通知设置" />
       <p className={styles.description}>
         管理系统通知配置，包括邮件、短信、站内信等通知方式的配置。用于配置系统的通知渠道和通知规则，设置告警阈值，管理通知模板。
       </p>

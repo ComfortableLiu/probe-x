@@ -3,6 +3,8 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { IFormItem } from "@components/FormComponent/type"
 import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
+import PageHeader from "@components/PageHeader"
+import * as styles from "./styles.module.scss"
 
 function ScmManage() {
 
@@ -25,8 +27,8 @@ function ScmManage() {
   }]
 
   return (
-    <div>
-      <h2>SCM管理</h2>
+    <div className={styles.container}>
+      <PageHeader title="SCM管理" />
       <FormComponent
         formItems={formItems}
       />

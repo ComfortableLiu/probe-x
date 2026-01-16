@@ -1,10 +1,11 @@
 import React from "react"
+import PageHeader from "@components/PageHeader"
 
 function FreeAnalysis() {
 
   return (
     <div>
-      <h2>自由分析</h2>
+      <PageHeader title="自由分析" />
     </div>
   )
 }

@@ -1,7 +1,10 @@
+.container {
+  padding: 24px;
+}
+
 .cell {
   display: flex;
   flex-direction: column;
-  margin: 24px;
   gap: 8px;
 
   .title {

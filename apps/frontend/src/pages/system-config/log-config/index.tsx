@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 日志配置
@@ -86,7 +87,7 @@ function LogConfig() {
 
   return (
     <div className={styles.logConfig}>
-      <h2>日志配置</h2>
+      <PageHeader title="日志配置" />
       <p className={styles.description}>
         管理系统日志配置，包括日志级别、日志存储、日志保留策略等配置。用于配置系统的日志记录规则，设置不同模块的日志级别，管理日志存储和清理策略。
       </p>

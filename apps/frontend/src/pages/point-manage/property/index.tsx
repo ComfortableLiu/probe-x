@@ -12,6 +12,8 @@ import { Dispatch } from "@/store/storeContext"
 import PropertyDetail from "@pages/point-manage/property/components/detail"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
 import { AddOne } from "@icon-park/react"
+import PageHeader from "@components/PageHeader"
+import * as styles from "./styles.module.scss"
 
 function PropertyManage() {
 
@@ -30,6 +32,10 @@ function PropertyManage() {
       dispatch.pointManagePropertyModel.getPropertyList()
     }
   })
+
+  const handleRefresh = useCallback(() => {
+    dispatch.pointManagePropertyModel.getPropertyList()
+  }, [dispatch])
 
   const openPropertyDetail = useCallback((property: IPropertyListItem) => {
     setSelectedProperty(property)
@@ -102,8 +108,12 @@ function PropertyManage() {
   }, [])
 
   return (
-    <div>
-      <h2>属性管理</h2>
+    <div className={styles.container}>
+      <PageHeader
+        title="属性管理"
+        onRefresh={handleRefresh}
+        loading={loading.pointManagePropertyModel.getPropertyList}
+      />
       <FormComponent
         formItems={formItems}
       />

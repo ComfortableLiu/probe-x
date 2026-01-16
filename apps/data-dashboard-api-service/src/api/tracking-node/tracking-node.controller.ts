@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common'
+import { Request } from 'express'
 import { TrackingNodeService } from "@src/api/tracking-node/tracking-node.service"
 import type {
   ICreateBusinessSiteReq,
@@ -34,7 +35,13 @@ export class TrackingNodeController {
     @Query('code') code: string,
     @Query('parentCode') parentCode: string,
     @Query('status') status?: TrackingNodeStatus,
+    @Req() request?: Request,
   ) {
+    // 处理 parentCode[] 格式的参数（axios 序列化可能产生的格式）
+    if (!parentCode && request?.query?.['parentCode[]']) {
+      parentCode = String(request.query['parentCode[]'])
+    }
+    
     if (!parentCode?.length) {
       throw new BusinessException('请选择业务线')
     }

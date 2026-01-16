@@ -1,10 +1,11 @@
 import React from "react"
+import PageHeader from "@components/PageHeader"
 
 function DashboardConfig() {
 
   return (
     <div>
-      <h2>数据看板设置</h2>
+      <PageHeader title="数据看板设置" />
     </div>
   )
 }
