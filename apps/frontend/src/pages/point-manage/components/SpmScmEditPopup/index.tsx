@@ -12,6 +12,7 @@ function SpmScmEditPopup(props: ISpmScmEditPopupProps) {
     onClose,
     parentNode,
     parentNodeName,
+    level,
     loading,
     onSubmit,
   } = props
@@ -63,7 +64,7 @@ function SpmScmEditPopup(props: ISpmScmEditPopupProps) {
         initialValues={{
           parentCode: parentNode?.code,
           code: selectedNodeData?.code,
-          level: selectedNodeData?.level || (parentNode?.level || 0) + 1,
+          level: selectedNodeData?.level || level || (parentNode?.level || 0) + 1,
         }}
       >
         <Form.Item hidden name="level" />

@@ -47,7 +47,7 @@ export class TrackingNodeService {
   async getTrackingNodeList(
     page: number = 1,
     pageSize: number = 20,
-    parentCode: string,
+    parentCode: string | null,
     type?: TrackingNodeType,
     name?: string,
     code?: string,
@@ -78,6 +78,12 @@ export class TrackingNodeService {
     if (parentCode) {
       query.where('trackingNode.parentCode = :parentCode', { parentCode })
       countWhere['parentCode'] = parentCode
+    } else {
+      // parentCode为空时，查询第一级节点（level=1）
+      query.where('trackingNode.parentCode IS NULL')
+      query.andWhere('trackingNode.level = :level', { level: TrackingNodeLevel.LEVEL1 })
+      countWhere['parentCode'] = null
+      countWhere['level'] = TrackingNodeLevel.LEVEL1
     }
     if (type) {
       query.andWhere('trackingNode.type = :type', { type })
@@ -162,7 +168,7 @@ export class TrackingNodeService {
     const result = await this.trackingNodeRepository.createQueryBuilder('trackingNode')
       .leftJoinAndSelect('trackingNode.createUser', 'createUser')
       .leftJoinAndSelect('trackingNode.updateUser', 'updateUser')
-      .where({ level: TrackingNodeLevel.LEVEL1 })
+      .where({ level: TrackingNodeLevel.LEVEL1, type: TrackingNodeType.SPM })
       .orderBy('trackingNode.updateTime', 'DESC')
       .getMany()
 
@@ -303,5 +309,134 @@ export class TrackingNodeService {
 
   async updateSpmNode(req: IUpdateSpmNodeReq, user: IUser): Promise<IUpdateSpmNodeRes> {
     return this.updateBusiness(req, user)
+  }
+
+  async getScmBusinessList(): Promise<IQueryBusinessListRes> {
+    const result = await this.trackingNodeRepository.createQueryBuilder('trackingNode')
+      .leftJoinAndSelect('trackingNode.createUser', 'createUser')
+      .leftJoinAndSelect('trackingNode.updateUser', 'updateUser')
+      .where({ level: TrackingNodeLevel.LEVEL1, type: TrackingNodeType.SCM })
+      .orderBy('trackingNode.updateTime', 'DESC')
+      .getMany()
+
+    return result.map((item) => ({
+      code: item.code,
+      type: item.type,
+      level: item.level,
+      name: item.name,
+      description: item.description,
+      parentCode: item.parentCode,
+      status: item.status,
+      createTime: item.createTime,
+      createUserId: item.createUserId,
+      createUsername: item.createUser.username,
+      createNickname: item.createUser.nickname,
+      updateTime: item.updateTime,
+      updateUserId: item.updateUserId,
+      updateUsername: item.updateUser.username,
+      updateNickname: item.updateUser.nickname,
+    }))
+  }
+
+  async createScmBusiness({ name, description }: ICreateBusinessSiteReq, user: IUser): Promise<ICreateBusinessSiteRes> {
+    const code = this.generateRandomString()
+    const businessSiteInfo = await this.trackingNodeRepository.save({
+      code,
+      name,
+      description,
+      type: TrackingNodeType.SCM,
+      level: TrackingNodeLevel.LEVEL1,
+      status: TrackingNodeStatus.VALID,
+      createUserId: user.userId,
+      updateUserId: user.userId,
+    })
+
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
+  }
+
+  async updateScmBusiness(req: IUpdateBusinessSiteReq, user: IUser): Promise<IUpdateBusinessSiteRes> {
+    const {
+      code,
+      name,
+      description,
+    } = req
+    const businessSiteInfo = await this.trackingNodeRepository.save({
+      code,
+      name,
+      description,
+      updateUserId: user.userId,
+      updateTime: new Date(),
+    })
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
+  }
+
+  async createScmNode(req: ICreateSpmNodeReq, user: IUser): Promise<ICreateSpmNodeRes> {
+    const {
+      name,
+      description,
+      parentCode,
+      level,
+    } = req
+    const data = {
+      code: this.generateRandomString(),
+      name,
+      description,
+      parentCode,
+      level,
+      type: TrackingNodeType.SCM,
+      createUserId: user.userId,
+      updateUserId: user.userId,
+    }
+    const businessSiteInfo = await this.trackingNodeRepository.save(data)
+    return {
+      type: businessSiteInfo.type,
+      code: businessSiteInfo.code,
+      name: businessSiteInfo.name,
+      description: businessSiteInfo.description,
+      level: businessSiteInfo.level,
+      status: businessSiteInfo.status,
+      createTime: businessSiteInfo.createTime,
+      updateTime: businessSiteInfo.updateTime,
+      createUserId: businessSiteInfo.createUserId,
+      updateUserId: businessSiteInfo.updateUserId,
+      createUsername: user.username,
+      createNickname: user.nickname,
+      updateUsername: user.username,
+      updateNickname: user.nickname,
+    }
+  }
+
+  async updateScmNode(req: IUpdateSpmNodeReq, user: IUser): Promise<IUpdateSpmNodeRes> {
+    return this.updateScmBusiness(req, user)
   }
 }

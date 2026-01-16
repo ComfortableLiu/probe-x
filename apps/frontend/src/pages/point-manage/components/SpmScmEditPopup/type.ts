@@ -1,4 +1,4 @@
-import { IAnyObj, ITrackingListItem } from "@probe-x/shared-types/src"
+import { IAnyObj, ITrackingListItem, TrackingNodeLevel } from "@probe-x/shared-types/src"
 
 export interface ISpmScmEditPopupProps {
   open: boolean
@@ -10,6 +10,8 @@ export interface ISpmScmEditPopupProps {
   parentNodeName?: string
   // 所属父节点
   parentNode?: ITrackingListItem
+  // 节点层级（用于新增时指定）
+  level?: TrackingNodeLevel
   loading?: boolean
   onClose: () => void
   onSubmit: (data: IAnyObj) => Promise<void>
