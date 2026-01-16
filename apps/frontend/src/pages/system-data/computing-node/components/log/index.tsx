@@ -1,5 +1,6 @@
 import React from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import PageHeader from "@components/PageHeader"
 
 interface ComputingNodeLogsParams {
   nodeId: string;
@@ -31,7 +32,7 @@ const ComputingNodeLogs: React.FC = () => {
         </button>
       </div>
 
-      <h2>计算节点日志 - 节点ID: {nodeId}</h2>
+      <PageHeader title={`计算节点日志 - 节点ID: ${nodeId}`} />
       <div>
         <p>这里是计算节点 {nodeId} 的详细运行日志。</p>
         <p>当前为占位页面，实际的日志功能将在后续实现。</p>

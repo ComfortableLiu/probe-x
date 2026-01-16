@@ -12,6 +12,8 @@ import Page from "@pages/point-manage/spm/components/page"
 import Module from "@pages/point-manage/spm/components/module"
 import Point from "@pages/point-manage/spm/components/point"
 import { Splitter } from "antd"
+import PageHeader from "@components/PageHeader"
+import * as styles from "./styles.module.scss"
 
 function ScmManage() {
 
@@ -127,9 +129,19 @@ function ScmManage() {
     })),
   }]
 
+  const handleRefresh = useCallback(() => {
+    if (query.businessCode) {
+      dispatch.pointManageSpmModel.getSpmNodeList({ parentCode: null })
+    }
+  }, [query.businessCode, dispatch])
+
   return (
-    <div>
-      <h2 style={{ height: 47, lineHeight: "47px" }}>SPM管理</h2>
+    <div className={styles.container}>
+      <PageHeader
+        title="SPM管理"
+        onRefresh={handleRefresh}
+        loading={loading.pointManageSpmModel.getSpmNodeList}
+      />
       <FormComponent formItems={formItems} />
 
       <Splitter style={{ border: '1px solid #eee', height: "calc(100vh - 47px - 150px)" }}>

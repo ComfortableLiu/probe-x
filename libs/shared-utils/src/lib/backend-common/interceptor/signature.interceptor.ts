@@ -85,7 +85,9 @@ export class SignatureInterceptor implements NestInterceptor {
       Object.keys(request.query)
         .filter(key => request.query[key] !== undefined && request.query[key] !== null && request.query[key] !== '')
         .forEach(key => {
-          query[key] = `${request.query[key]}`
+          // 规范化参数名：将 parentCode[] 转换为 parentCode
+          const normalizedKey = key.replace(/\[\]$/, '')
+          query[normalizedKey] = `${request.query[key]}`
         })
     }
 

@@ -11,6 +11,7 @@ import { Dispatch } from "@/store/storeContext"
 import { ICreateSystemReq, IUpdateSystemReq, IDeleteSystemReq, ISystemListItem, ISystemManageState } from "./type"
 import * as styles from "./styles.module.scss"
 import SystemEditPopup from "./components/edit"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 系统管理
@@ -55,6 +56,10 @@ function SystemManage() {
     setSelectedSystem(system)
     setEditPopupOpen(true)
   }, [])
+
+  const handleRefresh = useCallback(() => {
+    dispatch.systemConfigSystemManageModel.getSystemList()
+  }, [dispatch])
 
   const handleEditSubmit = useCallback(async (data: ICreateSystemReq | IUpdateSystemReq) => {
     // 只允许修改启用状态，其余字段由SPM管理
@@ -145,7 +150,11 @@ function SystemManage() {
 
   return (
     <div className={styles.systemManage}>
-      <h2>系统管理</h2>
+      <PageHeader
+        title="系统管理"
+        onRefresh={handleRefresh}
+        loading={loading.systemConfigSystemManageModel.getSystemList}
+      />
       <p className={styles.description}>
         系统信息与SPM业务线/站点（第一层节点）强绑定，系统标识、名称、描述及关联SPM节点均由SPM管理页面维护。
         此处仅支持查看和修改系统启用状态，如需新增、修改或删除业务线，请前往SPM管理页面操作。

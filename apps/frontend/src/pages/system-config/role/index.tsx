@@ -17,6 +17,7 @@ import { ISystemOption } from "@probe-x/shared-types/src"
 import * as styles from "./styles.module.scss"
 import RoleEditPopup from "./components/edit"
 import AssignPermissionsPopup from "./components/assign-permissions"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 角色管理
@@ -132,6 +133,10 @@ function RoleManage() {
     navigate('/system-config/permission-list')
   }, [navigate])
 
+  const handleRefresh = useCallback(() => {
+    dispatch.systemConfigRoleManageModel.getRoleList()
+  }, [dispatch])
+
   const columns: TableProps<IRoleListItem>['columns'] = useMemo(() => [
     {
       title: '角色名称',
@@ -221,7 +226,11 @@ function RoleManage() {
 
   return (
     <div className={styles.roleManage}>
-      <h2>角色管理</h2>
+      <PageHeader
+        title="角色管理"
+        onRefresh={handleRefresh}
+        loading={loading.systemConfigRoleManageModel.getRoleList}
+      />
       <p className={styles.description}>
         管理系统角色，包括角色的创建、编辑、删除和权限分配。用于定义系统中的角色，为角色分配权限，实现基于角色的访问控制（RBAC）。
       </p>

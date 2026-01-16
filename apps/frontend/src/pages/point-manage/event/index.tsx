@@ -10,6 +10,8 @@ import { Space, TableProps } from "antd"
 import { FormItemType } from "@components/FormComponent/constants"
 import dayjs from "dayjs"
 import EventDetail from "@pages/point-manage/event/components/detail"
+import PageHeader from "@components/PageHeader"
+import * as styles from "./styles.module.scss"
 
 function EventManage() {
 
@@ -29,6 +31,10 @@ function EventManage() {
       dispatch.pointManageEventModel.getEventList()
     }
   })
+
+  const handleRefresh = useCallback(() => {
+    dispatch.pointManageEventModel.getEventList()
+  }, [dispatch])
 
   const [selectedEvent, setSelectedEvent] = useState<IEventListItem | null>(null)
 
@@ -92,8 +98,12 @@ function EventManage() {
   }], [openEventDetail])
 
   return (
-    <div>
-      <h2>事件管理</h2>
+    <div className={styles.container}>
+      <PageHeader
+        title="事件管理"
+        onRefresh={handleRefresh}
+        loading={loading.pointManageEventModel.getEventList}
+      />
       <FormComponent
         formItems={formItems}
       />

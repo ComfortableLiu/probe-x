@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 数据源配置
@@ -90,7 +91,7 @@ function Datasource() {
 
   return (
     <div className={styles.datasource}>
-      <h2>数据源配置</h2>
+      <PageHeader title="数据源配置" />
       <p className={styles.description}>
         管理系统数据源连接配置，包括数据库、Kafka、Redis等数据源的配置和管理。用于配置和管理系统所需的各种数据源连接，测试连接状态，监控数据源健康度。
       </p>

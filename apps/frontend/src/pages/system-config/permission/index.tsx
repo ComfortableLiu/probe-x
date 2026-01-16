@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 权限管理
@@ -78,7 +79,7 @@ function PermissionManage() {
 
   return (
     <div className={styles.permissionManage}>
-      <h2>权限管理</h2>
+      <PageHeader title="权限管理" />
       <p className={styles.description}>
         管理系统权限，包括权限的创建、编辑、删除和启用/禁用。用于定义系统中的所有权限点，控制用户和角色可以访问的功能和资源。
       </p>

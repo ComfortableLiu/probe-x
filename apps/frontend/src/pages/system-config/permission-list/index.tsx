@@ -6,6 +6,7 @@ import { queryPermissionList } from "../role/services"
 import { IPermissionOption } from "../role/type"
 import PermissionTree from "@/components/PermissionTree"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 权限列表页面（只读）
@@ -37,6 +38,10 @@ function PermissionList() {
     navigate('/system-config/role')
   }
 
+  const handleRefresh = () => {
+    loadPermissions()
+  }
+
   return (
     <div className={styles.permissionList}>
       <div className={styles.header}>
@@ -48,7 +53,11 @@ function PermissionList() {
         >
           返回角色管理
         </Button>
-        <h2>权限列表</h2>
+        <PageHeader
+          title="权限列表"
+          onRefresh={handleRefresh}
+          loading={loading}
+        />
         <p className={styles.description}>
           展示系统中所有权限的树形结构，按层级组织（页面 {'->'} 功能 {'->'} 子功能）。此页面为只读，如需修改权限请前往权限管理页面。
         </p>

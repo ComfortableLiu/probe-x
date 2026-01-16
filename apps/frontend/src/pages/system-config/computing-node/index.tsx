@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 计算节点配置
@@ -75,7 +76,7 @@ function ComputingNode() {
 
   return (
     <div className={styles.computingNode}>
-      <h2>计算节点配置</h2>
+      <PageHeader title="计算节点配置" />
       <p className={styles.description}>
         管理系统的计算节点，包括节点的添加、编辑、删除和状态监控。用于配置和管理数据处理的计算节点，监控节点运行状态，分配计算任务。
       </p>

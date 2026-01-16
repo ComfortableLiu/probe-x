@@ -6,6 +6,7 @@ import { FormItemType } from "@components/FormComponent/constants"
 import { Button, Space, TableProps } from "antd"
 import { AddOne } from "@icon-park/react"
 import * as styles from "./styles.module.scss"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 系统参数配置
@@ -76,7 +77,7 @@ function SystemParams() {
 
   return (
     <div className={styles.systemParams}>
-      <h2>系统参数配置</h2>
+      <PageHeader title="系统参数配置" />
       <p className={styles.description}>
         管理系统级别的参数配置，包括系统参数的新增、编辑、删除和查看。用于配置系统运行的关键参数，如数据保留时间、采样率、缓存大小等全局设置。
       </p>

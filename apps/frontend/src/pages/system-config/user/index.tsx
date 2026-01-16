@@ -14,6 +14,7 @@ import * as styles from "./styles.module.scss"
 import UserEditPopup from "./components/edit"
 import AssignRolesPopup from "./components/assign-roles"
 import ResetPasswordPopup from "./components/reset-password"
+import PageHeader from "@components/PageHeader"
 
 /**
  * 用户管理
@@ -99,6 +100,10 @@ function UserManage() {
     await dispatch.systemConfigUserManageModel.resetPassword(data)
   }, [dispatch])
 
+  const handleRefresh = useCallback(() => {
+    dispatch.systemConfigUserManageModel.getUserList()
+  }, [dispatch])
+
   const columns: TableProps<IUserListItem>['columns'] = useMemo(() => [
     {
       title: '用户名',
@@ -173,7 +178,11 @@ function UserManage() {
 
   return (
     <div className={styles.userManage}>
-      <h2>用户管理</h2>
+      <PageHeader
+        title="用户管理"
+        onRefresh={handleRefresh}
+        loading={loading.systemConfigUserManageModel.getUserList}
+      />
       <p className={styles.description}>
         管理系统用户账户，包括用户的创建、编辑、删除、启用/禁用等操作。用于管理系统的所有用户账户，分配用户角色，控制用户访问权限。
       </p>
