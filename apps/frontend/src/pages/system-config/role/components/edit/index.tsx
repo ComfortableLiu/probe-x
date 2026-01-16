@@ -1,9 +1,11 @@
-import React, { memo, useCallback, useEffect, useMemo } from "react"
-import { Form, Input, Modal } from "antd"
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
+import { Form, Input, Modal, Select } from "antd"
 import { IRoleEditPopupProps } from "./type"
 import { useLoading } from "@/hooks"
 import { ICreateRoleReq, IUpdateRoleReq } from "../../type"
 import { SystemRoleKey, SYSTEM_ROLE_CONFIGS } from "@/constant/permissions"
+import { querySystemOptions } from "../../../system/services"
+import { ISystemOption } from "@probe-x/shared-types/src"
 
 function RoleEditPopup(props: IRoleEditPopupProps) {
   const {
@@ -15,10 +17,26 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
 
   const [form] = Form.useForm()
   const loading = useLoading()
+  const [systemOptions, setSystemOptions] = useState<ISystemOption[]>([])
 
   const isEdit = useMemo(() => !!role, [role])
   const isSystemRole = useMemo(() => role?.isSystemRole || false, [role])
   const isSuperAdmin = useMemo(() => role?.roleKey === SystemRoleKey.SUPER_ADMIN, [role])
+
+  useEffect(() => {
+    if (open) {
+      loadSystemOptions()
+    }
+  }, [open])
+
+  const loadSystemOptions = async () => {
+    try {
+      const { data } = await querySystemOptions()
+      setSystemOptions(data || [])
+    } catch (error) {
+      console.error('获取系统选项失败:', error)
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -29,6 +47,7 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
         roleKey: role?.roleKey,
         roleName: role?.roleName,
         description: role?.description,
+        systemId: role?.systemId ?? null,
       })
     }
   }, [role, form, isEdit, open])
@@ -53,6 +72,7 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
         id: role!.id,
         roleName: values.roleName,
         description: values.description,
+        systemId: values.systemId !== undefined ? (values.systemId || null) : undefined,
       }
       await onSubmit(data)
     } else {
@@ -60,6 +80,7 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
         roleKey: values.roleKey,
         roleName: values.roleName,
         description: values.description,
+        systemId: values.systemId || null,
       }
       await onSubmit(data)
     }
@@ -126,6 +147,25 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
             disabled={isSystemRole && isSuperAdmin}
           />
         </Form.Item>
+        {!isSystemRole && (
+          <Form.Item
+            name="systemId"
+            label="所属系统"
+            tooltip="选择系统后，该角色将成为系统级角色；不选择则为全局角色"
+          >
+            <Select
+              placeholder="请选择系统（可选，不选择则为全局角色）"
+              allowClear
+              options={[
+                { label: '全局角色', value: null },
+                ...systemOptions.map(opt => ({
+                  label: `${opt.systemName} (${opt.systemKey})`,
+                  value: opt.id,
+                })),
+              ]}
+            />
+          </Form.Item>
+        )}
         {isSystemRole && (
           <Form.Item label="系统角色说明">
             <div style={{ color: '#999', fontSize: '12px' }}>

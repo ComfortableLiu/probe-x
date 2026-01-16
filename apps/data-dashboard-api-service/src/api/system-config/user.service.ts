@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { ResponseData, Role, UserEntity, UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common'
+import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common/entity/response.entity'
+import { Role } from '@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity'
+import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/User.entity'
+import { UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common/entity/UserRoleRelation.entity'
 import {
   IAssignRolesRes,
   ICreateUserReq,

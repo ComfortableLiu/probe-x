@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { SystemConfigUserService } from './user.service'
 import { SystemConfigRoleService } from './role.service'
+import { SystemConfigSystemService } from './system.service'
 import {
   IQueryUserListReq,
   IQueryUserListRes,
@@ -25,6 +26,13 @@ import {
   IAssignPermissionsReq,
   IAssignPermissionsRes,
   IQueryPermissionListRes,
+  IQuerySystemListReq,
+  IQuerySystemListRes,
+  ICreateSystemReq,
+  ICreateSystemRes,
+  IUpdateSystemReq,
+  IUpdateSystemRes,
+  IDeleteSystemReq,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
 
@@ -33,6 +41,7 @@ export class SystemConfigController {
   constructor(
     private readonly userService: SystemConfigUserService,
     private readonly roleService: SystemConfigRoleService,
+    private readonly systemService: SystemConfigSystemService,
   ) {}
 
   /**
@@ -204,15 +213,6 @@ export class SystemConfigController {
   }
 
   /**
-   * 初始化系统角色
-   */
-  @Post('role/initSystemRoles')
-  async initSystemRoles(): Promise<ResponseData<null>> {
-    await this.roleService.initSystemRoles()
-    return ResponseData.success(null)
-  }
-
-  /**
    * 启用/禁用角色
    */
   @Post('role/toggleStatus')
@@ -220,6 +220,69 @@ export class SystemConfigController {
     @Body() body: { roleId: number; isEnable: boolean },
   ): Promise<ResponseData<IUpdateRoleRes>> {
     return await this.roleService.toggleRoleStatus(body.roleId, body.isEnable)
+  }
+
+  // ============================================
+  // 系统管理接口
+  // ============================================
+
+  /**
+   * 获取系统列表
+   */
+  @Get('system/list')
+  async getSystemList(
+    @Query('systemKey') systemKey?: string,
+    @Query('systemName') systemName?: string,
+    @Query('isEnable') isEnable?: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ): Promise<IQuerySystemListRes> {
+    const params: IQuerySystemListReq = {
+      systemKey,
+      systemName,
+      isEnable: isEnable === 'true' || isEnable === '1' ? true : isEnable === 'false' || isEnable === '0' ? false : undefined,
+      page: page || 1,
+      pageSize: pageSize || 20,
+    }
+    return await this.systemService.getSystemList(params)
+  }
+
+  /**
+   * 创建系统
+   */
+  @Post('system/create')
+  async createSystem(
+    @Body() body: ICreateSystemReq,
+  ): Promise<ResponseData<ICreateSystemRes>> {
+    return await this.systemService.createSystem(body)
+  }
+
+  /**
+   * 更新系统
+   */
+  @Post('system/update')
+  async updateSystem(
+    @Body() body: IUpdateSystemReq,
+  ): Promise<ResponseData<IUpdateSystemRes>> {
+    return await this.systemService.updateSystem(body)
+  }
+
+  /**
+   * 删除系统
+   */
+  @Post('system/delete')
+  async deleteSystem(
+    @Body() body: IDeleteSystemReq,
+  ): Promise<ResponseData<null>> {
+    return await this.systemService.deleteSystem(body)
+  }
+
+  /**
+   * 获取系统选项列表（用于下拉选择）
+   */
+  @Get('system/options')
+  async getSystemOptions(): Promise<Array<{ id: number; systemKey: string; systemName: string }>> {
+    return await this.systemService.getSystemOptions()
   }
 }
 

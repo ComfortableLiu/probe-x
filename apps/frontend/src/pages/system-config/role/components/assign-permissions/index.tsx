@@ -1,10 +1,11 @@
 import React, { memo, useCallback, useEffect, useState } from "react"
-import { Form, Modal, Select } from "antd"
+import { Form, Modal } from "antd"
 import { IAssignPermissionsPopupProps } from "./type"
 import { useLoading } from "@/hooks"
 import { IAssignPermissionsReq, IPermissionOption } from "../../type"
 import { queryPermissionList, queryRolePermissionIds } from "../../services"
 import { SystemRoleKey } from "@/constant/permissions"
+import PermissionTree from "@/components/PermissionTree"
 
 function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
   const {
@@ -22,9 +23,10 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
   const isSuperAdmin = role?.roleKey === SystemRoleKey.SUPER_ADMIN
 
   useEffect(() => {
-    if (open && !permissionList.length) {
+    if (open) {
       loadPermissions()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {
@@ -88,11 +90,6 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
     onClose()
   }, [onClose, onSubmit, loading, role])
 
-  const permissionOptions = permissionList.map(permission => ({
-    label: `${permission.permissionName} (${permission.permissionKey})`,
-    value: permission.id,
-  }))
-
   return (
     <Modal
       title="分配权限"
@@ -100,7 +97,7 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
       onOk={() => handleOk()}
       onCancel={handleClose}
       confirmLoading={loading.systemConfigRoleManageModel.assignPermissions}
-      width={600}
+      width={800}
     >
       {isSuperAdmin && (
         <div style={{ marginBottom: 16, padding: 12, background: '#fff7e6', borderRadius: 4, color: '#d46b08' }}>
@@ -119,13 +116,23 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
           rules={[{
             required: false,
           }]}
+          valuePropName="checkedKeys"
+          trigger="onCheck"
         >
-          <Select
-            mode="multiple"
-            placeholder="请选择权限"
-            options={permissionOptions}
+          <PermissionTree
+            permissionList={permissionList}
             loading={loadingPermissions}
-            disabled={isSuperAdmin}
+            checkable
+            defaultExpandAll
+            treeProps={{
+              style: {
+                maxHeight: '400px',
+                overflowY: 'auto',
+                padding: '8px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '4px',
+              },
+            }}
           />
         </Form.Item>
       </Form>

@@ -14,6 +14,11 @@ export default {
     path: '/system-config/user',
     component: lazy(() => import('@pages/system-config/user')),
   }, {
+    name: '系统管理',
+    key: 'system-config-system',
+    path: '/system-config/system',
+    component: lazy(() => import('@pages/system-config/system')),
+  }, {
     name: '计算节点配置',
     key: 'system-config-computing-node',
     path: '/system-config/computing-node',
@@ -23,6 +28,14 @@ export default {
     key: 'system-config-role',
     path: '/system-config/role',
     component: lazy(() => import('@pages/system-config/role')),
+  }, {
+    name: '权限列表',
+    key: 'system-config-permission-list',
+    path: '/system-config/permission-list',
+    component: lazy(() => import('@pages/system-config/permission-list')),
+    meta: {
+      isHidden: true, // 隐藏菜单，只能通过角色管理页面跳转
+    },
   }, {
   //   name: '权限管理',
   //   key: 'system-config-permission',

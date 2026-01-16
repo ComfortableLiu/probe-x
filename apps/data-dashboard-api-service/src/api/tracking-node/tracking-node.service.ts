@@ -15,13 +15,18 @@ import type {
   IUser,
 } from "@probe-x/shared-types/src"
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
-import { BusinessException, TrackingNodeEntity, UserEntity } from "@probe-x/shared-utils/src/lib/backend-common"
+import { BusinessException } from "@probe-x/shared-utils/src/lib/backend-common"
+import { TrackingNodeEntity } from "@probe-x/shared-utils/src/lib/backend-common/entity/TrackingNode.entity"
+import { UserEntity } from "@probe-x/shared-utils/src/lib/backend-common/entity/User.entity"
+import { System } from "@probe-x/shared-utils/src/lib/backend-common/entity/System.entity"
 
 @Injectable()
 export class TrackingNodeService {
   constructor(
     @InjectRepository(TrackingNodeEntity)
     private trackingNodeRepository: Repository<TrackingNodeEntity>,
+    @InjectRepository(System)
+    private systemRepository: Repository<System>,
   ) {
   }
 
@@ -181,8 +186,9 @@ export class TrackingNodeService {
   }
 
   async createBusiness({ name, description }: ICreateBusinessSiteReq, user: IUser): Promise<ICreateBusinessSiteRes> {
+    const code = this.generateRandomString()
     const businessSiteInfo = await this.trackingNodeRepository.save({
-      code: this.generateRandomString(),
+      code,
       name,
       description,
       type: TrackingNodeType.SPM,
@@ -191,6 +197,17 @@ export class TrackingNodeService {
       createUserId: user.userId,
       updateUserId: user.userId,
     })
+
+    // 同步创建 System 记录（强绑定：SPM 第一层节点 <-> System）
+    const system = this.systemRepository.create({
+      systemKey: code,
+      systemName: name,
+      description,
+      trackingNodeCode: code,
+      isEnable: 1,
+    })
+    await this.systemRepository.save(system)
+
     return {
       type: businessSiteInfo.type,
       code: businessSiteInfo.code,
@@ -222,6 +239,14 @@ export class TrackingNodeService {
       updateUserId: user.userId,
       updateTime: new Date(),
     })
+
+    // 同步更新 System（保持名称和描述一致）
+    const system = await this.systemRepository.findOne({ where: { trackingNodeCode: code } })
+    if (system) {
+      system.systemName = name
+      system.description = description
+      await this.systemRepository.save(system)
+    }
     return {
       type: businessSiteInfo.type,
       code: businessSiteInfo.code,

@@ -42,11 +42,15 @@ const systemConfigRoleManageModel = createModel<RootModel>()({
   effects: (dispatch) => ({
     async getRoleList() {
       const payload = getParamsOrQuery()
+      const systemId = payload.systemId
       const params: IQueryRoleListReq = {
         roleName: payload.roleName,
         roleKey: payload.roleKey,
         isSystemRole: payload.isSystemRole !== undefined && payload.isSystemRole !== null && payload.isSystemRole !== ''
           ? (payload.isSystemRole === 'true' || payload.isSystemRole === true || payload.isSystemRole === '1')
+          : undefined,
+        systemId: systemId !== undefined && systemId !== null && systemId !== ''
+          ? (systemId === 'null' ? null : Number(systemId))
           : undefined,
         page: payload.page || 1,
         pageSize: payload.pageSize || 20,
