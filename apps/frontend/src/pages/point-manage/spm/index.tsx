@@ -11,7 +11,8 @@ import { ICreateSpmNodeReq, IUpdateSpmNodeReq } from "@probe-x/shared-types/src"
 import Page from "@pages/point-manage/spm/components/page"
 import Module from "@pages/point-manage/spm/components/module"
 import Point from "@pages/point-manage/spm/components/point"
-import { Splitter } from "antd"
+import { Splitter, Collapse } from "antd"
+import { InfoCircleOutlined } from "@ant-design/icons"
 import PageHeader from "@components/PageHeader"
 import * as styles from "./styles.module.scss"
 
@@ -144,7 +145,37 @@ function ScmManage() {
       />
       <FormComponent formItems={formItems} />
 
-      <Splitter style={{ border: '1px solid #eee', height: "calc(100vh - 47px - 150px)" }}>
+      <Collapse
+        ghost
+        style={{ marginBottom: 12 }}
+        items={[
+          {
+            key: '1',
+            label: (
+              <span>
+                <InfoCircleOutlined style={{ marginRight: 8 }} />
+                SPM说明
+              </span>
+            ),
+            children: (
+              <div style={{ paddingLeft: 24 }}>
+                <p>SPM 用于唯一标识页面及模块，结构为 <strong>A.B.C.D</strong>：</p>
+                <ul style={{ marginTop: 8, marginBottom: 16 }}>
+                  <li><strong>A（站点/业务）</strong>：表示站点/业务，通常用作多地区（通常为多国家）运营，或多业务线，比如美国站、业务A</li>
+                  <li><strong>B（页面）</strong>：表示页面，每个页面拥有唯一 Id，比如首页</li>
+                  <li><strong>C（模块）</strong>：表示模块，同页面范围内，每一个模块都拥有唯一 Id，比如轮播图模块</li>
+                  <li><strong>D（点位）</strong>：表示点位，一个模块内的点位 Id，比如轮播图模块中的第1张图</li>
+                </ul>
+                <p style={{ marginTop: 16, color: '#666' }}>
+                  <strong>注意：</strong>站点/业务（A）不在这里维护，请在<strong>基础编码</strong>中进行维护。
+                </p>
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      <Splitter style={{ border: '1px solid #eee', height: "calc(100vh - 47px - 150px - 48px)" }}>
         <Splitter.Panel style={{ height: '100%' }}>
           <Page
             containerHeight={containerHeight}

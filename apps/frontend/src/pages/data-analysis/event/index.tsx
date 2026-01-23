@@ -86,6 +86,7 @@ function EventAnalysis() {
           title="事件分析"
           updateTime={updateTime}
           download={download}
+          guidePath="/guide/data-analysis/event"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

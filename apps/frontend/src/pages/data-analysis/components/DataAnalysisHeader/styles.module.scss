@@ -13,4 +13,11 @@
     line-height: 40px;
     font-weight: bold;
   }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
 }

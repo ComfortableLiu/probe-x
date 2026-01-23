@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo } from "react"
-import { Anchor, Col, Row, Spin } from "antd"
+import { Anchor, Col, Row, Spin, Button } from "antd"
+import { Help } from "@icon-park/react"
+import { useNavigate } from "react-router-dom"
 import PageHeader from "@components/PageHeader"
 import * as styles from "./styles.module.scss"
 import MetaEvent from "@pages/system-data/overview/components/MetaEvent"
@@ -27,6 +29,7 @@ function Overview() {
   } = useModel<ISystemDataOverviewWithMetaState>('systemDataOverviewModel')
 
   const dispatch = useDispatch<Dispatch>()
+  const navigate = useNavigate()
 
   useEffect(() => {
     dispatch.systemDataOverviewModel.fetchSystemDataOverview()
@@ -103,6 +106,15 @@ function Overview() {
         title="系统数据总览"
         onRefresh={handleRefresh}
         loading={loading}
+        extra={
+          <Button
+            type="link"
+            icon={<Help theme="outline" size="16" fill="#000000" />}
+            onClick={() => navigate('/guide/system-data/overview')}
+          >
+            说明
+          </Button>
+        }
       />
       <Spin spinning={loading}>
         <Row>

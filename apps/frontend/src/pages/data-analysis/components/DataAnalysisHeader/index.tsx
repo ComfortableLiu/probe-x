@@ -1,13 +1,15 @@
 import dayjs from "dayjs"
 import { Button } from "antd"
-import { Download } from "@icon-park/react"
+import { Download, Help } from "@icon-park/react"
 import React, { memo, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import * as styles from "./styles.module.scss"
 
 interface IDataAnalysisHeaderProps {
   title: string
   updateTime?: Date
   download?: () => void
+  guidePath?: string
 }
 
 function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
@@ -16,7 +18,10 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     title,
     updateTime,
     download,
+    guidePath,
   } = props
+
+  const navigate = useNavigate()
 
   // 渲染数据更新时间
   const renderUpdateTime = useMemo(() => {
@@ -40,11 +45,29 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     )
   }, [download])
 
+  // 渲染说明按钮
+  const renderGuideButton = useMemo(() => {
+    if (!guidePath) return null
+    return (
+      <Button
+        type="link"
+        onClick={() => navigate(guidePath)}
+        title="查看页面说明"
+      >
+        <Help theme="outline" size="16" fill="#333" />
+        说明
+      </Button>
+    )
+  }, [guidePath, navigate])
+
   return (
     <div className={styles.header}>
       <div className={styles.title}>{title}</div>
       {renderUpdateTime}
-      {renderDownloadButton}
+      <div className={styles.actions}>
+        {renderGuideButton}
+        {renderDownloadButton}
+      </div>
     </div>
   )
 }

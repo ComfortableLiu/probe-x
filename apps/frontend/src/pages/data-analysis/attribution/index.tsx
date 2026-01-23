@@ -98,6 +98,7 @@ function AttributionAnalysis() {
           title="归因分析"
           updateTime={updateTime}
           download={download}
+          guidePath="/guide/data-analysis/attribution"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
