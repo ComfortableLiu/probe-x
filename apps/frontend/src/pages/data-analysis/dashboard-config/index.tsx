@@ -1,10 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button, message, Popconfirm, Space, TableProps, Tag } from "antd"
 import { AddOne, Help } from "@icon-park/react"
-import { useHistoryListener, useLoading } from "@/hooks"
+import { useHistoryListener } from "@/hooks"
 import { useNavigate } from "react-router-dom"
-import { useDispatch } from "react-redux"
-import { Dispatch } from "@/store/storeContext"
 import { AnalysisType, DashboardType, IDashboard } from "./type"
 import dayjs from "dayjs"
 import PageHeader from "@components/PageHeader"
@@ -19,8 +17,6 @@ import queryString from "query-string"
 import { deleteDashboard, queryDashboardList } from "./services"
 
 function DashboardConfig() {
-  const dispatch = useDispatch<Dispatch>()
-  const loading = useLoading()
   const navigate = useNavigate()
 
   const [dashboardList, setDashboardList] = useState<IDashboard[]>([])
@@ -29,11 +25,17 @@ function DashboardConfig() {
     current: 1,
     pageSize: 10,
   })
+  const paginationRef = useRef(pagination)
   const [guidePopupOpen, setGuidePopupOpen] = useState(false)
   const [convertPopupOpen, setConvertPopupOpen] = useState(false)
   const [selectedDashboard, setSelectedDashboard] = useState<IDashboard | null>(null)
   const [filterType, setFilterType] = useState<DashboardType | ''>('')
   const [filterAnalysisType, setFilterAnalysisType] = useState<AnalysisType | ''>('')
+
+  // 同步 paginationRef
+  useEffect(() => {
+    paginationRef.current = pagination
+  }, [pagination])
 
   const loadDashboardList = useCallback(async (page = 1, pageSize = 10) => {
     try {
@@ -74,12 +76,12 @@ function DashboardConfig() {
       try {
         await deleteDashboard(dashboard.id)
         message.success('删除成功')
-        loadDashboardList(pagination.current, pagination.pageSize)
+        loadDashboardList(paginationRef.current.current, paginationRef.current.pageSize)
       } catch (error: any) {
         message.error(error?.msg || '删除失败')
       }
     }
-  }, [loadDashboardList, pagination.current, pagination.pageSize])
+  }, [loadDashboardList])
 
   const handleEditDashboard = useCallback((dashboard: IDashboard) => {
     // 获取看板配置
@@ -141,8 +143,8 @@ function DashboardConfig() {
   const handleConvertSubmit = useCallback(async () => {
     setConvertPopupOpen(false)
     setSelectedDashboard(null)
-    loadDashboardList(pagination.current, pagination.pageSize)
-  }, [loadDashboardList, pagination.current, pagination.pageSize])
+    loadDashboardList(paginationRef.current.current, paginationRef.current.pageSize)
+  }, [loadDashboardList])
 
   const getAnalysisTypeText = useCallback((type: AnalysisType) => {
     const map = {
@@ -164,8 +166,8 @@ function DashboardConfig() {
         { label: '个人看板', value: DashboardType.PERSONAL },
         { label: '公共看板', value: DashboardType.PUBLIC },
       ],
-      onChange: (value: DashboardType | '') => {
-        setFilterType(value)
+      onChange: (value: any) => {
+        setFilterType(value as DashboardType | '')
       },
     },
     {
@@ -179,8 +181,8 @@ function DashboardConfig() {
         { label: '用户路径分析', value: AnalysisType.USER_PATH },
         { label: '归因分析', value: AnalysisType.ATTRIBUTION },
       ],
-      onChange: (value: AnalysisType | '') => {
-        setFilterAnalysisType(value)
+      onChange: (value: any) => {
+        setFilterAnalysisType(value as AnalysisType | '')
       },
     },
   ], [])
@@ -283,8 +285,8 @@ function DashboardConfig() {
   ], [handleEditDashboard, handleDeleteDashboard, handleConvertToPublic, getAnalysisTypeText])
 
   const handleRefresh = useCallback(() => {
-    loadDashboardList(pagination.current, pagination.pageSize)
-  }, [loadDashboardList, pagination.current, pagination.pageSize])
+    loadDashboardList(paginationRef.current.current, paginationRef.current.pageSize)
+  }, [loadDashboardList])
 
   return (
     <div className={styles.dashboardConfig}>

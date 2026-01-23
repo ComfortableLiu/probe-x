@@ -78,7 +78,7 @@ function GuideHeader({ title }: GuideHeaderProps) {
       {
         title: (
           <span onClick={() => navigate('/guide')} style={{ cursor: 'pointer' }}>
-            <HomeOutlined /> 使用说明
+            <HomeOutlined /> 系统说明
           </span>
         ),
       },
