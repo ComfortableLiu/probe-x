@@ -81,6 +81,29 @@ export class DashboardService {
   }
 
   /**
+   * 获取单个看板信息
+   */
+  async getDashboard(id: number, user: IUser): Promise<IDashboard> {
+    const dashboard = await this.dashboardRepository.findOne({
+      where: { id, isDeleted: false },
+    })
+
+    if (!dashboard) {
+      throw new BusinessException('看板不存在')
+    }
+
+    // 验证权限：个人看板只能创建者查看，公共看板需要检查权限
+    if (dashboard.type === DashboardType.PERSONAL && dashboard.creatorId !== user.userId) {
+      throw new BusinessException('无权限查看此看板')
+    }
+    if (dashboard.type === DashboardType.PUBLIC && !(await this.canViewPublicDashboard(dashboard, user))) {
+      throw new BusinessException('无权限查看此看板')
+    }
+
+    return this.entityToDto(dashboard)
+  }
+
+  /**
    * 更新看板
    */
   async updateDashboard(data: IUpdateDashboardReq, user: IUser): Promise<IDashboard> {
@@ -191,8 +214,10 @@ export class DashboardService {
     else {
       const isUserAdmin = await this.isAdmin(user)
       const userRole = await this.getUserRole(user)
+      // 对于公共看板，如果没有设置权限（NULL 或空数组），所有用户都可以查看
+      // 这与 canViewPublicDashboard 方法的逻辑一致
       queryBuilder.andWhere(
-        '(dashboard.type = :personal AND dashboard.creatorId = :creatorId) OR (dashboard.type = :public AND (:isAdmin = 1 OR JSON_CONTAINS(dashboard.permissions, :userRole)))',
+        '(dashboard.type = :personal AND dashboard.creatorId = :creatorId) OR (dashboard.type = :public AND (:isAdmin = 1 OR dashboard.permissions IS NULL OR JSON_LENGTH(dashboard.permissions) = 0 OR JSON_CONTAINS(dashboard.permissions, :userRole)))',
         {
           personal: DashboardType.PERSONAL,
           public: DashboardType.PUBLIC,
@@ -259,8 +284,12 @@ export class DashboardService {
       return cached
     }
 
-    // 获取看板配置
+    // 获取看板配置，检查是否为 null 或 undefined
     const config = dashboard.config
+    if (!config) {
+      throw new BusinessException('看板配置为空，无法查询数据')
+    }
+
     let analysisData: any
 
     // 根据分析类型查询数据
@@ -294,6 +323,20 @@ export class DashboardService {
         queryParams.timeRange = data.timeRange
       }
       analysisData = await this.attributionAnalysisService.queryEvent(queryParams, user)
+    }
+
+    // 检查配置是否匹配分析类型
+    if (analysisData === undefined) {
+      const analysisTypeName = {
+        [AnalysisType.EVENT]: '事件分析',
+        [AnalysisType.FUNNEL]: '漏斗分析',
+        [AnalysisType.USER_PATH]: '用户路径分析',
+        [AnalysisType.ATTRIBUTION]: '归因分析',
+      }[dashboard.analysisType] || dashboard.analysisType
+      
+      throw new BusinessException(
+        `看板配置错误：看板类型为 ${analysisTypeName}，但缺少对应的配置信息`
+      )
     }
 
     const result: IDashboardDataRes = {
@@ -400,6 +443,7 @@ export class DashboardService {
 
   /**
    * 过滤有权限查看的看板
+   * 注意：只过滤当前页的列表，不修改 total，因为 total 表示数据库中符合条件的总记录数
    */
   private async filterAccessibleDashboards(
     result: IDashboardListRes,
@@ -425,10 +469,13 @@ export class DashboardService {
       }
     }
 
+    // 保持原始的 total 不变，因为 total 表示数据库中符合条件的总记录数
+    // 如果当前页过滤后记录数减少，前端可能会看到当前页记录数少于 pageSize
+    // 但 total 仍然是正确的，分页信息不会出错
     return {
       ...result,
       list: filteredList,
-      total: filteredList.length,
+      // total 保持不变，不设置为 filteredList.length
     }
   }
 
@@ -467,15 +514,19 @@ export class DashboardService {
    * 清除缓存
    */
   private async clearCache(userId: number, dashboardId?: number): Promise<void> {
-    // 清除列表缓存（模糊匹配）
-    const pattern = `${DASHBOARD_LIST_CACHE_KEY_PREFIX}${userId}:*`
-    // 注意：Redis的keys命令在生产环境可能有问题，这里简化处理
-    // 实际可以使用SCAN命令或者设置更短的过期时间
+    try {
+      // 清除列表缓存（模糊匹配）
+      const listPattern = `${DASHBOARD_LIST_CACHE_KEY_PREFIX}${userId}:*`
+      await this.redisService.delByPattern(listPattern)
 
-    // 如果指定了看板ID，清除该看板的数据缓存
-    if (dashboardId) {
-      const dataPattern = `${DASHBOARD_DATA_CACHE_KEY_PREFIX}${dashboardId}:*`
-      // 同样，这里简化处理，实际应该使用SCAN
+      // 如果指定了看板ID，清除该看板的数据缓存
+      if (dashboardId) {
+        const dataPattern = `${DASHBOARD_DATA_CACHE_KEY_PREFIX}${dashboardId}:*`
+        await this.redisService.delByPattern(dataPattern)
+      }
+    } catch (error) {
+      // 缓存清除失败不应该影响主流程，只记录错误
+      console.error('清除看板缓存失败:', error)
     }
   }
 }

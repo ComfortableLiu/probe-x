@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Delete, Get, ParseIntPipe, Post, Query } from '@nestjs/common'
 import { User } from '@probe-x/shared-utils/src/lib/backend-common'
 import {
   IUser,
@@ -44,10 +44,21 @@ export class DashboardController {
    */
   @Delete('/delete')
   async deleteDashboard(
-    @Query('id') id: number,
+    @Query('id', ParseIntPipe) id: number,
     @User() user: IUser,
   ): Promise<void> {
     return this.dashboardService.deleteDashboard(id, user)
+  }
+
+  /**
+   * 获取单个看板信息
+   */
+  @Get('/detail')
+  async getDashboard(
+    @Query('id', ParseIntPipe) id: number,
+    @User() user: IUser,
+  ): Promise<IDashboard> {
+    return this.dashboardService.getDashboard(id, user)
   }
 
   /**

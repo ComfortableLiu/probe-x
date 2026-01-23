@@ -44,6 +44,17 @@ export function deleteDashboard(id: number) {
 }
 
 /**
+ * 获取单个看板信息
+ */
+export function getDashboard(id: number) {
+  return request<IDashboard>({
+    url: '/dashboard/detail',
+    method: 'get',
+    params: { id },
+  })
+}
+
+/**
  * 查询看板列表
  */
 export function queryDashboardList(data?: IQueryDashboardListReq) {

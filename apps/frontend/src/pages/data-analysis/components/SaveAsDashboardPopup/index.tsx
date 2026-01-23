@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from "react"
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { Form, Input, Modal, Switch, message } from "antd"
 import { AnalysisType, DashboardType, ICreateDashboardReq, IUpdateDashboardReq } from "@pages/data-analysis/dashboard-config/type"
 import { createDashboard, updateDashboard } from "@pages/data-analysis/dashboard-config/services"
@@ -34,6 +34,15 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
 
   const isEdit = !!(dashboardId || urlDashboardId)
   const editDashboardId = dashboardId || urlDashboardId
+
+  // 构建完整的查询参数，包含时间范围
+  // 时间范围应该保存在配置中，这样编辑看板时可以恢复原始的时间范围
+  const fullQueryParams = useMemo(() => {
+    return {
+      ...currentQuery,
+      ...(timeRange ? { timeRange } : {}),
+    }
+  }, [currentQuery, timeRange])
 
   useEffect(() => {
     if (!open) return
@@ -71,17 +80,18 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
     setLoading(true)
 
     try {
-      // 获取当前页面的查询参数作为配置
+      // 获取当前页面的查询参数作为配置，包含时间范围
+      // 时间范围应该保存在配置中，这样编辑看板时可以恢复原始的时间范围
       const config: any = {}
       
       if (analysisType === AnalysisType.EVENT) {
-        config.eventAnalysis = currentQuery as IEventAnalysisReq
+        config.eventAnalysis = fullQueryParams as IEventAnalysisReq
       } else if (analysisType === AnalysisType.FUNNEL) {
-        config.funnelAnalysis = currentQuery as IFunnelAnalysisReq
+        config.funnelAnalysis = fullQueryParams as IFunnelAnalysisReq
       } else if (analysisType === AnalysisType.USER_PATH) {
-        config.userPathAnalysis = currentQuery as IUserPathAnalysisReq
+        config.userPathAnalysis = fullQueryParams as IUserPathAnalysisReq
       } else if (analysisType === AnalysisType.ATTRIBUTION) {
-        config.attributionAnalysis = currentQuery as IAttributionAnalysisReq
+        config.attributionAnalysis = fullQueryParams as IAttributionAnalysisReq
       }
 
       if (isEdit && editDashboardId) {
@@ -111,11 +121,11 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
       onSuccess?.()
       onClose()
     } catch (error: any) {
-      message.error(error?.msg || '创建失败')
+      message.error(error?.msg || (isEdit ? '更新失败' : '创建失败'))
     } finally {
       setLoading(false)
     }
-  }, [onClose, onSuccess, loading, analysisType, currentQuery, isEdit, editDashboardId])
+  }, [onClose, onSuccess, loading, analysisType, fullQueryParams, isEdit, editDashboardId])
 
   const getAnalysisTypeText = useCallback(() => {
     const map = {

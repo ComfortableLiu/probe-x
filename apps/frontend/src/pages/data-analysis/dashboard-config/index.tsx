@@ -117,9 +117,9 @@ function DashboardConfig() {
         obj[key] = queryParams[key]
       }
     })
-    const search = queryString.stringify(obj, {
-      encode: false,
-    })
+    // 使用默认编码（encode: true），确保特殊字符（如 &, =, ? 等）被正确编码
+    // 这样可以避免 URL 格式被破坏，确保查询参数能够正确解析
+    const search = queryString.stringify(obj)
 
     // 跳转到对应的分析页面
     const routeMap: Record<AnalysisType, string> = {

@@ -110,6 +110,37 @@ export class RedisService implements OnModuleDestroy {
     return this.client.del(key)
   }
 
+  /**
+   * 根据模式删除匹配的键（使用 SCAN 命令，避免阻塞）
+   * @param pattern 匹配模式，例如 'dashboard:list:*'
+   * @returns 删除的键数量
+   */
+  async delByPattern(pattern: string): Promise<number> {
+    let deletedCount = 0
+    let cursor = '0'
+    
+    do {
+      // 使用 SCAN 命令遍历匹配的键
+      const [nextCursor, keys] = await this.client.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100, // 每次扫描100个键
+      )
+      
+      cursor = nextCursor
+      
+      // 如果有匹配的键，批量删除
+      if (keys.length > 0) {
+        const deleted = await this.client.del(...keys)
+        deletedCount += deleted
+      }
+    } while (cursor !== '0') // 当 cursor 为 '0' 时表示扫描完成
+    
+    return deletedCount
+  }
+
   // 应用关闭时断开连接
   async onModuleDestroy() {
     await this.client.disconnect()

@@ -12,7 +12,7 @@ import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
 import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
 import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
-import { queryDashboardList } from "@pages/data-analysis/dashboard-config/services"
+import { getDashboard } from "@pages/data-analysis/dashboard-config/services"
 
 function DataFilterConfigArea() {
 
@@ -29,13 +29,12 @@ function DataFilterConfigArea() {
   // 如果有dashboardId，加载看板信息
   React.useEffect(() => {
     if (dashboardId) {
-      queryDashboardList().then(({ data }) => {
-        const dashboard = data?.list?.find((d) => d.id === dashboardId)
-        if (dashboard) {
+      getDashboard(dashboardId).then(({ data }) => {
+        if (data) {
           setDashboardInfo({
-            name: dashboard.name,
-            displayChart: dashboard.displayChart,
-            displayTable: dashboard.displayTable,
+            name: data.name,
+            displayChart: data.displayChart,
+            displayTable: data.displayTable,
           })
         }
       }).catch(() => {
