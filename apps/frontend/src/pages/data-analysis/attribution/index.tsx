@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { message, Spin } from "antd"
 import * as styles from "./styles.module.scss"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
+import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
+import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 import DataFilterConfigArea from "@pages/data-analysis/attribution/components/DataFilterConfigArea"
 import DataTable from "@pages/data-analysis/attribution/components/DataTable"
 import DownloadPopup from "@pages/data-analysis/components/DownloadPopup"
@@ -23,7 +25,8 @@ function AttributionAnalysis() {
   const {
     timeRange,
     attributionModel,
-  } = useQuery<IQuery>()
+    dashboardId,
+  } = useQuery<IQuery & { dashboardId?: number }>()
 
   const {
     refresh,
@@ -38,6 +41,8 @@ function AttributionAnalysis() {
   // 显示下载弹窗
   const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  // 显示保存为看板弹窗
+  const [showSaveAsDashboardPopup, setShowSaveAsDashboardPopup] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -91,6 +96,17 @@ function AttributionAnalysis() {
     }
   }, [dispatch.dataAnalysisAttributionModel, queryDownloadTask])
 
+  const handleSaveAsDashboard = useCallback(() => {
+    // 先检查填写项
+    dispatch.dataAnalysisAttributionModel.checkQueryParams().then((flag) => {
+      if (flag) {
+        message.error(flag)
+        return
+      }
+      setShowSaveAsDashboardPopup(true)
+    })
+  }, [dispatch.dataAnalysisAttributionModel])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
@@ -98,6 +114,7 @@ function AttributionAnalysis() {
           title="归因分析"
           updateTime={updateTime}
           download={download}
+          onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
@@ -106,6 +123,14 @@ function AttributionAnalysis() {
           downloadUrl={downloadUrl}
           onClose={() => setShowDownloadPopup(false)}
           show={showDownloadPopup}
+        />
+        <SaveAsDashboardPopup
+          analysisType={AnalysisType.ATTRIBUTION}
+          open={showSaveAsDashboardPopup}
+          onClose={() => setShowSaveAsDashboardPopup(false)}
+          onSuccess={() => {
+            message.success('看板已创建，可在首页查看')
+          }}
         />
       </div>
     </Spin>

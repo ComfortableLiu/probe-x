@@ -33,7 +33,7 @@ import {
   ],
   controllers: [DataAnalysisController],
   providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, QueryDownloadQueueProcessor, DataAnalysisRecordService],
-  exports: [DataAnalysisRecordService],
+  exports: [DataAnalysisRecordService, EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService],
 })
 export class DataAnalysisModule {
 }

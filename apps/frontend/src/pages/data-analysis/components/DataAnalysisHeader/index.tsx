@@ -1,6 +1,6 @@
 import dayjs from "dayjs"
 import { Button } from "antd"
-import { Download } from "@icon-park/react"
+import { Download, Save } from "@icon-park/react"
 import React, { memo, useMemo } from "react"
 import * as styles from "./styles.module.scss"
 
@@ -8,6 +8,7 @@ interface IDataAnalysisHeaderProps {
   title: string
   updateTime?: Date
   download?: () => void
+  onSaveAsDashboard?: () => void
 }
 
 function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
@@ -16,6 +17,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     title,
     updateTime,
     download,
+    onSaveAsDashboard,
   } = props
 
   // 渲染数据更新时间
@@ -40,11 +42,28 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     )
   }, [download])
 
+  // 渲染保存为看板按钮
+  const renderSaveAsDashboardButton = useMemo(() => {
+    if (!onSaveAsDashboard) return null
+    return (
+      <Button
+        type="link"
+        onClick={() => onSaveAsDashboard()}
+      >
+        <Save theme="filled" size="16" fill="#333" />
+        保存为看板
+      </Button>
+    )
+  }, [onSaveAsDashboard])
+
   return (
     <div className={styles.header}>
       <div className={styles.title}>{title}</div>
       {renderUpdateTime}
-      {renderDownloadButton}
+      <div className={styles.actions}>
+        {renderSaveAsDashboardButton}
+        {renderDownloadButton}
+      </div>
     </div>
   )
 }

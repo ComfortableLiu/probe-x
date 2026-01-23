@@ -22,6 +22,7 @@ import { DataAnalysisModule } from "@src/api/data-analysis/data-analysis.module"
 import { BullModule } from "@nestjs/bullmq"
 import { SystemDataModule } from "@src/api/system-data/system-data.module"
 import { SystemConfigModule } from "@src/api/system-config/system-config.module"
+import { DashboardModule } from "@src/api/dashboard/dashboard.module"
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SystemConfigModule } from "@src/api/system-config/system-config.module"
     DataAnalysisModule,
     SystemDataModule,
     SystemConfigModule,
+    DashboardModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

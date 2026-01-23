@@ -6,6 +6,8 @@ import { IDataAnalysisUserPathState } from "@pages/data-analysis/user-path/type"
 import { message, Spin } from "antd"
 import * as styles from "./styles.module.scss"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
+import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
+import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 import DataFilterConfigArea from "@pages/data-analysis/user-path/components/DataFilterConfigArea"
 import DataChat from "@pages/data-analysis/user-path/components/DataChat"
 import DownloadPopup from "@pages/data-analysis/components/DownloadPopup"
@@ -22,7 +24,8 @@ function UserPathAnalysis() {
 
   const {
     timeRange,
-  } = useQuery<IQuery>()
+    dashboardId,
+  } = useQuery<IQuery & { dashboardId?: number }>()
 
   const {
     refresh,
@@ -37,6 +40,8 @@ function UserPathAnalysis() {
   // 显示下载弹窗
   const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  // 显示保存为看板弹窗
+  const [showSaveAsDashboardPopup, setShowSaveAsDashboardPopup] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -96,6 +101,17 @@ function UserPathAnalysis() {
     }
   }, [dispatch.dataAnalysisUserPathModel, queryDownloadTask])
 
+  const handleSaveAsDashboard = useCallback(() => {
+    // 先检查填写项
+    dispatch.dataAnalysisUserPathModel.checkQueryParams().then((flag) => {
+      if (flag) {
+        message.error(flag)
+        return
+      }
+      setShowSaveAsDashboardPopup(true)
+    })
+  }, [dispatch.dataAnalysisUserPathModel])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
@@ -103,6 +119,7 @@ function UserPathAnalysis() {
           title="用户路径分析"
           updateTime={updateTime}
           download={download}
+          onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
@@ -111,6 +128,14 @@ function UserPathAnalysis() {
           downloadUrl={downloadUrl}
           onClose={() => setShowDownloadPopup(false)}
           show={showDownloadPopup}
+        />
+        <SaveAsDashboardPopup
+          analysisType={AnalysisType.USER_PATH}
+          open={showSaveAsDashboardPopup}
+          onClose={() => setShowSaveAsDashboardPopup(false)}
+          onSuccess={() => {
+            message.success('看板已创建，可在首页查看')
+          }}
         />
       </div>
     </Spin>

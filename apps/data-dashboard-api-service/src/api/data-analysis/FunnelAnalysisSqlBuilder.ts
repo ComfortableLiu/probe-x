@@ -315,12 +315,15 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     if (!params.windowPeriod || typeof params.windowPeriod.value !== "number" || !["m", "h", "d"].includes(params.windowPeriod.unit)) {
       return { sql: "", params: {}, error: "窗口期参数格式错误" }
     }
-    if (!["strict", "loose"].includes(params.funnelMode)) {
+    
+    // 提供默认漏斗模式
+    const funnelMode = params.funnelMode || 'strict'
+    if (!["strict", "loose"].includes(funnelMode)) {
       return { sql: "", params: {}, error: "漏斗模式只能是strict或loose" }
     }
 
     const [startDate, endDate] = params.timeRange
-    const { funnelType, funnelMode, dimension = [], globalFilters = [] } = params
+    const { funnelType, dimension = [], globalFilters = [] } = params
 
     // 2. 时间范围过滤（使用$log_time，即用户事件产生的时间）
     // 统一使用toDateTime64保持精度一致
