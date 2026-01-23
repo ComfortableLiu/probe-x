@@ -103,6 +103,7 @@ function UserPathAnalysis() {
           title="用户路径分析"
           updateTime={updateTime}
           download={download}
+          guidePath="/guide/data-analysis/user-path"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

@@ -3,6 +3,7 @@ import pointManageRoutes from "./PointManage"
 import sataAnalysisRoutes from "./DataAnalysis"
 import systemDataRoutes from "./SystemData"
 import systemConfigRoutes from "./SystemConfig"
+import guideRoutes from "./Guide"
 
 export default [
   ...accountRoutes,
@@ -10,4 +11,5 @@ export default [
   sataAnalysisRoutes,
   systemDataRoutes,
   systemConfigRoutes,
+  guideRoutes,
 ]

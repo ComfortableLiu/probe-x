@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
-import { Card, Col, DatePicker, Row, Space, Statistic, Table } from "antd"
+import { Card, Col, DatePicker, Row, Space, Statistic, Table, Button } from "antd"
+import { Help } from "@icon-park/react"
+import { useNavigate } from "react-router-dom"
 import PageHeader from "@components/PageHeader"
 import {
   BarChartOutlined,
@@ -68,6 +70,7 @@ const columns = [
 
 function Analysis() {
   const dispatch = useDispatch<Dispatch>()
+  const navigate = useNavigate()
   const loading = useLoading()
   const {
     statistics,
@@ -278,6 +281,15 @@ function Analysis() {
         title="数分数据"
         onRefresh={handleRefresh}
         loading={loading.systemDataAnalysisModel.getAnalysisStatistics || loading.systemDataAnalysisModel.getHourlyAnalysisTrend}
+        extra={
+          <Button
+            type="link"
+            icon={<Help theme="outline" size="16" fill="#000000" />}
+            onClick={() => navigate('/guide/system-data/analysis')}
+          >
+            说明
+          </Button>
+        }
       />
 
       {/* 统计卡片区域 */}

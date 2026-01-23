@@ -100,6 +100,7 @@ function FunnelAnalysis() {
           title="漏斗分析"
           updateTime={updateTime}
           download={download}
+          guidePath="/guide/data-analysis/funnel"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

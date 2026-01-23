@@ -1,0 +1,182 @@
+.container {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.backLink {
+  cursor: pointer;
+  color: #1890ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  
+  &:hover {
+    color: #40a9ff;
+  }
+}
+
+.content {
+  display: flex;
+  gap: 24px;
+  margin-top: 24px;
+
+  &.indexPage {
+    margin-top: 0;
+    
+    .main {
+      max-width: 100%;
+      width: 100%;
+      padding: 0;
+    }
+  }
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.menuCard {
+  position: sticky;
+  top: 24px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.backLink {
+  cursor: pointer;
+  color: #1890ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  
+  &:hover {
+    color: #40a9ff;
+  }
+}
+
+.guideContent {
+  line-height: 1.8;
+  color: #333;
+
+  h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1890ff;
+    border-bottom: 2px solid #e8e8e8;
+    padding-bottom: 8px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  h4 {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #52c41a;
+  }
+
+  p {
+    margin-bottom: 16px;
+    color: #666;
+  }
+
+  ul {
+    margin-bottom: 16px;
+    padding-left: 24px;
+
+    li {
+      margin-bottom: 8px;
+      color: #666;
+
+      strong {
+        color: #333;
+        font-weight: 600;
+      }
+
+      ul {
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+    }
+  }
+
+  ol {
+    margin-bottom: 16px;
+    padding-left: 24px;
+
+    li {
+      margin-bottom: 8px;
+      color: #666;
+    }
+  }
+}
+
+.scenarioBox {
+  margin-top: 20px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background-color: #f8f9fa;
+  border-left: 4px solid #1890ff;
+  border-radius: 4px;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1890ff;
+  }
+
+  p {
+    margin-bottom: 12px;
+    color: #666;
+    line-height: 1.6;
+
+    strong {
+      color: #333;
+      font-weight: 600;
+    }
+  }
+
+  ol {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding-left: 24px;
+
+    li {
+      margin-bottom: 8px;
+      color: #666;
+      line-height: 1.6;
+    }
+  }
+}
+
+.categoryCard {
+  height: 100%;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.featureCard {
+  height: 100%;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}

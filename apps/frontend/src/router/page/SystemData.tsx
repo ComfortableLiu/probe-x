@@ -36,5 +36,13 @@ export default {
     meta: {
       isHidden: true,
     },
+  }, {
+    path: '/system-data/guide/:pageKey',
+    name: '页面说明',
+    key: 'system-data-guide',
+    component: lazy(() => import('@pages/data-analysis/guide/index')),
+    meta: {
+      isHidden: true,
+    },
   }],
 } as IRouteItem
