@@ -58,7 +58,7 @@ function UserPathAnalysis() {
 
   // 使用 ref 跟踪是否已经初始化，避免重复刷新
   const timeRangeInitialized = useRef(false)
-  
+
   useEffect(() => {
     // 只在首次加载且 timeRange 为空时设置默认值
     if (!timeRangeInitialized.current && !timeRange) {
@@ -120,6 +120,7 @@ function UserPathAnalysis() {
           updateTime={updateTime}
           download={download}
           onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
+          guidePath="/guide/data-analysis/user-path"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import { Button, Popconfirm, Space, TableProps, Tag, message } from "antd"
-import { AddOne } from "@icon-park/react"
+import { Button, message, Popconfirm, Space, TableProps, Tag } from "antd"
+import { AddOne, Help } from "@icon-park/react"
 import { useHistoryListener, useLoading } from "@/hooks"
 import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
-import { IDashboard, DashboardType, AnalysisType } from "./type"
+import { AnalysisType, DashboardType, IDashboard } from "./type"
 import dayjs from "dayjs"
 import PageHeader from "@components/PageHeader"
 import TableComponent from "@components/TableComponent"
@@ -16,17 +16,13 @@ import * as styles from "./styles.module.scss"
 import ConvertToPublicPopup from "./components/convert-to-public"
 import GuidePopup from "./components/guide-popup"
 import queryString from "query-string"
-import {
-  queryDashboardList,
-  deleteDashboard,
-  convertToPublicDashboard,
-} from "./services"
+import { deleteDashboard, queryDashboardList } from "./services"
 
 function DashboardConfig() {
   const dispatch = useDispatch<Dispatch>()
   const loading = useLoading()
   const navigate = useNavigate()
-  
+
   const [dashboardList, setDashboardList] = useState<IDashboard[]>([])
   const [pagination, setPagination] = useState({
     total: 0,
@@ -88,7 +84,7 @@ function DashboardConfig() {
   const handleEditDashboard = useCallback((dashboard: IDashboard) => {
     // 获取看板配置
     const config = dashboard.config || {}
-    
+
     // 根据分析类型获取对应的配置
     let queryParams: any = {}
     if (dashboard.analysisType === AnalysisType.EVENT && config.eventAnalysis) {
@@ -100,16 +96,16 @@ function DashboardConfig() {
     } else if (dashboard.analysisType === AnalysisType.ATTRIBUTION && config.attributionAnalysis) {
       queryParams = { ...config.attributionAnalysis }
     }
-    
+
     // 确保有配置参数
     if (!queryParams || Object.keys(queryParams).length === 0) {
       message.warning('看板配置为空，无法编辑')
       return
     }
-    
+
     // 添加看板ID参数
     queryParams.dashboardId = dashboard.id
-    
+
     // 转换为URL参数，确保对象被序列化为JSON字符串（与useRouter的refresh方法一致）
     const obj: any = {}
     Object.keys(queryParams).forEach(key => {
@@ -122,7 +118,7 @@ function DashboardConfig() {
     const search = queryString.stringify(obj, {
       encode: false,
     })
-    
+
     // 跳转到对应的分析页面
     const routeMap: Record<AnalysisType, string> = {
       [AnalysisType.EVENT]: '/data-analysis/event',
@@ -296,9 +292,18 @@ function DashboardConfig() {
         title="看板设置"
         onRefresh={handleRefresh}
         loading={false}
+        extra={
+          <Button
+            type="link"
+            icon={<Help theme="outline" size="16" fill="#000000" />}
+            onClick={() => navigate('/guide/data-analysis/dashboard-config')}
+          >
+            说明
+          </Button>
+        }
       />
       <p className={styles.description}>
-        管理数据分析看板配置，包括个人看板和公共看板。创建看板请在对应的数据分析页面配置参数后点击"保存为看板"按钮。个人看板仅创建者可管理，公共看板管理员可管理，所有有权限的用户可查看。
+        管理数据分析看板配置，包括个人看板和公共看板。创建看板请在对应的数据分析页面配置参数后点击&#34;保存为看板&#34;按钮。个人看板仅创建者可管理，公共看板管理员可管理，所有有权限的用户可查看。
       </p>
       <FormComponent formItems={formItems} />
       <TableComponent<IDashboard>

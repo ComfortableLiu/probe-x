@@ -115,6 +115,7 @@ function AttributionAnalysis() {
           updateTime={updateTime}
           download={download}
           onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
+          guidePath="/guide/data-analysis/attribution"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

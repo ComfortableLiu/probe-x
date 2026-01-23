@@ -103,6 +103,7 @@ function EventAnalysis() {
           updateTime={updateTime}
           download={download}
           onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
+          guidePath="/guide/data-analysis/event"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

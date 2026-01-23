@@ -3,7 +3,7 @@ import { Menu, MenuProps } from "antd"
 import * as styles from "./styles.module.scss"
 import { classnames } from "@utils/classnames"
 import { allRoutes, allRoutesWithAliasMap } from "@/router"
-import { Me, MenuUnfoldOne } from "@icon-park/react"
+import { Help, Logout, Me, MenuUnfoldOne, User } from "@icon-park/react"
 import { Link } from "react-router"
 import { useLocation } from "react-router-dom"
 import ssoAuth from "@/lib/request/sso/ssoAuth"
@@ -43,19 +43,19 @@ const MenuView = () => {
 
     // 查找当前路由对应的一级父路由
     let parentRoute: IRouteItem | undefined
-    
+
     // 遍历所有一级路由，查找包含当前路由的父路由
     for (const route of allRoutes) {
       if (!route.children || route.children.length === 0) continue
-      
+
       // 方法1: 通过 key 匹配（最准确）
       const isChildRoute = route.children.some(child => child.key === currentRoute.key)
-      
+
       if (isChildRoute) {
         parentRoute = route
         break
       }
-      
+
       // 方法2: 通过路径匹配（备用方案）
       const routePath = route.path || ''
       if (currentPath.startsWith(routePath) && currentPath !== routePath) {
@@ -67,7 +67,7 @@ const MenuView = () => {
           if (child.alias?.some(alias => `${routePath}${alias}` === currentPath)) return true
           return false
         })
-        
+
         if (isChildRouteByPath) {
           parentRoute = route
           break
@@ -79,7 +79,7 @@ const MenuView = () => {
     if (parentRoute) {
       setOpenKeys([parentRoute.key])
     }
-    
+
     // 标记已初始化，之后不再自动更新
     isInitializedRef.current = true
   }, [location.pathname, isLoginPage])
@@ -131,13 +131,23 @@ const MenuView = () => {
             label: <span className={classnames({ collapsed })}>{userInfo?.nickname || userInfo?.username || '未知'}</span>,
             children: [{
               key: 'account-center',
+              icon: <User theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
               label: (
                 <Link to="/account">
                   <span className={classnames({ collapsed })}>个人中心</span>
                 </Link>
               ),
             }, {
+              key: 'guide',
+              icon: <Help theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+              label: (
+                <Link to="/guide">
+                  <span className={classnames({ collapsed })}>系统说明</span>
+                </Link>
+              ),
+            }, {
               key: 'logout',
+              icon: <Logout theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
               label: <span className={classnames({ collapsed })}>退出登录</span>,
               onClick: () => ssoAuth.gotoLoginPage(),
             }],

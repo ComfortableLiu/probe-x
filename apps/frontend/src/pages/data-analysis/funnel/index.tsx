@@ -33,7 +33,7 @@ function FunnelAnalysis() {
     refresh,
   } = useRouter()
 
-  const timer = useRef<NodeJS.Timeout>()
+  const timer = useRef<NodeJS.Timeout>(null)
 
   const loading = useLoading()
 
@@ -117,6 +117,7 @@ function FunnelAnalysis() {
           updateTime={updateTime}
           download={download}
           onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
+          guidePath="/guide/data-analysis/funnel"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />

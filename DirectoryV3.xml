@@ -76,4 +76,5 @@
     <tree path="/apps/frontend/src/pages/system-config/role" title="角色管理"/>
     <tree path="/apps/frontend/src/pages/system-config/permission" title="权限管理"/>
     <tree path="/apps/frontend/src/pages/system-config/user" title="用户管理"/>
+    <tree path="/apps/frontend/src/pages/guide" title="说明页"/>
 </trees>

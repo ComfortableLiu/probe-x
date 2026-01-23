@@ -42,5 +42,13 @@ export default {
     name: '看板设置',
     key: 'data-analysis-dashboard-config',
     component: lazy(() => import('@pages/data-analysis/dashboard-config/index')),
+  }, {
+    path: '/data-analysis/guide/:pageKey',
+    name: '页面说明',
+    key: 'data-analysis-guide',
+    component: lazy(() => import('@pages/data-analysis/guide/index')),
+    meta: {
+      isHidden: true,
+    },
   }],
 } as IRouteItem
