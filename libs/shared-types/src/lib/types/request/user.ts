@@ -18,7 +18,7 @@ export interface IUpdateUserProfileRes extends IUser {}
  * 修改密码请求参数
  */
 export interface IChangePasswordReq {
-  oldPassword: string
+  oldPassword?: string // 可选，首次设置密码时可以不提供
   newPassword: string
 }
 

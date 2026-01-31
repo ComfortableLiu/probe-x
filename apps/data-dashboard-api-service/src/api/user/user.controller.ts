@@ -79,6 +79,6 @@ export class UserController {
     @User() user: IUser,
     @Body() body: IChangePasswordReq,
   ): Promise<ResponseData<IChangePasswordRes>> {
-    return await this.userService.changePassword(user.userId!, body.oldPassword, body.newPassword)
+    return await this.userService.changePassword(user.userId!, body.oldPassword || null, body.newPassword)
   }
 }
