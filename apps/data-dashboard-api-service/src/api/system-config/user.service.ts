@@ -236,8 +236,9 @@ export class SystemConfigUserService {
       return ResponseData.error('用户不存在')
     }
 
-    // 加密新密码
-    user.passwordHash = this.hashPassword(newPassword)
+    // 加密新密码：先模拟前端加密，再进行后端加密（与 changePassword 保持一致）
+    const frontendEncrypted = this.hashPassword(newPassword)
+    user.passwordHash = this.hashPassword(frontendEncrypted)
     await this.userRepository.save(user)
 
     const result: IResetPasswordRes = {

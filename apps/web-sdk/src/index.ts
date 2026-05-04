@@ -196,16 +196,21 @@ class ProbeX {
     const sessionKey = 'probe_x_session_id'
     const sessionExpiry = 30 * 60 * 1000 // 30分钟
 
-    let sessionId = localStorage.getItem(sessionKey)
-    const sessionTime = localStorage.getItem(sessionKey + '_time')
+    try {
+      let sessionId = localStorage.getItem(sessionKey)
+      const sessionTime = localStorage.getItem(sessionKey + '_time')
 
-    if (!sessionId || !sessionTime || (now - parseInt(sessionTime)) > sessionExpiry) {
-      sessionId = uuidv4()
-      localStorage.setItem(sessionKey, sessionId)
-      localStorage.setItem(sessionKey + '_time', now.toString())
+      if (!sessionId || !sessionTime || (now - parseInt(sessionTime)) > sessionExpiry) {
+        sessionId = uuidv4()
+        localStorage.setItem(sessionKey, sessionId)
+        localStorage.setItem(sessionKey + '_time', now.toString())
+      }
+
+      return sessionId
+    } catch {
+      // localStorage 不可用（隐私模式/SSR），回退到内存
+      return uuidv4()
     }
-
-    return sessionId
   }
 
   /**
@@ -213,14 +218,18 @@ class ProbeX {
    */
   private getOrCreateDeviceId(): string {
     const deviceKey = 'probe_x_device_id'
-    let deviceId = localStorage.getItem(deviceKey)
 
-    if (!deviceId) {
-      deviceId = uuidv4()
-      localStorage.setItem(deviceKey, deviceId)
+    try {
+      let deviceId = localStorage.getItem(deviceKey)
+      if (!deviceId) {
+        deviceId = uuidv4()
+        localStorage.setItem(deviceKey, deviceId)
+      }
+      return deviceId
+    } catch {
+      // localStorage 不可用，回退到内存
+      return uuidv4()
     }
-
-    return deviceId
   }
 
   /**

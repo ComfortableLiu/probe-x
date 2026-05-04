@@ -14,10 +14,14 @@ export type JwtPayload = {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
+    const secret = configService.get<string>('jwt.secret')
+    if (!secret) {
+      throw new Error('JWT_SECRET 环境变量未配置，服务无法启动')
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('jwt.secret') || '',
+      secretOrKey: secret,
     })
   }
 

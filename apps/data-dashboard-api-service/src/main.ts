@@ -22,8 +22,11 @@ async function bootstrap() {
   }))
 
   // 启用CORS并配置具体的跨域选项
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : [`http://localhost:${configService.get('client.port', 8000)}`]
   app.enableCors({
-    origin: true,  // 允许所有来源
+    origin: allowedOrigins,
     credentials: true,
   })
 

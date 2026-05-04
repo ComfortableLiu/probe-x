@@ -5,6 +5,7 @@ import { User, ResponseData } from "@probe-x/shared-utils/src/lib/backend-common
 import { AuthService } from "@src/service/auth.service"
 import { ErrorCode } from "@probe-x/shared-utils/src"
 import { JwtAuthGuard } from "./JwtAuthGuard"
+import { LoginThrottleGuard } from "../../guard/throttle.guard"
 
 @Controller('user')
 export class UserController {
@@ -15,6 +16,7 @@ export class UserController {
   }
 
   @Post('login')
+  @UseGuards(LoginThrottleGuard)
   async login(@Body() loginDto: { username: string; password: string }) {
     return this.userService.validateUser(loginDto.username, loginDto.password)
   }
@@ -22,8 +24,10 @@ export class UserController {
   @Get('rolePermissionList')
   @UseGuards(JwtAuthGuard)
   async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
-    // 超管特判
-    if (user.userId === 1) {
+    // 超管特判：检查用户是否拥有 admin 角色
+    const userRoles = await this.userService.getUserRoles(user.userId)
+    const isAdmin = userRoles.some(role => role.roleKey === 'admin' || role.isSystemRole)
+    if (isAdmin) {
       return await this.userService.getAllRoleAndPermission()
     }
     return await this.userService.getUserRoleAndPermission(user.userId)

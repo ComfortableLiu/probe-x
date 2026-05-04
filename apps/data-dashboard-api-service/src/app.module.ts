@@ -8,7 +8,7 @@ import {
   RedisModule,
   RedisService,
   ResponseInterceptor,
-  SignatureInterceptor,
+  // SignatureInterceptor, // 已移除：HMAC签名需要客户端持有密钥，本质上不安全，后续应使用服务端签名方案
   SsoAuthGuard,
 } from "@probe-x/shared-utils/src/lib/backend-common"
 import { EventModule } from "@src/api/event/event.module"
@@ -28,9 +28,13 @@ import { SystemConfigModule } from "@src/api/system-config/system-config.module"
     envConfig(configuration),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret') || 'defaultSecret',
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('jwt.secret')
+        if (!secret) {
+          throw new Error('JWT_SECRET 环境变量未配置，服务无法启动')
+        }
+        return { secret }
+      },
       inject: [ConfigService],
     }),
     RedisModule.forRoot(),
@@ -61,9 +65,6 @@ import { SystemConfigModule } from "@src/api/system-config/system-config.module"
   providers: [{
     provide: APP_INTERCEPTOR,
     useClass: ResponseInterceptor,
-  }, {
-    provide: APP_INTERCEPTOR,
-    useClass: SignatureInterceptor,
   }, {
     provide: APP_INTERCEPTOR,
     useClass: JsonBodyInterceptor,

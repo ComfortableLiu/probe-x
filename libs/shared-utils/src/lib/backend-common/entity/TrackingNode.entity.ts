@@ -80,7 +80,7 @@ export class TrackingNodeEntity {
     onDelete: 'CASCADE',
     nullable: true,
   })
-  @JoinColumn({ name: 'parentId' })
+  @JoinColumn({ name: 'parentCode', referencedColumnName: 'code' })
   parent?: TrackingNodeEntity
 
   /**

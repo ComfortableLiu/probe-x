@@ -8,20 +8,22 @@ import {
 import { ISqlGenerateResult, META_TYPE_TO_CH_TYPE } from "@src/api/data-analysis/type"
 
 /**
- * 生成唯一占位符名称
+ * 生成参数键（使用局部索引避免并发冲突）
+ * @param prefix 前缀
+ * @param indexRef 索引引用（局部状态）
+ * @returns 唯一参数键
  */
-let paramIndex = 0
-
-function generateParamKey(prefix: string): string {
-  paramIndex += 1
-  return `param_${prefix}_${paramIndex}`
+function generateParamKey(prefix: string, indexRef: { value: number }): string {
+  indexRef.value += 1
+  return `param_${prefix}_${indexRef.value}`
 }
 
 /**
- * 重置占位符索引
+ * 重置参数索引
+ * @param indexRef 索引引用
  */
-function resetParamIndex() {
-  paramIndex = 0
+function resetParamIndex(indexRef: { value: number }) {
+  indexRef.value = 0
 }
 
 /**
@@ -63,7 +65,7 @@ function sanitizeParamName(name: string): string {
 /**
  * 构建过滤条件子句（带参数占位符）
  */
-function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record<string, any>): string {
+function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record<string, any>, indexRef: { value: number }): string {
   if (filters.length === 0) return ''
 
   const filterClauses = filters.map(filter => {
@@ -73,25 +75,25 @@ function buildFilterClause(filters: IAttributionAnalysisFilter[], params: Record
 
     switch (compareType) {
       case 'EQUAL':
-        return buildEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+        return buildEqualFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef)
       case 'NOT_EQUAL':
-        return buildNotEqualFilter(field, propertyName, propertyValue, propertyType, chType, params)
+        return buildNotEqualFilter(field, propertyName, propertyValue, propertyType, chType, params, indexRef)
       case 'GREATER_THAN':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>', indexRef)
       case 'GREATER_THAN_OR_EQUAL':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>=')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '>=', indexRef)
       case 'LESS_THAN':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<', indexRef)
       case 'LESS_THAN_OR_EQUAL':
-        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<=')
+        return buildSingleValueFilter(field, propertyName, propertyValue, propertyType, chType, params, '<=', indexRef)
       case 'RANGE':
-        return buildRangeFilter(field, propertyName, propertyValue as number[] | string[], propertyType, chType, params)
+        return buildRangeFilter(field, propertyName, propertyValue as number[] | string[], propertyType, chType, params, indexRef)
       case 'CONTAINS':
-        return buildContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+        return buildContainsFilter(field, propertyName, propertyValue as string[] | string, params, indexRef)
       case 'NOT_CONTAINS':
-        return buildNotContainsFilter(field, propertyName, propertyValue as string[] | string, params)
+        return buildNotContainsFilter(field, propertyName, propertyValue as string[] | string, params, indexRef)
       case 'REGEX':
-        return buildRegexFilter(field, propertyName, propertyValue as string, params)
+        return buildRegexFilter(field, propertyName, propertyValue as string, params, indexRef)
       default:
         throw new Error(`不支持的比较类型：${compareType}`)
     }
@@ -110,17 +112,18 @@ function buildEqualFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (Array.isArray(value)) {
     const paramKeys = value.map((item, idx) => {
-      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal_${idx}`)
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal_${idx}`, indexRef)
       params[paramKey] = item
       return `{${paramKey}:${chType}}`
     })
     return `${field} IN (${paramKeys.join(', ')})`
   }
 
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_equal`, indexRef)
   params[paramKey] = value
   return `${field} = {${paramKey}:${chType}}`
 }
@@ -135,17 +138,18 @@ function buildNotEqualFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (Array.isArray(value)) {
     const paramKeys = value.map((item, idx) => {
-      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal_${idx}`)
+      const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal_${idx}`, indexRef)
       params[paramKey] = item
       return `{${paramKey}:${chType}}`
     })
     return `${field} NOT IN (${paramKeys.join(', ')})`
   }
 
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_not_equal`, indexRef)
   params[paramKey] = value
   return `${field} != {${paramKey}:${chType}}`
 }
@@ -161,9 +165,10 @@ function buildSingleValueFilter(
   chType: string,
   params: Record<string, any>,
   operator: string,
+  indexRef: { value: number },
 ): string {
   const operatorKey = operator.replace(/=/g, 'eq').replace(/>/g, 'gt').replace(/</g, 'lt')
-  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_${operatorKey}`)
+  const paramKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_${operatorKey}`, indexRef)
   params[paramKey] = value
   return `${field} ${operator} {${paramKey}:${chType}}`
 }
@@ -178,14 +183,15 @@ function buildRangeFilter(
   propertyType: MetaPropertyType,
   chType: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   if (value.length !== 2) {
     throw new Error('区间过滤条件必须包含两个值')
   }
   const [min, max] = value
 
-  const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`)
-  const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`)
+  const minParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_min`, indexRef)
+  const maxParamKey = generateParamKey(`${propertyType}_${sanitizeParamName(propertyName)}_range_max`, indexRef)
 
   params[minParamKey] = min
   params[maxParamKey] = max
@@ -201,10 +207,11 @@ function buildContainsFilter(
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   const values = Array.isArray(value) ? value : [value]
   const containsClauses = values.map((item, idx) => {
-    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`)
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_contains_${idx}`, indexRef)
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) > 0`
   })
@@ -219,10 +226,11 @@ function buildNotContainsFilter(
   propertyName: string,
   value: string[] | string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
   const values = Array.isArray(value) ? value : [value]
   const notContainsClauses = values.map((item, idx) => {
-    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`)
+    const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_not_contains_${idx}`, indexRef)
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) = 0`
   })
@@ -237,8 +245,9 @@ function buildRegexFilter(
   propertyName: string,
   value: string,
   params: Record<string, any>,
+  indexRef: { value: number },
 ): string {
-  const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`)
+  const paramKey = generateParamKey(`string_${sanitizeParamName(propertyName)}_regex`, indexRef)
   params[paramKey] = value
   return `${field} REGEXP {${paramKey}:String}`
 }
@@ -285,7 +294,9 @@ function getEventDateAlias(eventInfo: IEventAnalysisInfo, date: string, index: n
  * @returns SQL生成结果，包含SQL语句、参数和错误信息
  */
 export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerateResult {
-  resetParamIndex()
+  // 参数索引引用，每个请求独立，确保参数名唯一
+  const indexRef = { value: 0 }
+  resetParamIndex(indexRef)
   const sqlParams: Record<string, any> = {}
 
   try {
@@ -301,14 +312,14 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
     const dateList = generateDateList(startDate, endDate)
 
     // 1. 处理时间范围过滤（参数化）
-    const startParamKey = generateParamKey('time_start')
-    const endParamKey = generateParamKey('time_end')
+    const startParamKey = generateParamKey('time_start', indexRef)
+    const endParamKey = generateParamKey('time_end', indexRef)
     sqlParams[startParamKey] = `${startDate} 00:00:00.000`
     sqlParams[endParamKey] = `${endDate} 23:59:59.999`
     const timeFilter = `${wrapFieldWithBacktick('$service_time')} BETWEEN toDateTime64({${startParamKey}:String}, 3) AND toDateTime64({${endParamKey}:String}, 3)`
 
     // 2. 全局过滤条件
-    const globalWhereClause = buildFilterClause(params.globalFilters || [], sqlParams)
+    const globalWhereClause = buildFilterClause(params.globalFilters || [], sqlParams, indexRef)
     const whereClauses = [timeFilter, globalWhereClause].filter(Boolean)
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
 
@@ -327,10 +338,10 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
     const eventMetricFragments = params.eventInfoList.map((eventInfo, index) => {
       const { eventName, filters = [], metrics } = eventInfo
       const eventAlias = getEventAlias(eventInfo, index)
-      const eventNameParamKey = generateParamKey(`event_name_${index}`)
+      const eventNameParamKey = generateParamKey(`event_name_${index}`, indexRef)
 
       // 构建事件专属过滤条件
-      const eventFilterClause = buildFilterClause(filters, sqlParams)
+      const eventFilterClause = buildFilterClause(filters, sqlParams, indexRef)
       let eventCondition = '1=1'
 
       // 事件名条件
@@ -346,7 +357,7 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
 
       // 按日期生成指标列：为每个日期生成一个聚合列
       const dateMetrics = dateList.map(date => {
-        const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`)
+        const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`, indexRef)
         sqlParams[dateParamKey] = date
 
         const dateCondition = `toDate(${wrapFieldWithBacktick('$service_time')}) = toDate({${dateParamKey}:String})`
@@ -358,7 +369,7 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
       }).join(', ')
 
       // 事件名列（参数化）
-      const eventAliasParamKey = generateParamKey(`event_alias_${index}`)
+      const eventAliasParamKey = generateParamKey(`event_alias_${index}`, indexRef)
       sqlParams[eventAliasParamKey] = eventName || 'unknown_event'
       const eventNameColumn = `{${eventAliasParamKey}:String} AS ${eventAlias}`
 

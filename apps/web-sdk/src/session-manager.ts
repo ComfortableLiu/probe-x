@@ -48,64 +48,81 @@ export class SessionManager {
   private getOrCreateSessionId(): string {
     const sessionKey = this.config.getStorageKey('session_id');
     const sessionTimeKey = this.config.getStorageKey('session_time');
-    
-    let sessionId = localStorage.getItem(sessionKey);
-    let sessionTime = localStorage.getItem(sessionTimeKey);
-    
-    const now = Date.now();
-    
-    // 检查会话是否过期
-    if (!sessionId || !sessionTime || (now - parseInt(sessionTime)) > this.sessionTimeout) {
-      sessionId = uuidv4();
-      localStorage.setItem(sessionKey, sessionId);
-      localStorage.setItem(sessionTimeKey, now.toString());
-      
-      // 重置会话数据
-      this.resetSessionData();
-    } else {
-      // 更新最后活动时间
-      localStorage.setItem(sessionTimeKey, now.toString());
+
+    try {
+      let sessionId = localStorage.getItem(sessionKey);
+      let sessionTime = localStorage.getItem(sessionTimeKey);
+
+      const now = Date.now();
+
+      // 检查会话是否过期
+      if (!sessionId || !sessionTime || (now - parseInt(sessionTime)) > this.sessionTimeout) {
+        sessionId = uuidv4();
+        localStorage.setItem(sessionKey, sessionId);
+        localStorage.setItem(sessionTimeKey, now.toString());
+
+        // 重置会话数据
+        this.resetSessionData();
+      } else {
+        // 更新最后活动时间
+        localStorage.setItem(sessionTimeKey, now.toString());
+      }
+
+      return sessionId;
+    } catch {
+      // localStorage 不可用（隐私模式/SSR），回退到内存
+      return uuidv4();
     }
-    
-    return sessionId;
   }
 
   /**
    * 获取会话开始时间
    */
   private getSessionStartTime(): number {
-    const sessionStartKey = this.config.getStorageKey('session_start_time');
-    let startTime = localStorage.getItem(sessionStartKey);
-    
-    if (!startTime) {
-      const now = Date.now();
-      localStorage.setItem(sessionStartKey, now.toString());
-      return now;
+    try {
+      const sessionStartKey = this.config.getStorageKey('session_start_time');
+      let startTime = localStorage.getItem(sessionStartKey);
+
+      if (!startTime) {
+        const now = Date.now();
+        localStorage.setItem(sessionStartKey, now.toString());
+        return now;
+      }
+
+      return parseInt(startTime);
+    } catch {
+      return Date.now();
     }
-    
-    return parseInt(startTime);
   }
 
   /**
    * 加载会话数据
    */
   private loadSessionData(): void {
-    const pageViewsKey = this.config.getStorageKey('session_page_views');
-    const eventsKey = this.config.getStorageKey('session_events');
-    
-    this.pageViews = parseInt(localStorage.getItem(pageViewsKey) || '0');
-    this.events = parseInt(localStorage.getItem(eventsKey) || '0');
+    try {
+      const pageViewsKey = this.config.getStorageKey('session_page_views');
+      const eventsKey = this.config.getStorageKey('session_events');
+
+      this.pageViews = parseInt(localStorage.getItem(pageViewsKey) || '0');
+      this.events = parseInt(localStorage.getItem(eventsKey) || '0');
+    } catch {
+      // localStorage 不可用，使用默认值
+    }
   }
 
   /**
    * 保存会话数据
    */
   private saveSessionData(): void {
-    const pageViewsKey = this.config.getStorageKey('session_page_views');
-    const eventsKey = this.config.getStorageKey('session_events');
-    
-    localStorage.setItem(pageViewsKey, this.pageViews.toString());
-    localStorage.setItem(eventsKey, this.events.toString());
+    try {
+      const pageViewsKey = this.config.getStorageKey('session_page_views');
+      const eventsKey = this.config.getStorageKey('session_events');
+
+      localStorage.setItem(pageViewsKey, this.pageViews.toString());
+      localStorage.setItem(eventsKey, this.events.toString());
+    } catch {
+      // localStorage 不可用
+    }
   }
 
   /**
@@ -115,11 +132,14 @@ export class SessionManager {
     this.pageViews = 0;
     this.events = 0;
     this.sessionStartTime = Date.now();
-    
-    const sessionStartKey = this.config.getStorageKey('session_start_time');
-    localStorage.setItem(sessionStartKey, this.sessionStartTime.toString());
-    
-    this.saveSessionData();
+
+    try {
+      const sessionStartKey = this.config.getStorageKey('session_start_time');
+      localStorage.setItem(sessionStartKey, this.sessionStartTime.toString());
+      this.saveSessionData();
+    } catch {
+      // localStorage 不可用
+    }
   }
 
   /**
@@ -142,9 +162,13 @@ export class SessionManager {
    */
   private updateLastActivity(): void {
     this.lastActivityTime = Date.now();
-    
-    const sessionTimeKey = this.config.getStorageKey('session_time');
-    localStorage.setItem(sessionTimeKey, this.lastActivityTime.toString());
+
+    try {
+      const sessionTimeKey = this.config.getStorageKey('session_time');
+      localStorage.setItem(sessionTimeKey, this.lastActivityTime.toString());
+    } catch {
+      // localStorage 不可用
+    }
   }
 
   /**
@@ -179,18 +203,22 @@ export class SessionManager {
     this.sessionId = uuidv4();
     this.sessionStartTime = Date.now();
     this.lastActivityTime = Date.now();
-    
-    const sessionKey = this.config.getStorageKey('session_id');
-    const sessionTimeKey = this.config.getStorageKey('session_time');
-    const sessionStartKey = this.config.getStorageKey('session_start_time');
-    
-    localStorage.setItem(sessionKey, this.sessionId);
-    localStorage.setItem(sessionTimeKey, this.lastActivityTime.toString());
-    localStorage.setItem(sessionStartKey, this.sessionStartTime.toString());
-    
+
+    try {
+      const sessionKey = this.config.getStorageKey('session_id');
+      const sessionTimeKey = this.config.getStorageKey('session_time');
+      const sessionStartKey = this.config.getStorageKey('session_start_time');
+
+      localStorage.setItem(sessionKey, this.sessionId);
+      localStorage.setItem(sessionTimeKey, this.lastActivityTime.toString());
+      localStorage.setItem(sessionStartKey, this.sessionStartTime.toString());
+    } catch {
+      // localStorage 不可用
+    }
+
     // 重置会话数据
     this.resetSessionData();
-    
+
     // 触发会话过期事件
     window.dispatchEvent(new CustomEvent('probe-x-session-expired', {
       detail: { sessionId: this.sessionId }
@@ -317,25 +345,29 @@ export class SessionManager {
   end(): void {
     // 保存最终数据
     this.saveSessionData();
-    
+
     // 触发会话结束事件
     window.dispatchEvent(new CustomEvent('probe-x-session-ended', {
       detail: this.getSession()
     }));
-    
+
     // 清理会话数据
-    const keys = [
-      'session_id',
-      'session_time',
-      'session_start_time',
-      'session_page_views',
-      'session_events'
-    ];
-    
-    keys.forEach(key => {
-      localStorage.removeItem(this.config.getStorageKey(key));
-    });
-    
+    try {
+      const keys = [
+        'session_id',
+        'session_time',
+        'session_start_time',
+        'session_page_views',
+        'session_events'
+      ];
+
+      keys.forEach(key => {
+        localStorage.removeItem(this.config.getStorageKey(key));
+      });
+    } catch {
+      // localStorage 不可用
+    }
+
     // 停止心跳
     this.stopHeartbeat();
   }

@@ -12,7 +12,11 @@ export class AuthService {
   ) {
   }
 
-  secret = this.configService.get<string>('jwt.secret') || ''
+  secret = (() => {
+    const s = this.configService.get<string>('jwt.secret')
+    if (!s) throw new Error('JWT_SECRET 环境变量未配置')
+    return s
+  })()
 
   // 生成刷新令牌
   generateRefreshToken(userId: number, username: string, clientId: string = 'probe-x') {

@@ -39,8 +39,6 @@ export class PropertyService {
         WHERE table = 'event_log'
           AND database = currentDatabase()
     `)
-    console.log('llll----', clickhouseColumns)
-
     // 使用 QueryBuilder 构建复杂查询
     const queryBuilder = this.propertyRepository.createQueryBuilder('property')
       .leftJoinAndSelect('property.createUser', 'createUser')
@@ -114,11 +112,20 @@ export class PropertyService {
   }
 
   async createProperty(data: ICreatePropertyReq): Promise<ICreatePropertyRes> {
+    // 校验属性名只允许字母、数字、下划线，防止 SQL 注入
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(data.propertyName)) {
+      throw new Error('属性名只能包含字母、数字和下划线，且必须以字母或下划线开头')
+    }
+    // 转义 comment 中的单引号，防止 SQL 注入
+    const escapedComment = (data.comment || '').replace(/'/g, "\\'")
+    const columnType = MetaPropertyTypeMap[data.propertyType]
+    if (!columnType) {
+      throw new Error('无效的属性类型')
+    }
     // 先创建ClickHouse的列
-    await this.clickhouseService.executeDDL(`
-        ALTER TABLE \`event_log\`
-            ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${MetaPropertyTypeMap[data.propertyType]} COMMENT '${data.comment}';
-    `)
+    await this.clickhouseService.executeDDL(
+      `ALTER TABLE \`event_log\` ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${columnType} COMMENT '${escapedComment}'`
+    )
     // 保存到自定义数据库中
     const property = await this.propertyRepository.save({
       propertyName: data.propertyName,

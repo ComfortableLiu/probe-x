@@ -97,17 +97,24 @@ export class ConfigManager {
    * 设置配置
    */
   set(key: string, value: any): void {
+    const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
     const keys = key.split('.');
     const lastKey = keys.pop()!;
     let target: any = this.config;
-    
+
     for (const k of keys) {
+      if (DANGEROUS_KEYS.has(k)) {
+        return;
+      }
       if (!target[k] || typeof target[k] !== 'object') {
         target[k] = {};
       }
       target = target[k];
     }
-    
+
+    if (DANGEROUS_KEYS.has(lastKey)) {
+      return;
+    }
     target[lastKey] = value;
   }
 

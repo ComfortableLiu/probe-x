@@ -12,6 +12,7 @@ import { Permission } from '@probe-x/shared-utils/src/lib/backend-common/entity/
 import { RolePermissionRelation } from '@probe-x/shared-utils/src/lib/backend-common/entity/RolePermissionRelation.entity'
 import { System } from '@probe-x/shared-utils/src/lib/backend-common/entity/System.entity'
 import { TrackingNodeEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/TrackingNode.entity'
+import { AdminGuard } from '../../guard/admin.guard'
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { TrackingNodeEntity } from '@probe-x/shared-utils/src/lib/backend-common
     ConfigModule,
   ],
   controllers: [SystemConfigController],
-  providers: [SystemConfigUserService, SystemConfigRoleService, SystemConfigSystemService],
+  providers: [SystemConfigUserService, SystemConfigRoleService, SystemConfigSystemService, AdminGuard],
   exports: [SystemConfigUserService, SystemConfigRoleService, SystemConfigSystemService],
 })
 export class SystemConfigModule {}

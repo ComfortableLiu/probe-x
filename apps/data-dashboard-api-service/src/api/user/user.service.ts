@@ -31,6 +31,16 @@ export class UserService {
   }
 
   /**
+   * 获取用户的角色列表
+   */
+  async getUserRoles(userId: number): Promise<Role[]> {
+    const userRoles = await this.userRoleRepo.find({ where: { userId } })
+    const roleIds = userRoles.map(ur => ur.roleId)
+    if (roleIds.length === 0) return []
+    return this.roleRepo.findByIds(roleIds)
+  }
+
+  /**
    * 验证用户并生成JWT令牌
    * @param username
    * @param password 前端已经加密过的密码哈希值
