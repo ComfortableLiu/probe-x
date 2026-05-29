@@ -55,7 +55,7 @@ export class PointService {
     }
   }
 
-  private saveSingleEvent(data: IAnyObj) {
+  private async saveSingleEvent(data: IAnyObj) {
     // 校验必需参数
     const validation = this.validateBeaconData(data)
     if (!validation.isValid) {
@@ -100,14 +100,10 @@ export class PointService {
       ...(data.data || {}),
     }
 
-    // 用kafka通知初步清洗服务
-    firstValueFrom(
+    // 用kafka通知初步清洗服务，await 确保消息送达
+    await firstValueFrom(
       this.kafkaClient.emit(TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META, event),
-    ).then(() => {
-      console.log(`发送消息：${TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META}，数据：${JSON.stringify(event)}`)
-    }).catch((error) => {
-      console.error(`kafka错误 - ${TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META}:`, error)
-    })
+    )
     return true
   }
 }

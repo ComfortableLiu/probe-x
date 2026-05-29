@@ -8,9 +8,9 @@
   gap: 8px;
 
   .title {
-    font-size: 18px;
+    font-size: var(--px-font-size-lg);
     font-weight: bold;
-    border-left: #1890ff 5px solid;
+    border-left: var(--px-color-primary) 4px solid;
     padding: 0 8px;
   }
 }

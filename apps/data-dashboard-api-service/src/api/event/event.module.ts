@@ -4,6 +4,7 @@ import { EventController } from './event.controller'
 import { EventService } from './event.service'
 import { UserModule } from '../user/user.module'
 import {
+  ClickHouseModule,
   EventPropertyRelationEntity,
   MetaEventEntity,
   MetaPropertyEntity,
@@ -12,6 +13,7 @@ import {
 @Module({
   imports: [
     TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity]),
+    ClickHouseModule,
     UserModule,
   ],
   controllers: [EventController],

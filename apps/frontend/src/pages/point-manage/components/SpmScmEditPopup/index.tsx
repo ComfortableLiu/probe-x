@@ -55,6 +55,7 @@ function SpmScmEditPopup(props: ISpmScmEditPopupProps) {
       onOk={() => handleOk()}
       onCancel={handleClose}
       confirmLoading={loading}
+      destroyOnClose
     >
       <Form
         form={form}

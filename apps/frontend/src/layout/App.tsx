@@ -12,6 +12,7 @@ import { BrowserRouter, StaticRouter } from "react-router-dom"
 import icon from "@public/icon.png"
 import RouteGuard from "@/layout/RouteGuard"
 import { StoreProvider } from "@/store/storeContext"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import zhCN from 'antd/locale/zh_CN'
 
 export interface AppProps {
@@ -64,16 +65,18 @@ const App = ({ location }: AppProps) => {
   const RouterComponent = location ? StaticRouter : BrowserRouter
 
   return (
-    <StoreProvider>
-      <ConfigProvider locale={zhCN} theme={themeConfig}>
-        <RouterComponent location={location}>
-          <link rel="icon" href={icon} />
-          <RouteGuard>
-            <AppContent />
-          </RouteGuard>
-        </RouterComponent>
-      </ConfigProvider>
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <ConfigProvider locale={zhCN} theme={themeConfig}>
+          <RouterComponent location={location}>
+            <link rel="icon" href={icon} />
+            <RouteGuard>
+              <AppContent />
+            </RouteGuard>
+          </RouterComponent>
+        </ConfigProvider>
+      </StoreProvider>
+    </ErrorBoundary>
   )
 }
 

@@ -32,3 +32,9 @@ export interface UpdateEventDto {
   eventRemark?: string;
   status?: number;
 }
+
+export interface RegisterEventDto {
+  eventName: string;
+  eventAliases?: string;
+  eventRemark?: string;
+}

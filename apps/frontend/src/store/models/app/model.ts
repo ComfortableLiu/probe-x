@@ -52,9 +52,9 @@ export const appModel = createModel<RootModel>()({
 
       const page = allRoutesWithAliasMap.get(pathname)
 
-      // TODO 这里的超管白名单有点太暴力了，后面想办法优化一下
-      if (!permissionInfo[page?.key] && pathname !== '/' && userInfo.userId !== 1) {
-        // TODO 这里直接去首页处理太暴力了，最好有个申请权限的页面
+      // 超管角色判断：检查用户是否拥有 admin 角色
+      const isAdmin = userInfo.roles?.some((role: any) => role.roleKey === 'admin' || role.isSystemRole)
+      if (!permissionInfo[page?.key] && pathname !== '/' && !isAdmin) {
         message.error('无权限访问')
         window.location.href = '/'
         return

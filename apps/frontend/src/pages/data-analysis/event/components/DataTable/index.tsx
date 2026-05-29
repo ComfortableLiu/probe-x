@@ -175,6 +175,7 @@ function DataTable() {
     if (timeRange?.length !== 2) return null
     return (
       <TableComponent
+        scroll={{ x: 'max-content' }}
         dataSource={dataSource}
         columns={columns}
         size="middle"

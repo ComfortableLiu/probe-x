@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
 import { SystemConfigUserService } from './user.service'
 import { SystemConfigRoleService } from './role.service'
 import { SystemConfigSystemService } from './system.service'
@@ -35,8 +35,10 @@ import {
   IDeleteSystemReq,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
+import { AdminGuard } from '../../guard/admin.guard'
 
 @Controller('/system-config')
+@UseGuards(AdminGuard)
 export class SystemConfigController {
   constructor(
     private readonly userService: SystemConfigUserService,

@@ -1,6 +1,5 @@
 // 环境配置管理模块
 interface EnvironmentConfig {
-  signatureSecret: string;
   serverHost: string;
   serverPort: number;
   clientHost: string;
@@ -34,7 +33,6 @@ const getConfig = (): EnvironmentConfig => {
   const version = packageJson.version
 
   return {
-    signatureSecret: process.env.SIGNATURE_SECRET || '',
     serverHost,
     serverPort,
     clientHost,

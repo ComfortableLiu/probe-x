@@ -23,7 +23,6 @@ function Login() {
         password: passwordHash,
       })
 
-      // 这里应该调用登录API
       message.success('登录成功')
 
       setTimeout(() => {

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DataFilterConfigArea from "./components/DataFilterConfigArea"
+import DataChat from "./components/DataChat"
 import DataTable from "./components/DataTable"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -107,9 +108,8 @@ function EventAnalysis() {
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
-        {/*TODO 先不展示图表，后面想好了功能交互在做*/}
-        {/*<DataChat />*/}
-        {/*<div className={styles.hr} />*/}
+        <DataChat />
+        <div className={styles.hr} />
         <DataTable />
         <DownloadPopup
           downloadUrl={downloadUrl}

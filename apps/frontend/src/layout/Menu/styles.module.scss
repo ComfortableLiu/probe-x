@@ -1,24 +1,24 @@
 .sider {
-  background-color: #FFFFFF;
+  background-color: var(--px-sidebar-bg);
   display: flex;
   flex-direction: column;
   height: 100vh;
-  width: 180px;
-  transition: 150ms;
+  width: var(--px-sidebar-width);
+  transition: var(--px-motion-duration-fast);
   overflow-x: hidden;
   overflow-y: auto;
 
   &.collapsed {
-    width: 46px;
+    width: var(--px-sidebar-collapsed-width);
   }
 }
 
 .account-logo {
-  border-radius: 100%;
-  background-color: #714cdd;
-  color: #FFFFFF;
-  font-size: 16px;
-  padding: 4px;
+  border-radius: var(--px-radius-full);
+  background-color: var(--px-color-primary);
+  color: var(--px-color-bg-container);
+  font-size: var(--px-font-size-lg);
+  padding: var(--px-spacing-xxs);
 }
 
 .menu {

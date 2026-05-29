@@ -3,7 +3,7 @@ import { Form, Input, Modal, Switch, message } from "antd"
 import { AnalysisType, DashboardType, ICreateDashboardReq, IUpdateDashboardReq } from "@pages/data-analysis/dashboard-config/type"
 import { createDashboard, updateDashboard } from "@pages/data-analysis/dashboard-config/services"
 import { useQuery } from "@/hooks"
-import { IEventAnalysisReq, IFunnelAnalysisReq, IUserPathAnalysisReq, IAttributionAnalysisReq } from "@probe-x/shared-types/src"
+import { IEventAnalysisReq, IFunnelAnalysisReq, IUserPathAnalysisReq, IAttributionAnalysisReq, IFreeAnalysisReq } from "@probe-x/shared-types/src"
 
 interface ISaveAsDashboardPopupProps {
   analysisType: AnalysisType
@@ -92,6 +92,8 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
         config.userPathAnalysis = fullQueryParams as IUserPathAnalysisReq
       } else if (analysisType === AnalysisType.ATTRIBUTION) {
         config.attributionAnalysis = fullQueryParams as IAttributionAnalysisReq
+      } else if (analysisType === AnalysisType.FREE) {
+        config.freeAnalysis = fullQueryParams as IFreeAnalysisReq
       }
 
       if (isEdit && editDashboardId) {
@@ -133,6 +135,7 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
       [AnalysisType.FUNNEL]: '漏斗分析',
       [AnalysisType.USER_PATH]: '用户路径分析',
       [AnalysisType.ATTRIBUTION]: '归因分析',
+      [AnalysisType.FREE]: '自由分析',
     }
     return map[analysisType] || '分析'
   }, [analysisType])
@@ -145,6 +148,7 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading}
       width={500}
+      destroyOnClose
     >
       <Form
         form={form}

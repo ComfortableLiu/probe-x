@@ -1,0 +1,51 @@
+.eventTable {
+  margin-bottom: 24px;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.totalInfo {
+  font-size: 12px;
+  color: var(--px-color-text-tertiary);
+}
+
+.eventNameTag {
+  display: inline-block;
+  padding: 1px 8px;
+  background: var(--px-color-primary-bg);
+  border: 1px solid var(--px-color-primary-border);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--px-color-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deviceId {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 12px;
+  color: var(--px-color-text-secondary);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.pathCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeCell {
+  font-size: 12px;
+  color: var(--px-color-text-tertiary);
+}

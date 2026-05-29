@@ -68,7 +68,7 @@ function AccountCenter() {
         return
       }
       await dispatch.userModel.changePassword({
-        oldPassword: values.oldPassword,
+        oldPassword: values.oldPassword, // 可能是undefined（首次设置）
         newPassword: values.newPassword,
       })
       message.success('密码修改成功，请重新登录')
@@ -232,15 +232,26 @@ function AccountCenter() {
                   onFinish={handleChangePassword}
                   className={styles.passwordForm}
                 >
-                  <Form.Item
-                    name="oldPassword"
-                    label="旧密码"
-                    rules={[
-                      { required: true, message: '请输入旧密码' },
-                    ]}
-                  >
-                    <Input.Password placeholder="请输入旧密码" />
-                  </Form.Item>
+                  {userInfo?.username === 'admin' && (
+                    <Form.Item
+                      name="oldPassword"
+                      label="旧密码（首次设置密码可不填）"
+                      tooltip="如果是首次设置密码，可以不填写旧密码"
+                    >
+                      <Input.Password placeholder="请输入旧密码（首次设置可不填）" />
+                    </Form.Item>
+                  )}
+                  {userInfo?.username !== 'admin' && (
+                    <Form.Item
+                      name="oldPassword"
+                      label="旧密码"
+                      rules={[
+                        { required: true, message: '请输入旧密码' },
+                      ]}
+                    >
+                      <Input.Password placeholder="请输入旧密码" />
+                    </Form.Item>
+                  )}
                   <Form.Item
                     name="newPassword"
                     label="新密码"

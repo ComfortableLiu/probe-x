@@ -81,6 +81,7 @@ function PropertyDetail(props: IPropertyDetailProps) {
       width={600}
       onClose={onClose}
       open={show}
+      destroyOnClose
     >
       <div className={styles.container}>
         <h4 className={styles.title}>

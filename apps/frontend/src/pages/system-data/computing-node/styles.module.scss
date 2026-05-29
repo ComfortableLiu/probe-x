@@ -1,6 +1,6 @@
 .container {
   padding: 24px;
-  background-color: #f0f2f5;
+  background-color: var(--px-color-bg-layout);
   min-height: 100%;
 }
 
@@ -20,7 +20,7 @@
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--px-spacing-xxs);
 }
 
 .legend-light {
@@ -55,9 +55,9 @@
 }
 
 .computing-node-tree-container {
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  border: 1px solid var(--px-color-border);
+  border-radius: var(--px-radius-lg);
   overflow: hidden;
-  background-color: #f9fafb;
+  background-color: var(--px-color-bg-layout);
   padding: 20px;
 }

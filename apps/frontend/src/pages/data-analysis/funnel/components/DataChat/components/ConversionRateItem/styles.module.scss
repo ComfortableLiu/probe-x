@@ -30,8 +30,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #536DFE;
-      color: white;
+      background-color: var(--px-color-primary);
+      color: var(--px-color-bg-container);
       border-radius: 100%;
       width: 24px;
       height: 24px;
@@ -43,13 +43,13 @@
       display: flex;
       flex-direction: row;
       height: 24px;
-      border: 1px solid #536DFE;
-      background-color: #FFFFFF;
+      border: 1px solid var(--px-color-primary);
+      background-color: var(--px-color-bg-container);
       width: 100%;
 
       .progress-bar {
         height: 100%;
-        background-color: #536DFE;
+        background-color: var(--px-color-primary);
       }
     }
   }
@@ -63,7 +63,7 @@
     align-items: center;
     font-size: 12px;
     font-weight: bold;
-    padding-top: 10px;
+    padding-top: var(--px-spacing-sm);
     margin-left: 32px;
 
     .background {
@@ -73,14 +73,14 @@
       left: 0;
 
       > div {
-        background-color: #FFFFFF;
+        background-color: var(--px-color-bg-container);
         opacity: 0.3;
       }
 
       .top {
         width: 100%;
         height: 30px;
-        background-color: #536DFE;
+        background-color: var(--px-color-primary);
       }
 
       .bottom {
@@ -93,7 +93,7 @@
           height: 0;
           border-left: 50px solid transparent;
           border-right: 50px solid transparent;
-          border-top: 20px solid #536DFE;
+          border-top: 20px solid var(--px-color-primary);
           position: absolute;
           right: 0;
           bottom: 0;

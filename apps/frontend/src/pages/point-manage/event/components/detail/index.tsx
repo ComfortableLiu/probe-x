@@ -108,6 +108,7 @@ function EventDetail(props: IEventDetailProps) {
       width={600}
       onClose={onClose}
       open={show}
+      destroyOnClose
     >
       {/*容器*/}
       <div className={styles.container}>

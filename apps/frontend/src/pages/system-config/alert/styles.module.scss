@@ -1,0 +1,20 @@
+.alertManage {
+  padding: 24px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--px-color-text-primary);
+  }
+
+  .description {
+    color: var(--px-color-text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .tabContent {
+    margin-top: 16px;
+  }
+}

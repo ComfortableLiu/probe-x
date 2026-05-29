@@ -1,52 +1,58 @@
+/* ─── Legacy Vue variables (deprecated) ────────────────────────────
+ * These were from the Vue/Vite scaffold. Kept for backward compatibility.
+ * New code MUST use --px-* variables from design-tokens.css instead.
+ * TODO: Remove once all references are migrated.
+ * ──────────────────────────────────────────────────────────────────── */
 :root {
+    /* deprecated: use --px-color-bg-container */
     --vt-c-white: #ffffff;
+    /* deprecated: use --px-color-bg-layout */
     --vt-c-white-soft: #f8f8f8;
+    /* deprecated */
     --vt-c-white-mute: #f2f2f2;
 
+    /* deprecated */
     --vt-c-black: #181818;
+    /* deprecated */
     --vt-c-black-soft: #222222;
+    /* deprecated */
     --vt-c-black-mute: #282828;
 
+    /* deprecated: use --px-color-text-primary */
     --vt-c-indigo: #2c3e50;
 
+    /* deprecated: use --px-color-border-secondary */
     --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
+    /* deprecated: use --px-color-split */
     --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
+    /* deprecated */
     --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
+    /* deprecated */
     --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
 
+    /* deprecated: use --px-color-text-primary */
     --vt-c-text-light-1: var(--vt-c-indigo);
+    /* deprecated: use --px-color-text-secondary */
     --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
+    /* deprecated */
     --vt-c-text-dark-1: var(--vt-c-white);
+    /* deprecated */
     --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
 }
 
-/* semantic color variables for this project */
+/* semantic color variables — mapped to px design tokens */
 :root {
-    --color-background: var(--vt-c-white);
-    --color-background-soft: var(--vt-c-white-soft);
-    --color-background-mute: var(--vt-c-white-mute);
+    --color-background: var(--px-color-bg-container);
+    --color-background-soft: var(--px-color-bg-layout);
+    --color-background-mute: var(--px-color-bg-layout);
 
-    --color-border: var(--vt-c-divider-light-2);
-    --color-border-hover: var(--vt-c-divider-light-1);
+    --color-border: var(--px-color-split);
+    --color-border-hover: var(--px-color-border);
 
-    --color-heading: var(--vt-c-text-light-1);
-    --color-text: var(--vt-c-text-light-1);
+    --color-heading: var(--px-color-text-primary);
+    --color-text: var(--px-color-text-primary);
 
     --section-gap: 160px;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-background: var(--vt-c-black);
-        --color-background-soft: var(--vt-c-black-soft);
-        --color-background-mute: var(--vt-c-black-mute);
-
-        --color-border: var(--vt-c-divider-dark-2);
-        --color-border-hover: var(--vt-c-divider-dark-1);
-
-        --color-heading: var(--vt-c-text-dark-1);
-        --color-text: var(--vt-c-text-dark-2);
-    }
 }
 
 *,
@@ -59,24 +65,13 @@
 
 body {
     min-height: 100vh;
-    color: var(--color-text);
-    background: var(--color-background);
+    color: var(--px-color-text-primary);
+    background: var(--px-color-bg-container);
     transition: color 0.5s,
     background-color 0.5s;
-    line-height: 1.6;
-    font-family: Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-    font-size: 14px;
+    line-height: var(--px-line-height-base);
+    font-family: var(--px-font-family);
+    font-size: var(--px-font-size-base);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

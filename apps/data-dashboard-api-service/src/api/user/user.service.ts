@@ -31,9 +31,19 @@ export class UserService {
   }
 
   /**
+   * 获取用户的角色列表
+   */
+  async getUserRoles(userId: number): Promise<Role[]> {
+    const userRoles = await this.userRoleRepo.find({ where: { userId } })
+    const roleIds = userRoles.map(ur => ur.roleId)
+    if (roleIds.length === 0) return []
+    return this.roleRepo.findByIds(roleIds)
+  }
+
+  /**
    * 验证用户并生成JWT令牌
    * @param username
-   * @param password
+   * @param password 前端已经加密过的密码哈希值
    */
   async validateUser(username: string, password: string) {
     if (!username?.length || !password?.length) {
@@ -41,8 +51,33 @@ export class UserService {
     }
     const user = await this.userRepository.findOne({ where: { username } })
 
+    if (!user) {
+      return ResponseData.error("用户名或密码错误")
+    }
+
+    // 如果是admin账号且密码为空，直接将用户输入的密码作为新密码存储，然后自动登录成功
+    if (username === 'admin' && (!user.passwordHash || user.passwordHash.trim() === '')) {
+      // 前端传来的password已经是加密后的哈希值，我们只需要再进行后端加密即可
+      // 后端加密：hmacSHA(前端结果 + SALT, 'sha512', HMAC_SECRET)
+      const passwordHash = this.hashPassword(password)
+      user.passwordHash = passwordHash
+      await this.userRepository.save(user)
+      
+      // 直接返回登录成功，不需要验证密码
+      const accessToken = this.authService.generateAccessToken(user.userId, user.username)
+      const refreshToken = this.authService.generateRefreshToken(user.userId, user.username)
+      return {
+        accessToken,
+        refreshToken,
+        userInfo: {
+          ...user,
+          passwordHash: '*******',
+        },
+      }
+    }
+
     // 检查用户是否存在且密码正确
-    if (user && (this.checkPassword(password, user.passwordHash))) {
+    if (this.checkPassword(password, user.passwordHash)) {
       // 生成JWT令牌
       const accessToken = this.authService.generateAccessToken(user.userId, user.username)
       // 生成刷新令牌
@@ -161,12 +196,21 @@ export class UserService {
    */
   private checkPassword(password: string, hash: string): boolean {
     // 使用与登录相同的 HMAC-SHA512 加密方式
+    const passwordHash = this.hashPassword(password)
+    return this.safeCompare(passwordHash, hash)
+  }
+
+  /**
+   * 生成密码哈希值
+   * @param password 明文密码
+   * @returns 密码哈希值
+   */
+  private hashPassword(password: string): string {
     const salt = this.configService.get<string>('login.salt') || ''
     const secret = this.configService.get<string>('login.secret') || ''
     const hmac = createHmac('sha512', secret)
     hmac.update(password + salt)
-    const passwordHash = hmac.digest('hex')
-    return this.safeCompare(passwordHash, hash)
+    return hmac.digest('hex')
   }
 
   private safeCompare(a: string, b: string): boolean {
@@ -248,14 +292,10 @@ export class UserService {
   /**
    * 修改密码
    */
-  async changePassword(userId: number, oldPassword: string, newPassword: string): Promise<ResponseData<{ userId: number }>> {
+  async changePassword(userId: number, oldPassword: string | null, newPassword: string): Promise<ResponseData<{ userId: number }>> {
     // 参数验证
-    if (!oldPassword || !newPassword) {
-      return ResponseData.error('旧密码和新密码不能为空')
-    }
-
-    if (oldPassword === newPassword) {
-      return ResponseData.error('新密码不能与旧密码相同')
+    if (!newPassword) {
+      return ResponseData.error('新密码不能为空')
     }
 
     // 密码长度验证
@@ -275,17 +315,29 @@ export class UserService {
       return ResponseData.error('用户不存在')
     }
 
-    // 验证旧密码
-    if (!this.checkPassword(oldPassword, user.passwordHash || '')) {
-      return ResponseData.error('旧密码错误')
+    // 如果提供了旧密码，需要验证
+    if (oldPassword) {
+      if (oldPassword === newPassword) {
+        return ResponseData.error('新密码不能与旧密码相同')
+      }
+      // 验证旧密码
+      if (!this.checkPassword(oldPassword, user.passwordHash || '')) {
+        return ResponseData.error('旧密码错误')
+      }
+    } else {
+      // 如果没有提供旧密码，只允许admin账号首次设置密码
+      if (user.username !== 'admin') {
+        return ResponseData.error('非admin账号必须提供旧密码')
+      }
+      // 检查密码是否为空（首次设置）
+      if (user.passwordHash && user.passwordHash.trim() !== '') {
+        return ResponseData.error('请提供旧密码')
+      }
     }
 
-    // 加密新密码（使用与登录相同的加密方式）
-    const salt = this.configService.get<string>('login.salt') || ''
-    const secret = this.configService.get<string>('login.secret') || ''
-    const hmac = createHmac('sha512', secret)
-    hmac.update(newPassword + salt)
-    const newPasswordHash = hmac.digest('hex')
+    // 加密新密码：先模拟前端加密，再进行后端加密
+    const frontendEncrypted = this.hashPassword(newPassword)
+    const newPasswordHash = this.hashPassword(frontendEncrypted)
 
     user.passwordHash = newPasswordHash
     await this.userRepository.save(user)

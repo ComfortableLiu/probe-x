@@ -10,10 +10,9 @@ export class KafkaConsumerController {
   }
 
   @EventPattern(TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META)
-  handleUserAction(
+  async handleUserAction(
     @Payload() event: IEventLog,
   ) {
-    console.log('收到消息事件：', event)
-    this.kafkaConsumerService.handleEvent(event)
+    return await this.kafkaConsumerService.handleEvent(event)
   }
 }

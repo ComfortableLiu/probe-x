@@ -16,18 +16,18 @@
     .line {
       flex: 1;
       width: 1px;
-      background-color: #CCCCCC;
+      background-color: var(--px-color-border);
     }
 
     .tag {
-      background-color: #3F51B5;
-      color: #FFFFFF;
+      background-color: var(--px-color-primary);
+      color: var(--px-color-bg-container);
       font-size: 12px;
       width: 18px;
       height: 18px;
       line-height: 18px;
       text-align: center;
-      border-radius: 2px;
+      border-radius: var(--px-radius-sm);
     }
   }
 

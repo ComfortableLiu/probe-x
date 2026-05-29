@@ -95,6 +95,7 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading.systemConfigRoleManageModel.createRole || loading.systemConfigRoleManageModel.updateRole}
       width={600}
+      destroyOnClose
     >
       <Form
         form={form}

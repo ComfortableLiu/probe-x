@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { message, Spin } from "antd"
+import { Button, message, Spin } from "antd"
 import * as styles from "./styles.module.scss"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
 import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
 import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 import DataFilterConfigArea from "@pages/data-analysis/attribution/components/DataFilterConfigArea"
 import DataTable from "@pages/data-analysis/attribution/components/DataTable"
+import ContributionPieChart from "@pages/data-analysis/attribution/components/ContributionPieChart"
+import AttributionFunnelChart from "@pages/data-analysis/attribution/components/AttributionFunnelChart"
+import ModelComparisonBar from "@pages/data-analysis/attribution/components/ModelComparisonBar"
 import DownloadPopup from "@pages/data-analysis/components/DownloadPopup"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import dayjs from "dayjs"
@@ -13,6 +16,7 @@ import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import { IDataAnalysisAttributionState, IQuery } from "@pages/data-analysis/attribution/type"
 import { AttributionModelEnum } from "@probe-x/shared-types/src"
+import { ChartHistogram } from "@icon-park/react"
 
 function AttributionAnalysis() {
 
@@ -20,6 +24,7 @@ function AttributionAnalysis() {
 
   const {
     updateTime,
+    data,
   } = useModel<IDataAnalysisAttributionState>('dataAnalysisAttributionModel')
 
   const {
@@ -107,6 +112,11 @@ function AttributionAnalysis() {
     })
   }, [dispatch.dataAnalysisAttributionModel])
 
+  // 触发模型对比查询
+  const handleModelComparison = useCallback(() => {
+    dispatch.dataAnalysisAttributionModel.queryAllModels()
+  }, [dispatch.dataAnalysisAttributionModel])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
@@ -118,6 +128,34 @@ function AttributionAnalysis() {
           guidePath="/guide/data-analysis/attribution"
         />
         <DataFilterConfigArea />
+        <div className={styles.hr} />
+
+        {/* 图表区域 */}
+        <div className={styles.chartRow}>
+          <div className={styles.chartHalf}>
+            <ContributionPieChart />
+          </div>
+          <div className={styles.chartHalf}>
+            <AttributionFunnelChart />
+          </div>
+        </div>
+
+        {/* 模型对比区域 */}
+        <div className={styles.modelComparisonSection}>
+          <div className={styles.modelComparisonHeader}>
+            <Button
+              type="default"
+              onClick={handleModelComparison}
+              loading={loading.dataAnalysisAttributionModel.queryAllModels}
+              disabled={!data?.tableData?.length}
+            >
+              <ChartHistogram style={{ display: 'flex' }} theme="outline" size="14" />
+              模型对比
+            </Button>
+          </div>
+          <ModelComparisonBar />
+        </div>
+
         <div className={styles.hr} />
         <DataTable />
         <DownloadPopup

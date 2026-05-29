@@ -1,0 +1,112 @@
+/**
+ * Probe-X Design System — CSS Custom Properties
+ *
+ * 全局 CSS 变量，与 themeConfig.ts 中的 Ant Design Token 保持一致。
+ * 在 SCSS Module 中优先使用这些变量，禁止硬编码颜色值。
+ */
+
+:root {
+  /* ─── Brand Colors ─────────────────────────── */
+  --px-color-primary: #3F51B5;
+  --px-color-primary-hover: #5465c7;
+  --px-color-primary-active: #2c3ea3;
+  --px-color-primary-bg: rgba(63, 81, 181, 0.06);
+  --px-color-primary-border: rgba(63, 81, 181, 0.3);
+
+  --px-color-success: #52c41a;
+  --px-color-success-bg: rgba(82, 196, 26, 0.1);
+  --px-color-warning: #faad14;
+  --px-color-warning-bg: rgba(250, 173, 20, 0.1);
+  --px-color-error: #ff4d4f;
+  --px-color-error-bg: rgba(255, 77, 79, 0.1);
+  --px-color-info: #3F51B5;
+  --px-color-info-bg: rgba(63, 81, 181, 0.06);
+
+  /* ─── Neutral Colors ───────────────────────── */
+  --px-color-text-primary: rgba(0, 0, 0, 0.88);
+  --px-color-text-secondary: rgba(0, 0, 0, 0.65);
+  --px-color-text-tertiary: rgba(0, 0, 0, 0.45);
+  --px-color-text-quaternary: rgba(0, 0, 0, 0.25);
+
+  --px-color-bg-container: #ffffff;
+  --px-color-bg-elevated: #ffffff;
+  --px-color-bg-layout: #f0f2f5;
+  --px-color-bg-spotlight: rgba(0, 0, 0, 0.85);
+
+  --px-color-border: #d9d9d9;
+  --px-color-border-secondary: #f0f0f0;
+  --px-color-split: rgba(5, 5, 5, 0.06);
+
+  /* ─── Typography ───────────────────────────── */
+  --px-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --px-font-family-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo,
+    Courier, monospace;
+
+  --px-font-size-xs: 12px;
+  --px-font-size-sm: 13px;
+  --px-font-size-base: 14px;
+  --px-font-size-lg: 16px;
+  --px-font-size-xl: 20px;
+  --px-font-size-2xl: 24px;
+  --px-font-size-3xl: 28px;
+
+  --px-font-weight-regular: 400;
+  --px-font-weight-medium: 500;
+  --px-font-weight-semibold: 600;
+  --px-font-weight-bold: 700;
+
+  --px-line-height-tight: 1.25;
+  --px-line-height-base: 1.5714;
+  --px-line-height-loose: 1.6667;
+
+  /* ─── Spacing (4px base unit) ─────────────── */
+  --px-spacing-xxs: 4px;
+  --px-spacing-xs: 8px;
+  --px-spacing-sm: 12px;
+  --px-spacing-base: 16px;
+  --px-spacing-lg: 24px;
+  --px-spacing-xl: 32px;
+  --px-spacing-xxl: 48px;
+
+  /* ─── Border Radius ───────────────────────── */
+  --px-radius-sm: 4px;
+  --px-radius-base: 6px;
+  --px-radius-lg: 8px;
+  --px-radius-xl: 12px;
+  --px-radius-full: 9999px;
+
+  /* ─── Shadows ─────────────────────────────── */
+  --px-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03),
+    0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  --px-shadow-base: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --px-shadow-lg: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+
+  /* ─── Motion ──────────────────────────────── */
+  --px-motion-duration-fast: 0.1s;
+  --px-motion-duration-base: 0.2s;
+  --px-motion-duration-slow: 0.3s;
+  --px-motion-ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --px-motion-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --px-motion-ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+
+  /* ─── Layout ──────────────────────────────── */
+  --px-sidebar-width: 240px;
+  --px-sidebar-collapsed-width: 64px;
+  --px-sidebar-bg: #001529;
+  --px-header-height: 64px;
+  --px-page-padding: 24px;
+
+  /* ─── Z-index ─────────────────────────────── */
+  --px-z-dropdown: 1050;
+  --px-z-sticky: 1020;
+  --px-z-fixed: 1030;
+  --px-z-modal-backdrop: 1040;
+  --px-z-modal: 1000;
+  --px-z-popover: 1060;
+  --px-z-tooltip: 1070;
+  --px-z-message: 1010;
+}

@@ -84,7 +84,7 @@ export const userModel = createModel<RootModel>()({
       return data
     },
 
-    async changePassword(payload: { oldPassword: string; newPassword: string }) {
+    async changePassword(payload: { oldPassword?: string; newPassword: string }) {
       await changePassword(payload)
     },
   }),

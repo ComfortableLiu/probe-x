@@ -319,17 +319,24 @@ export class Utils {
    * 安全地设置对象属性
    */
   static safeSet(obj: any, path: string, value: any): void {
+    const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
     const keys = path.split('.');
     const lastKey = keys.pop()!;
     let target = obj;
-    
+
     for (const key of keys) {
+      if (DANGEROUS_KEYS.has(key)) {
+        return;
+      }
       if (!target[key] || typeof target[key] !== 'object') {
         target[key] = {};
       }
       target = target[key];
     }
-    
+
+    if (DANGEROUS_KEYS.has(lastKey)) {
+      return;
+    }
     target[lastKey] = value;
   }
 

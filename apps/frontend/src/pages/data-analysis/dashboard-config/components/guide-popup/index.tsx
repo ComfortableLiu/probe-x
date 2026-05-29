@@ -47,6 +47,7 @@ function GuidePopup(props: IGuidePopupProps) {
       onCancel={onClose}
       footer={null}
       width={600}
+      destroyOnClose
     >
       <div style={{ padding: '16px 0' }}>
         <p style={{ marginBottom: 16, color: '#666' }}>

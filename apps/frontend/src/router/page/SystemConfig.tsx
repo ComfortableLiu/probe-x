@@ -51,15 +51,30 @@ export default {
     key: 'system-config-datasource',
     path: '/system-config/datasource',
     component: lazy(() => import('@pages/system-config/datasource')),
-  // }, {
-  //   name: '通知设置',
-  //   key: 'system-config-notification',
-  //   path: '/system-config/notification',
-  //   component: lazy(() => import('@pages/system-config/notification')),
-  // }, {
-  //   name: '日志配置',
-  //   key: 'system-config-log-config',
-  //   path: '/system-config/log-config',
-  //   component: lazy(() => import('@pages/system-config/log-config')),
+  }, {
+    name: '通知设置',
+    key: 'system-config-notification',
+    path: '/system-config/notification',
+    component: lazy(() => import('@pages/system-config/notification')),
+  }, {
+    name: '日志配置',
+    key: 'system-config-log-config',
+    path: '/system-config/log-config',
+    component: lazy(() => import('@pages/system-config/log-config')),
+  }, {
+    name: '项目管理',
+    key: 'system-config-project',
+    path: '/system-config/project',
+    component: lazy(() => import('@pages/system-config/project')),
+  }, {
+    name: '审计日志',
+    key: 'system-config-audit-log',
+    path: '/system-config/audit-log',
+    component: lazy(() => import('@pages/system-config/audit-log')),
+  }, {
+    name: '告警管理',
+    key: 'system-config-alert',
+    path: '/system-config/alert',
+    component: lazy(() => import('@pages/system-config/alert')),
   }],
 } as IRouteItem

@@ -22,10 +22,6 @@ export default {
     path: '/data-analysis/free',
     name: '自由分析',
     key: 'data-analysis-free',
-    meta: {
-      // 先隐藏自由分析，因为优先级低，先不实现
-      isHidden: true,
-    },
     component: lazy(() => import('@pages/data-analysis/free/index')),
   }, {
     path: '/data-analysis/userPath',

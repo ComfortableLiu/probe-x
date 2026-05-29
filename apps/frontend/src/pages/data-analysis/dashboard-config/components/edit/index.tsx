@@ -121,6 +121,7 @@ function DashboardEditPopup(props: IDashboardEditPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading}
       width={600}
+      destroyOnClose
     >
       <Form
         form={form}

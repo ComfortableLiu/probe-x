@@ -73,6 +73,7 @@ function ConvertToPublicPopup(props: IConvertToPublicPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading}
       width={500}
+      destroyOnClose
     >
       <Form
         form={form}

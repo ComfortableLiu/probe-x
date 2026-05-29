@@ -98,6 +98,7 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading.systemConfigRoleManageModel.assignPermissions}
       width={800}
+      destroyOnClose
     >
       {isSuperAdmin && (
         <div style={{ marginBottom: 16, padding: 12, background: '#fff7e6', borderRadius: 4, color: '#d46b08' }}>
