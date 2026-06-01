@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, HttpException, HttpStatus } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 
 interface RateLimitEntry {
   count: number
@@ -7,38 +8,51 @@ interface RateLimitEntry {
 
 @Injectable()
 export class LoginThrottleGuard implements CanActivate {
-  private static attempts = new Map<string, RateLimitEntry>()
-  private static readonly MAX_ATTEMPTS = 5
-  private static readonly WINDOW_MS = 15 * 60 * 1000 // 15分钟
+  private attempts = new Map<string, RateLimitEntry>()
+  private readonly maxAttempts: number
+  private readonly windowMs: number
+  private readonly enabled: boolean
 
-  // 定期清理过期条目，防止内存泄漏
-  private static cleanupInterval = setInterval(() => {
-    const now = Date.now()
-    for (const [key, entry] of LoginThrottleGuard.attempts) {
-      if (now > entry.resetTime) {
-        LoginThrottleGuard.attempts.delete(key)
+  constructor(private readonly configService: ConfigService) {
+    this.enabled = this.configService.get<boolean>('login.throttleEnabled') ?? true
+    this.maxAttempts = this.configService.get<number>('login.throttleMaxAttempts') ?? 5
+    this.windowMs = this.configService.get<number>('login.throttleWindowMs') ?? 15 * 60 * 1000
+
+    // 定期清理过期条目，防止内存泄漏
+    setInterval(() => {
+      const now = Date.now()
+      for (const [key, entry] of this.attempts) {
+        if (now > entry.resetTime) {
+          this.attempts.delete(key)
+        }
       }
-    }
-  }, 60 * 1000)
+    }, 60 * 1000)
+  }
 
   canActivate(context: ExecutionContext): boolean {
+    if (!this.enabled) {
+      return true
+    }
+
     const request = context.switchToHttp().getRequest()
     const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown'
     const key = `login:${ip}`
     const now = Date.now()
 
-    const entry = LoginThrottleGuard.attempts.get(key)
+    const entry = this.attempts.get(key)
 
     if (entry && now < entry.resetTime) {
-      if (entry.count >= LoginThrottleGuard.MAX_ATTEMPTS) {
+      if (entry.count >= this.maxAttempts) {
+        const remainingSeconds = Math.ceil((entry.resetTime - now) / 1000)
+        const remainingMinutes = Math.ceil(remainingSeconds / 60)
         throw new HttpException(
-          '登录尝试次数过多，请15分钟后再试',
+          `登录尝试次数过多，请${remainingMinutes}分钟后再试`,
           HttpStatus.TOO_MANY_REQUESTS,
         )
       }
       entry.count++
     } else {
-      LoginThrottleGuard.attempts.set(key, { count: 1, resetTime: now + LoginThrottleGuard.WINDOW_MS })
+      this.attempts.set(key, { count: 1, resetTime: now + this.windowMs })
     }
 
     return true

@@ -14,6 +14,7 @@ import dataAnalysisEventModel from "@pages/data-analysis/event/model"
 import dataAnalysisFunnelModel from "@pages/data-analysis/funnel/model"
 import dataAnalysisUserPathModel from "@pages/data-analysis/user-path/model"
 import dataAnalysisAttributionModel from "@pages/data-analysis/attribution/model"
+import dataAnalysisFreeModel from "@pages/data-analysis/free/model"
 
 import systemDataAnalysisModel from "@pages/system-data/analysis/model"
 import computingNodeModel from "@pages/system-data/computing-node/model"
@@ -23,12 +24,23 @@ import systemDataOverviewModel from "@pages/system-data/overview/model"
 import systemConfigUserManageModel from "@pages/system-config/user/model"
 import systemConfigRoleManageModel from "@pages/system-config/role/model"
 import systemConfigSystemManageModel from "@pages/system-config/system/model"
+import systemConfigDataSourceModel from "@pages/system-config/datasource/model"
+import systemConfigComputeNodeModel from "@pages/system-config/computing-node/model"
+import systemConfigNotificationModel from "@pages/system-config/notification/model"
+import systemConfigProjectModel from "@pages/system-config/project/model"
+import systemConfigAuditLogModel from "@pages/system-config/audit-log/model"
+import systemConfigAlertModel from "@pages/system-config/alert/model"
+
+import homepageModel from "@pages/homepage/model"
 
 export interface RootModel extends Models<RootModel> {
   appModel: typeof appModel
   userModel: typeof userModel
   staticModel: typeof staticModel
   pointModel: typeof pointModel
+
+  // 首页看板
+  homepageModel: typeof homepageModel
 
   // 埋点管理
   pointManageEventModel: typeof pointManageEventModel
@@ -42,6 +54,7 @@ export interface RootModel extends Models<RootModel> {
   dataAnalysisFunnelModel: typeof dataAnalysisFunnelModel
   dataAnalysisUserPathModel: typeof dataAnalysisUserPathModel
   dataAnalysisAttributionModel: typeof dataAnalysisAttributionModel
+  dataAnalysisFreeModel: typeof dataAnalysisFreeModel
 
   // 系统数据
   computingNodeModel: typeof computingNodeModel
@@ -53,6 +66,12 @@ export interface RootModel extends Models<RootModel> {
   systemConfigUserManageModel: typeof systemConfigUserManageModel
   systemConfigRoleManageModel: typeof systemConfigRoleManageModel
   systemConfigSystemManageModel: typeof systemConfigSystemManageModel
+  systemConfigDataSourceModel: typeof systemConfigDataSourceModel
+  systemConfigComputeNodeModel: typeof systemConfigComputeNodeModel
+  systemConfigNotificationModel: typeof systemConfigNotificationModel
+  systemConfigProjectModel: typeof systemConfigProjectModel
+  systemConfigAuditLogModel: typeof systemConfigAuditLogModel
+  systemConfigAlertModel: typeof systemConfigAlertModel
 }
 
 export const models: RootModel = {
@@ -60,6 +79,7 @@ export const models: RootModel = {
   userModel,
   staticModel,
   pointModel,
+  homepageModel,
   pointManageEventModel,
   pointManagePropertyModel,
   pointManageSpmModel,
@@ -69,6 +89,7 @@ export const models: RootModel = {
   dataAnalysisFunnelModel,
   dataAnalysisUserPathModel,
   dataAnalysisAttributionModel,
+  dataAnalysisFreeModel,
   computingNodeModel,
   systemDataMetaModel,
   systemDataOverviewModel,
@@ -76,4 +97,10 @@ export const models: RootModel = {
   systemConfigUserManageModel,
   systemConfigRoleManageModel,
   systemConfigSystemManageModel,
+  systemConfigDataSourceModel,
+  systemConfigComputeNodeModel,
+  systemConfigNotificationModel,
+  systemConfigProjectModel,
+  systemConfigAuditLogModel,
+  systemConfigAlertModel,
 }

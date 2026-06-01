@@ -29,7 +29,7 @@ export class AdminGuard implements CanActivate {
     }
 
     const roles = await this.roleRepo.findByIds(roleIds)
-    const isAdmin = roles.some(role => role.roleKey === 'admin' || role.isSystemRole)
+    const isAdmin = roles.some(role => role.roleKey === 'admin' || role.roleKey === 'super_admin' || role.roleType === 'system')
     if (!isAdmin) {
       throw new ForbiddenException('无管理员权限')
     }

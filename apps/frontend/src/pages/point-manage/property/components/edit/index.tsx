@@ -48,6 +48,7 @@ function PropertyEditPopup(props: IPropertyEditPopupProps) {
 
   return (
     <Modal
+      destroyOnClose
       title={isEdit ? '编辑' : '新增'}
       open={open}
       onOk={() => handleOk()}

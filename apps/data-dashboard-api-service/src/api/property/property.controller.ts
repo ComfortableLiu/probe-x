@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common"
 import { PropertyService } from "@src/api/property/property.service"
 import type { ICreatePropertyReq } from "@probe-x/shared-types/src"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
@@ -55,7 +55,8 @@ export class PropertyController {
   @Post('create')
   async createProperty(
     @Body() body: ICreatePropertyReq,
+    @Req() req: any,
   ) {
-    return await this.propertyService.createProperty(body)
+    return await this.propertyService.createProperty(body, req.user)
   }
 }

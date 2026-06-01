@@ -1,8 +1,8 @@
 .computing-node-tree-container {
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  border: 1px solid var(--px-color-border);
+  border-radius: var(--px-radius-lg);
   overflow: hidden;
-  background-color: #f9fafb;
+  background-color: var(--px-color-bg-layout);
   padding: 20px; // 添加内边距以确保文字可见
 }
 

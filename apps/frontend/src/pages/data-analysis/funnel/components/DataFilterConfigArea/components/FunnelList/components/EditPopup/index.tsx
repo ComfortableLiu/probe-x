@@ -37,6 +37,7 @@ function EditPopup(props: IEditPopupProps) {
 
   return (
     <Modal
+      destroyOnClose
       title="设置步骤"
       open={show}
       onOk={() => handleOk()}

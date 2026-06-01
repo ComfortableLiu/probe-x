@@ -41,6 +41,27 @@ export class UserService {
   }
 
   /**
+   * 重置admin密码（仅开发环境可用）
+   * 清空passwordHash，使下次登录时走自动设密码逻辑
+   */
+  async resetAdminPassword(): Promise<ResponseData<{ message: string }>> {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development'
+    if (nodeEnv === 'production') {
+      return ResponseData.error('生产环境不允许重置admin密码')
+    }
+
+    const admin = await this.userRepository.findOne({ where: { username: 'admin' } })
+    if (!admin) {
+      return ResponseData.error('admin用户不存在')
+    }
+
+    admin.passwordHash = ''
+    await this.userRepository.save(admin)
+
+    return ResponseData.success({ message: 'admin密码已重置，请重新登录时设置新密码' })
+  }
+
+  /**
    * 验证用户并生成JWT令牌
    * @param username
    * @param password 前端已经加密过的密码哈希值
@@ -303,8 +324,8 @@ export class UserService {
       return ResponseData.error('新密码长度至少6个字符')
     }
 
-    if (newPassword.length > 50) {
-      return ResponseData.error('新密码长度不能超过50个字符')
+    if (newPassword.length > 200) {
+      return ResponseData.error('新密码长度不能超过200个字符')
     }
 
     const user = await this.userRepository.findOne({

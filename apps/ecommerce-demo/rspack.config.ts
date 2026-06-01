@@ -5,7 +5,7 @@ import ReactRefreshPlugin from '@rspack/plugin-react-refresh'
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'fs'
 
-const PORT = 9000
+const PORT = parseInt(process.env.ECOMMERCE_DEMO_PORT || '', 10) || 9000
 
 // 由于在 ES 模块中没有 __dirname，所以我们需要创建它
 // @ts-ignore
@@ -36,8 +36,24 @@ const config: Configuration = {
 
   devServer: {
     port: PORT,
+    host: '0.0.0.0',
+    allowedHosts: 'all',
     hot: true,
     historyApiFallback: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+      },
+      reconnect: 5,
+    },
+    watchFiles: {
+      paths: ['src/**/*'],
+      options: {
+        usePolling: false,
+        ignored: /node_modules/,
+      },
+    },
   },
 
   mode: isDev ? 'development' : 'production',

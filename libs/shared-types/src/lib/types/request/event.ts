@@ -19,6 +19,7 @@ export interface IEventListItem {
   updateUsername: string,
   updateNickname: string,
   status: MetaEventStatus
+  source: 'configured' | 'reported'
 }
 
 export type IQueryEventListRes = IPageResult<IEventListItem>

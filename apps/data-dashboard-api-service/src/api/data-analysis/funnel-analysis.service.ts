@@ -27,6 +27,16 @@ export class FunnelAnalysisService {
     // console.log('SQL参数：', params)
     // console.log('SQL错误：', error)
 
+    // 检查SQL生成错误
+    if (error) {
+      throw new BusinessException(error)
+    }
+
+    // 检查SQL是否为空
+    if (!sql || sql.trim() === '') {
+      throw new BusinessException('生成的SQL语句为空')
+    }
+
     // const result = [
     //   {
     //     "$device": "rwr",

@@ -11,6 +11,29 @@
   .hr {
     width: 100%;
     height: 1px;
-    background-color: #eeeeee;
+    background-color: var(--px-color-border-secondary);
+  }
+
+  // 图表一行两列布局（饼图 + 漏斗图）
+  .chartRow {
+    display: flex;
+    gap: 16px;
+
+    .chartHalf {
+      flex: 1;
+      min-width: 0;
+      background: var(--px-color-bg-container);
+      border: 1px solid var(--px-color-border-secondary);
+      border-radius: 6px;
+    }
+  }
+
+  // 模型对比区域
+  .modelComparisonSection {
+    .modelComparisonHeader {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 12px 8px;
+    }
   }
 }

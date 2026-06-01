@@ -205,14 +205,18 @@ export class TrackingNodeService {
     })
 
     // 同步创建 System 记录（强绑定：SPM 第一层节点 <-> System）
-    const system = this.systemRepository.create({
-      systemKey: code,
-      systemName: name,
-      description,
-      trackingNodeCode: code,
-      isEnable: 1,
-    })
-    await this.systemRepository.save(system)
+    try {
+      const system = this.systemRepository.create({
+        systemKey: code,
+        systemName: name,
+        description,
+        trackingNodeCode: code,
+        isEnable: 1,
+      })
+      await this.systemRepository.save(system)
+    } catch (e) {
+      console.error('同步创建 System 记录失败:', e)
+    }
 
     return {
       type: businessSiteInfo.type,

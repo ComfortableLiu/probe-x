@@ -80,6 +80,7 @@ function SystemEditPopup(props: ISystemEditPopupProps) {
       onCancel={handleClose}
       confirmLoading={loading.systemConfigSystemManageModel.createSystem || loading.systemConfigSystemManageModel.updateSystem}
       width={600}
+      destroyOnClose
     >
       <Form
         form={form}

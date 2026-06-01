@@ -33,13 +33,29 @@ export class EventAnalysisService {
     // console.log('SQL语句：', sql)
     // console.log('SQL参数：', params)
 
-    const result = await this.clickhouseService.query<GenericEventAnalysisResult[]>(sql, params)
+    // 检查SQL生成错误
+    if (error) {
+      throw new BusinessException(error)
+    }
 
-    console.log('数据查询结果：', result)
-    if (!result || result.length === 0) {
+    // 检查SQL是否为空
+    if (!sql || sql.trim() === '') {
+      throw new BusinessException('生成的SQL语句为空')
+    }
+
+    const result = await this.clickhouseService.query<GenericEventAnalysisResult | GenericEventAnalysisResult[]>(sql, params)
+
+    // ClickHouse返回的result.json()应该是一个数组（JSONEachRow格式）
+    // 但为了兼容性，如果返回的是单个对象，包装成数组
+    if (!result) {
       return []
     }
-    return result[0]
+    // 确保返回数组格式
+    if (Array.isArray(result)) {
+      return result
+    }
+    // 如果返回的是单个对象（可能在某些特殊情况下发生），包装成数组
+    return [result as GenericEventAnalysisResult]
   }
 
   async createDownloadTask(data: ISubmitDownloadTaskReq, user: IUser) {

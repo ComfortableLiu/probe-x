@@ -1,6 +1,6 @@
 import dayjs from "dayjs"
 import { Button } from "antd"
-import { Download, Help } from "@icon-park/react"
+import { Download, Help, Save } from "@icon-park/react"
 import React, { memo, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import * as styles from "./styles.module.scss"
@@ -9,6 +9,7 @@ interface IDataAnalysisHeaderProps {
   title: string
   updateTime?: Date
   download?: () => void
+  onSaveAsDashboard?: () => void
   guidePath?: string
 }
 
@@ -18,6 +19,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     title,
     updateTime,
     download,
+    onSaveAsDashboard,
     guidePath,
   } = props
 
@@ -45,6 +47,20 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
     )
   }, [download])
 
+  // 渲染保存为看板按钮
+  const renderSaveAsDashboardButton = useMemo(() => {
+    if (!onSaveAsDashboard) return null
+    return (
+      <Button
+        type="link"
+        onClick={() => onSaveAsDashboard()}
+      >
+        <Save theme="filled" size="16" fill="#333" />
+        保存为看板
+      </Button>
+    )
+  }, [onSaveAsDashboard])
+
   // 渲染说明按钮
   const renderGuideButton = useMemo(() => {
     if (!guidePath) return null
@@ -65,6 +81,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
       <div className={styles.title}>{title}</div>
       {renderUpdateTime}
       <div className={styles.actions}>
+        {renderSaveAsDashboardButton}
         {renderGuideButton}
         {renderDownloadButton}
       </div>

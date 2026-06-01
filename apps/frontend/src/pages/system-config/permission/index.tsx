@@ -85,6 +85,7 @@ function PermissionManage() {
       </p>
       <FormComponent formItems={formItems} />
       <TableComponent
+        scroll={{ x: 'max-content' }}
         exButtons={(
           <Button type="primary">
             新增权限

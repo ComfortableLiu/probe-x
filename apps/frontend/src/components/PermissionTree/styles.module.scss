@@ -5,17 +5,17 @@
   flex-wrap: wrap;
 
   .permission-name {
-    color: #262626;
+    color: var(--px-color-text-primary);
     font-size: 14px;
   }
 
   .permission-key {
-    color: #8c8c8c;
+    color: var(--px-color-text-tertiary);
     font-size: 12px;
   }
 
   .permission-desc {
-    color: #595959;
+    color: var(--px-color-text-secondary);
     font-size: 12px;
     font-style: italic;
   }

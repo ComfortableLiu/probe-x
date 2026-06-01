@@ -24,3 +24,14 @@ export function queryEventProperties(params: IQueryEventPropertiesReq) {
     params,
   })
 }
+
+/**
+ * 注册上报发现的事件
+ */
+export function registerEvent(data: { eventName: string; eventAliases?: string; eventRemark?: string }) {
+  return request({
+    url: '/event/register',
+    method: 'post',
+    data,
+  })
+}

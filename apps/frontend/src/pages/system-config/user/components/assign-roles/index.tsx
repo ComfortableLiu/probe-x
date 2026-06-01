@@ -57,6 +57,7 @@ function AssignRolesPopup(props: IAssignRolesPopupProps) {
 
   return (
     <Modal
+      destroyOnClose
       title="分配角色"
       open={open}
       onOk={() => handleOk()}

@@ -9,7 +9,7 @@
   z-index: 10;
   left: 0;
   width: 100%;
-  background: #FFFFFF;
+  background: var(--px-color-bg-container);
   transition: padding 0.15s;
   opacity: 0.5;
 }
@@ -26,5 +26,5 @@
   z-index: 10;
   left: 0;
   width: 100vw;
-  background: #fafafa;
+  background: var(--px-color-bg-layout);
 }

@@ -4,7 +4,9 @@ import { message, Spin } from "antd"
 import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import DownloadPopup from "@pages/data-analysis/components/DownloadPopup"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
+import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
 import { IDataAnalysisFunnelState, IQuery } from "@pages/data-analysis/funnel/type"
+import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 import dayjs from "dayjs"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -24,13 +26,14 @@ function FunnelAnalysis() {
     timeRange,
     windowPeriod,
     funnelType,
-  } = useQuery<IQuery>()
+    dashboardId,
+  } = useQuery<IQuery & { dashboardId?: number }>()
 
   const {
     refresh,
   } = useRouter()
 
-  const timer = useRef<NodeJS.Timeout>()
+  const timer = useRef<NodeJS.Timeout>(null)
 
   const loading = useLoading()
 
@@ -39,6 +42,8 @@ function FunnelAnalysis() {
   // 显示下载弹窗
   const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  // 显示保存为看板弹窗
+  const [showSaveAsDashboardPopup, setShowSaveAsDashboardPopup] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -93,6 +98,17 @@ function FunnelAnalysis() {
     }
   }, [dispatch.dataAnalysisFunnelModel, queryDownloadTask])
 
+  const handleSaveAsDashboard = useCallback(() => {
+    // 先检查填写项
+    dispatch.dataAnalysisFunnelModel.checkQueryParams().then((flag) => {
+      if (flag) {
+        message.error(flag)
+        return
+      }
+      setShowSaveAsDashboardPopup(true)
+    })
+  }, [dispatch.dataAnalysisFunnelModel])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
@@ -100,6 +116,7 @@ function FunnelAnalysis() {
           title="漏斗分析"
           updateTime={updateTime}
           download={download}
+          onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
           guidePath="/guide/data-analysis/funnel"
         />
         <DataFilterConfigArea />
@@ -112,6 +129,14 @@ function FunnelAnalysis() {
           downloadUrl={downloadUrl}
           onClose={() => setShowDownloadPopup(false)}
           show={showDownloadPopup}
+        />
+        <SaveAsDashboardPopup
+          analysisType={AnalysisType.FUNNEL}
+          open={showSaveAsDashboardPopup}
+          onClose={() => setShowSaveAsDashboardPopup(false)}
+          onSuccess={() => {
+            message.success('看板已创建，可在首页查看')
+          }}
         />
       </div>
     </Spin>

@@ -343,6 +343,7 @@ function Analysis() {
         <Row>
           <Col span={24}>
             <Table
+              scroll={{ x: 'max-content' }}
               dataSource={taskList}
               columns={columns}
               className={styles.table}

@@ -106,6 +106,7 @@ function DownloadPopup(props: IDownloadPopupProps) {
 
   return (
     <Modal
+      destroyOnClose
       title="数据下载中"
       open={show}
       onCancel={() => onClose()}

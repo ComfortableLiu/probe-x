@@ -46,6 +46,7 @@ function ResetPasswordPopup(props: IResetPasswordPopupProps) {
 
   return (
     <Modal
+      destroyOnClose
       title="重置密码"
       open={open}
       onOk={() => handleOk()}

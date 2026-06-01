@@ -2,8 +2,9 @@ import { createModel } from "@rematch/core"
 import { RootModel } from "@/store/models"
 import { getParamsOrQuery } from "@utils/router"
 import { message } from "antd"
-import { IDataAnalysisAttributionState, IQuery } from "@pages/data-analysis/attribution/type"
+import { IDataAnalysisAttributionState, IModelComparisonItem, IQuery } from "@pages/data-analysis/attribution/type"
 import { queryDownloadTask, submitDownloadTask, submitQueryTask } from "@pages/data-analysis/attribution/services"
+import { AttributionModelEnum } from "@probe-x/shared-types/src"
 
 const initState: IDataAnalysisAttributionState = {}
 
@@ -46,17 +47,57 @@ const dataAnalysisAttributionModel = createModel<RootModel>()({
     },
     // 提交查询数据
     async submitQuery() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 200) {
-        message.error(msg || '查询失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitQueryTask(query)
+        if (code !== 200) {
+          message.error(msg || '查询失败')
+          return
+        }
+        // 储存查询结果（同时清空模型对比数据）
+        dispatch.dataAnalysisAttributionModel.updateItem({
+          data,
+          updateTime: new Date(),
+          modelComparisonData: undefined,
+        })
+      } catch (error) {
+        message.error('查询失败，请稍后重试')
       }
-      // 储存查询结果
-      dispatch.dataAnalysisAttributionModel.updateItem({
-        data,
-        updateTime: new Date(),
-      })
+    },
+    // 并行查询所有归因模型数据（用于模型对比图）
+    async queryAllModels() {
+      const query = getParamsOrQuery<IQuery>()
+      const models = [
+        AttributionModelEnum.FIRST_TOUCH,
+        AttributionModelEnum.LAST_TOUCH,
+        AttributionModelEnum.LINEAR,
+        AttributionModelEnum.POSITION,
+        AttributionModelEnum.TIME_DECAY,
+      ]
+
+      try {
+        const results = await Promise.allSettled(
+          models.map(async (model) => {
+            const { data, code } = await submitQueryTask({
+              ...query,
+              attributionModel: model,
+            })
+            if (code !== 200 || !data) return null
+            return { model, data } as IModelComparisonItem
+          })
+        )
+
+        const validResults = results
+          .filter((r): r is PromiseFulfilledResult<IModelComparisonItem | null> => r.status === 'fulfilled')
+          .map(r => r.value)
+          .filter(Boolean) as IModelComparisonItem[]
+
+        dispatch.dataAnalysisAttributionModel.updateItem({
+          modelComparisonData: validResults,
+        })
+      } catch (error) {
+        message.error('模型对比查询失败')
+      }
     },
     // 下载数据
     async downloadData() {

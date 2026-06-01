@@ -26,7 +26,7 @@ export class UserController {
   async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
     // 超管特判：检查用户是否拥有 admin 角色
     const userRoles = await this.userService.getUserRoles(user.userId)
-    const isAdmin = userRoles.some(role => role.roleKey === 'admin' || role.isSystemRole)
+    const isAdmin = userRoles.some(role => role.roleKey === 'admin' || role.roleKey === 'super_admin' || role.roleType === 'system')
     if (isAdmin) {
       return await this.userService.getAllRoleAndPermission()
     }
@@ -72,6 +72,14 @@ export class UserController {
     @Body() body: IUpdateUserProfileReq,
   ): Promise<ResponseData<IUpdateUserProfileRes>> {
     return await this.userService.updateUserProfile(user.userId!, body)
+  }
+
+  /**
+   * 重置admin密码（仅开发环境可用）
+   */
+  @Post('admin/reset-password')
+  async resetAdminPassword() {
+    return this.userService.resetAdminPassword()
   }
 
   /**

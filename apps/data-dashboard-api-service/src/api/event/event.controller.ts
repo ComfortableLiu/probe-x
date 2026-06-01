@@ -1,7 +1,7 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common'
 import { EventService } from './event.service'
 import { UserService } from "../user/user.service"
-import type { EventFilterDto, PaginationDto } from "./type"
+import type { EventFilterDto, PaginationDto, RegisterEventDto } from "./type"
 
 @Controller('/event')
 export class EventController {
@@ -49,5 +49,17 @@ export class EventController {
   @Get('/list/simple')
   async getEventsSimple() {
     return await this.eventService.getEvents()
+  }
+
+  /**
+   * 注册上报发现的事件
+   */
+  @Post('/register')
+  async registerEvent(
+    @Body() registerEventDto: RegisterEventDto,
+    @Req() req: any,
+  ) {
+    await this.eventService.registerEvent(registerEventDto, req.user)
+    return { success: true }
   }
 }

@@ -328,12 +328,15 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     if (!params.windowPeriod || typeof params.windowPeriod.value !== "number" || !["m", "h", "d"].includes(params.windowPeriod.unit)) {
       return { sql: "", params: {}, error: "窗口期参数格式错误" }
     }
-    if (!["strict", "loose"].includes(params.funnelMode)) {
+    
+    // 提供默认漏斗模式
+    const funnelMode = params.funnelMode || 'strict'
+    if (!["strict", "loose"].includes(funnelMode)) {
       return { sql: "", params: {}, error: "漏斗模式只能是strict或loose" }
     }
 
     const [startDate, endDate] = params.timeRange
-    const { funnelType, funnelMode, dimension = [], globalFilters = [] } = params
+    const { funnelType, dimension = [], globalFilters = [] } = params
 
     // 2. 时间范围过滤（使用$log_time，即用户事件产生的时间）
     // 统一使用toDateTime64保持精度一致
@@ -393,20 +396,20 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const sql = `WITH
 base_data AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, stepCaseExpr].join(", ")}
+    ${[...dimensionFields, ...requiredFields, stepCaseExpr].filter(Boolean).join(", ")}
   FROM ${tableName}
   ${baseWhereClause}
 ),
 ordered_steps AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].join(", ")},
+    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")},
     lag(${wrapFieldWithBacktick("step")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_step")},
     lag(${wrapFieldWithBacktick("$log_time")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_time")}
   FROM base_data
 ),
 valid_steps AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].join(", ")}
+    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")}
   FROM ordered_steps
   WHERE
     (
@@ -425,14 +428,14 @@ valid_steps AS (
 ),
 step_agg AS (
   SELECT
-    ${dimensionStr},
+    ${dimensionStr ? `${dimensionStr},` : ''}
     ${wrapFieldWithBacktick("step")},
     ${metricsAggExpr} AS ${wrapFieldWithBacktick("value")}
   FROM valid_steps
   ${dimensionStr ? `GROUP BY ${wrapFieldWithBacktick("step")}, ${dimensionStr}` : `GROUP BY ${wrapFieldWithBacktick("step")}`}
 )
 SELECT
-  ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")},
+  ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")}${dimensionFields.length > 0 ? ', ' : ''}
   ${params.funnelInfoList.map((stepInfo, index) => {
       const stepNum = index + 1
       // 优先使用stepName作为字段名，为空则使用默认命名

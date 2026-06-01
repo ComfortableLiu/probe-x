@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DataFilterConfigArea from "./components/DataFilterConfigArea"
+import DataChat from "./components/DataChat"
 import DataTable from "./components/DataTable"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -10,6 +11,8 @@ import { IDataAnalysisEventState, IQuery } from "./type"
 import dayjs from "dayjs"
 import DownloadPopup from "../components/DownloadPopup"
 import DataAnalysisHeader from "@pages/data-analysis/components/DataAnalysisHeader"
+import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
+import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 
 function EventAnalysis() {
 
@@ -21,7 +24,8 @@ function EventAnalysis() {
 
   const {
     timeRange,
-  } = useQuery<IQuery>()
+    dashboardId,
+  } = useQuery<IQuery & { dashboardId?: number }>()
 
   const {
     refresh,
@@ -32,6 +36,8 @@ function EventAnalysis() {
   // 显示下载弹窗
   const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  // 显示保存为看板弹窗
+  const [showSaveAsDashboardPopup, setShowSaveAsDashboardPopup] = useState(false)
 
   useEffect(() => {
     return () => clearInterval(timer.current)
@@ -79,6 +85,17 @@ function EventAnalysis() {
     }, 1000)
   }, [dispatch.dataAnalysisEventModel, queryDownloadTask])
 
+  const handleSaveAsDashboard = useCallback(() => {
+    // 先检查填写项
+    dispatch.dataAnalysisEventModel.checkQueryParams().then((flag) => {
+      if (flag) {
+        message.error(flag)
+        return
+      }
+      setShowSaveAsDashboardPopup(true)
+    })
+  }, [dispatch.dataAnalysisEventModel])
+
   return (
     <Spin spinning={pageLoading}>
       <div className={styles.container}>
@@ -86,18 +103,26 @@ function EventAnalysis() {
           title="事件分析"
           updateTime={updateTime}
           download={download}
+          onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
           guidePath="/guide/data-analysis/event"
         />
         <DataFilterConfigArea />
         <div className={styles.hr} />
-        {/*TODO 先不展示图表，后面想好了功能交互在做*/}
-        {/*<DataChat />*/}
-        {/*<div className={styles.hr} />*/}
+        <DataChat />
+        <div className={styles.hr} />
         <DataTable />
         <DownloadPopup
           downloadUrl={downloadUrl}
           onClose={() => setShowDownloadPopup(false)}
           show={showDownloadPopup}
+        />
+        <SaveAsDashboardPopup
+          analysisType={AnalysisType.EVENT}
+          open={showSaveAsDashboardPopup}
+          onClose={() => setShowSaveAsDashboardPopup(false)}
+          onSuccess={() => {
+            message.success('看板已创建，可在首页查看')
+          }}
         />
       </div>
     </Spin>

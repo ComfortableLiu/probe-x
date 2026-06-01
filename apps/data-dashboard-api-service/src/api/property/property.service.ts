@@ -12,7 +12,7 @@ import {
   MetaPropertyTypeMap,
 } from "@probe-x/shared-types/src"
 import { PropertyFilterDto } from "./type"
-import { ClickHouseService, MetaPropertyEntity } from "@probe-x/shared-utils/src/lib/backend-common"
+import { BusinessException, ClickHouseService, MetaPropertyEntity } from "@probe-x/shared-utils/src/lib/backend-common"
 
 @Injectable()
 export class PropertyService {
@@ -111,7 +111,7 @@ export class PropertyService {
     }))
   }
 
-  async createProperty(data: ICreatePropertyReq): Promise<ICreatePropertyRes> {
+  async createProperty(data: ICreatePropertyReq, user: any): Promise<ICreatePropertyRes> {
     // 校验属性名只允许字母、数字、下划线，防止 SQL 注入
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(data.propertyName)) {
       throw new Error('属性名只能包含字母、数字和下划线，且必须以字母或下划线开头')
@@ -132,6 +132,8 @@ export class PropertyService {
       propertyType: data.propertyType,
       type: data.type,
       status: MetaPropertyStatus.VALID,
+      createUserId: user?.userId,
+      updateUserId: user?.userId,
     })
     return {
       type: property.type,

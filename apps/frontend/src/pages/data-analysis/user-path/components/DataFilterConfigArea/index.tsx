@@ -1,8 +1,8 @@
-import React, { memo, useCallback } from "react"
-import { useRouter } from "@/hooks"
+import React, { memo, useCallback, useState } from "react"
+import { useRouter, useQuery } from "@/hooks"
 import { Button, message, Space } from 'antd'
 import * as styles from "./styles.module.scss"
-import { Refresh, Search } from "@icon-park/react"
+import { Refresh, Search, Save } from "@icon-park/react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
@@ -10,6 +10,9 @@ import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector
 import EventSelector from "./components/EventSelector"
 import CenterEvent from "./components/CenterEvent"
 import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
+import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
+import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
+import { getDashboard } from "@pages/data-analysis/dashboard-config/services"
 
 function DataFilterConfigArea() {
 
@@ -18,6 +21,27 @@ function DataFilterConfigArea() {
   const {
     refresh,
   } = useRouter()
+
+  const { dashboardId } = useQuery<{ dashboardId?: number }>()
+  const [showSaveAsDashboardPopup, setShowSaveAsDashboardPopup] = useState(false)
+  const [dashboardInfo, setDashboardInfo] = useState<{ name?: string; displayChart?: boolean; displayTable?: boolean }>({})
+
+  // 如果有dashboardId，加载看板信息
+  React.useEffect(() => {
+    if (dashboardId) {
+      getDashboard(dashboardId).then(({ data }) => {
+        if (data) {
+          setDashboardInfo({
+            name: data.name,
+            displayChart: data.displayChart,
+            displayTable: data.displayTable,
+          })
+        }
+      }).catch(() => {
+        // 忽略错误
+      })
+    }
+  }, [dashboardId])
 
   // 提交查询任务
   const submit = useCallback(async () => {
@@ -28,6 +52,17 @@ function DataFilterConfigArea() {
       return
     }
     dispatch.dataAnalysisUserPathModel.submitQuery()
+  }, [dispatch.dataAnalysisUserPathModel])
+
+  // 保存模板（更新看板）
+  const handleSaveTemplate = useCallback(async () => {
+    // 先检查填写项
+    const flag = await dispatch.dataAnalysisUserPathModel.checkQueryParams()
+    if (flag) {
+      message.error(flag)
+      return
+    }
+    setShowSaveAsDashboardPopup(true)
   }, [dispatch.dataAnalysisUserPathModel])
 
   return (
@@ -71,6 +106,16 @@ function DataFilterConfigArea() {
             <Search style={{ display: 'flex' }} theme="outline" size="14" fill="#FFFFFF" />
             查询
           </Button>
+          {dashboardId && (
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSaveTemplate}
+            >
+              <Save style={{ display: 'flex' }} theme="outline" size="14" fill="#FFFFFF" />
+              保存模板
+            </Button>
+          )}
           <Button
             type="default"
             size="large"
@@ -81,6 +126,20 @@ function DataFilterConfigArea() {
           </Button>
         </Space>
       </div>
+      {dashboardId && (
+        <SaveAsDashboardPopup
+          analysisType={AnalysisType.USER_PATH}
+          dashboardId={dashboardId}
+          dashboardName={dashboardInfo.name}
+          displayChart={dashboardInfo.displayChart}
+          displayTable={dashboardInfo.displayTable}
+          open={showSaveAsDashboardPopup}
+          onClose={() => setShowSaveAsDashboardPopup(false)}
+          onSuccess={() => {
+            message.success('看板已更新')
+          }}
+        />
+      )}
     </div>
   )
 }
