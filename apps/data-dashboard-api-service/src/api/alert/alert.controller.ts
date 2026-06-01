@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
 import { AlertService } from './alert.service'
 import {
   ICreateAlertRuleReq,
@@ -12,7 +12,9 @@ import {
   IUpdateAlertRuleRes,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
+import { AdminGuard } from '../../guard/admin.guard'
 
+@UseGuards(AdminGuard)
 @Controller('alert')
 export class AlertController {
   constructor(private readonly alertService: AlertService) {}

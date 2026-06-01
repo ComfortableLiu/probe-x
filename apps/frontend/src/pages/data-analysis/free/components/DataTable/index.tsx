@@ -149,7 +149,7 @@ function DataTable() {
     })
 
     // 日期列
-    for (let i = dayjs(timeRange?.[0]); i.isBefore(timeRange?.[1]); i = i.add(1, 'day')) {
+    for (let i = dayjs(timeRange?.[0]); !i.isAfter(timeRange?.[1]); i = i.add(1, 'day')) {
       list.push({
         title: dayjs(i).format('YYYY-MM-DD'),
         dataIndex: dayjs(i).format('YYYY-MM-DD'),

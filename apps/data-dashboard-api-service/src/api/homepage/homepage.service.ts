@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ClickHouseService, RedisService } from '@probe-x/shared-utils/src/lib/backend-common'
 import {
   IHomepageOverview,
@@ -13,6 +13,8 @@ const REALTIME_CACHE_TTL = 10   // 10 seconds
 
 @Injectable()
 export class HomepageService {
+  private readonly logger = new Logger(HomepageService.name)
+
   constructor(
     private readonly clickhouseService: ClickHouseService,
     private readonly redisService: RedisService,
@@ -80,7 +82,7 @@ export class HomepageService {
 
       return result
     } catch (error) {
-      console.error('Error fetching homepage overview:', error)
+      this.logger.error('Error fetching homepage overview:', error)
       // 返回默认值
       return {
         todayEventCount: 0,
@@ -101,7 +103,9 @@ export class HomepageService {
    * 获取趋势数据
    */
   async getTrend(days: number = 7): Promise<IHomepageTrend> {
-    const cacheKey = `${CACHE_PREFIX}trend:${days}`
+    // 限制范围，防止恶意输入
+    const safeDays = Math.min(Math.max(Math.floor(days), 1), 365)
+    const cacheKey = `${CACHE_PREFIX}trend:${safeDays}`
 
     try {
       const cached = await this.redisService.get<IHomepageTrend>(cacheKey)
@@ -120,11 +124,11 @@ export class HomepageService {
           toString(toDate(\`$service_time\`)) as date,
           toString(count(*)) as event_count,
           toString(uniq(\`$device_id\`)) as active_user_count
-        FROM event_log
-        WHERE toDate(\`$service_time\`) >= today() - ${days}
+        FROM final_event_log
+        WHERE toDate(\`$service_time\`) >= today() - {days:UInt32}
         GROUP BY date
         ORDER BY date ASC
-      `)
+      `, { days: safeDays })
 
       const result: IHomepageTrend = {
         dates: rows.map((r) => r.date),
@@ -140,7 +144,7 @@ export class HomepageService {
 
       return result
     } catch (error) {
-      console.error('Error fetching homepage trend:', error)
+      this.logger.error('Error fetching homepage trend:', error)
       return { dates: [], eventCounts: [], activeUserCounts: [] }
     }
   }
@@ -149,7 +153,9 @@ export class HomepageService {
    * 获取实时事件流
    */
   async getRealtimeEvents(limit: number = 20): Promise<IRealtimeEventsResponse> {
-    const cacheKey = `${CACHE_PREFIX}realtime:${limit}`
+    // 限制范围，防止恶意输入
+    const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 100)
+    const cacheKey = `${CACHE_PREFIX}realtime:${safeLimit}`
 
     try {
       const cached = await this.redisService.get<IRealtimeEventsResponse>(cacheKey)
@@ -173,13 +179,13 @@ export class HomepageService {
             toString(\`$path\`) as path,
             toString(\`$ip\`) as ip,
             toString(\`$service_time\`) as service_time
-          FROM event_log
+          FROM final_event_log
           ORDER BY \`$service_time\` DESC
-          LIMIT ${limit}
-        `),
+          LIMIT {limit:UInt32}
+        `, { limit: safeLimit }),
         this.clickhouseService.query<{ count: string }>(`
           SELECT toString(count(*)) as count
-          FROM event_log
+          FROM final_event_log
           WHERE toDate(\`$service_time\`) = today()
         `),
       ])
@@ -203,7 +209,7 @@ export class HomepageService {
 
       return result
     } catch (error) {
-      console.error('Error fetching realtime events:', error)
+      this.logger.error('Error fetching realtime events:', error)
       return { list: [], total: 0 }
     }
   }
@@ -214,7 +220,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(count(*)) as count
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) = today()
       `)
       return parseInt(result[0]?.count || '0', 10)
@@ -225,7 +231,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(uniq(\`$device_id\`)) as count
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) = today()
       `)
       return parseInt(result[0]?.count || '0', 10)
@@ -238,7 +244,7 @@ export class HomepageService {
         SELECT toString(count(*)) as count
         FROM (
           SELECT \`$device_id\`, min(toDate(\`$service_time\`)) as first_day
-          FROM event_log
+          FROM final_event_log
           GROUP BY \`$device_id\`
           HAVING first_day = today()
         )
@@ -251,7 +257,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(count(*)) as count
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) = yesterday()
       `)
       return parseInt(result[0]?.count || '0', 10)
@@ -262,7 +268,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(uniq(\`$device_id\`)) as count
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) = yesterday()
       `)
       return parseInt(result[0]?.count || '0', 10)
@@ -273,7 +279,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(count(*)) as count
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) >= today() - 7
       `)
       return parseInt(result[0]?.count || '0', 10)
@@ -284,7 +290,7 @@ export class HomepageService {
     try {
       const result = await this.clickhouseService.query<{ count: string }>(`
         SELECT toString(count(*)) as count
-        FROM event_log
+        FROM final_event_log
       `)
       return parseInt(result[0]?.count || '0', 10)
     } catch { return 0 }
@@ -303,7 +309,7 @@ export class HomepageService {
             2
           )
         ) as rate
-        FROM event_log
+        FROM final_event_log
         WHERE toDate(\`$service_time\`) IN (today() - 7, today())
       `)
       return parseFloat(result[0]?.rate || '0')

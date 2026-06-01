@@ -2,6 +2,7 @@ import { IEventAnalysisReq } from "./event"
 import { IFunnelAnalysisReq } from "./funnel"
 import { IUserPathAnalysisReq } from "./user-path"
 import { IAttributionAnalysisReq } from "./attribution"
+import { IFreeAnalysisReq } from "./free-analysis"
 
 /**
  * 看板类型枚举
@@ -19,6 +20,7 @@ export enum AnalysisType {
   FUNNEL = 'funnel',         // 漏斗分析
   USER_PATH = 'user-path',   // 用户路径分析
   ATTRIBUTION = 'attribution', // 归因分析
+  FREE = 'free',             // 自由分析
 }
 
 /**
@@ -35,6 +37,8 @@ export interface IDashboardConfig {
   userPathAnalysis?: IUserPathAnalysisReq
   // 归因分析
   attributionAnalysis?: IAttributionAnalysisReq
+  // 自由分析
+  freeAnalysis?: IFreeAnalysisReq
   // 其他配置
   [key: string]: any
 }

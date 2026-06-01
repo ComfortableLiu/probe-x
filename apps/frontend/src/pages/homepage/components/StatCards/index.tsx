@@ -4,7 +4,7 @@ import {
   RiseOutlined,
   FallOutlined,
   UserOutlined,
-  TeamAddOutlined,
+  UserAddOutlined,
   FunnelPlotOutlined,
   RetweetOutlined,
   BarChartOutlined,
@@ -65,7 +65,7 @@ function StatCards({ overview }: StatCardsProps) {
     {
       title: '今日新增用户',
       value: overview.newUserCount,
-      icon: <TeamAddOutlined style={{ color: '#722ed1' }} />,
+      icon: <UserAddOutlined style={{ color: '#722ed1' }} />,
       extra: <span className={styles.trendNeutral}>首次访问</span>,
     },
     {

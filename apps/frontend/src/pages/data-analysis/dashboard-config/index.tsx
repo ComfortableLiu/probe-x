@@ -97,6 +97,8 @@ function DashboardConfig() {
       queryParams = { ...config.userPathAnalysis }
     } else if (dashboard.analysisType === AnalysisType.ATTRIBUTION && config.attributionAnalysis) {
       queryParams = { ...config.attributionAnalysis }
+    } else if (dashboard.analysisType === AnalysisType.FREE && config.freeAnalysis) {
+      queryParams = { ...config.freeAnalysis }
     }
 
     // 确保有配置参数
@@ -127,6 +129,7 @@ function DashboardConfig() {
       [AnalysisType.FUNNEL]: '/data-analysis/funnel',
       [AnalysisType.USER_PATH]: '/data-analysis/userPath',
       [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
+      [AnalysisType.FREE]: '/data-analysis/free',
     }
     const route = routeMap[dashboard.analysisType]
     if (route) {

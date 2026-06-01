@@ -55,17 +55,21 @@ const dataAnalysisFreeModel = createModel<RootModel>()({
     },
     // 提交查询数据
     async submitQuery() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitFreeQueryTask(query)
-      if (code !== 200) {
-        message.error(msg || '查询失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitFreeQueryTask(query)
+        if (code !== 200) {
+          message.error(msg || '查询失败')
+          return
+        }
+        // 储存查询结果
+        dispatch.dataAnalysisFreeModel.updateItem({
+          data,
+          updateTime: new Date(),
+        })
+      } catch (error) {
+        message.error('查询失败，请稍后重试')
       }
-      // 储存查询结果
-      dispatch.dataAnalysisFreeModel.updateItem({
-        data,
-        updateTime: new Date(),
-      })
     },
   }),
 })

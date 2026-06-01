@@ -1,5 +1,4 @@
 import { IUser } from "../user"
-import { ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
 
 /**
  * 更新用户个人信息请求参数

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { ProjectEntity, UserProjectRelation, UserEntity } from '@probe-x/shared-utils/src/lib/backend-common'
+import { ProjectEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/Project.entity'
+import { UserProjectRelation } from '@probe-x/shared-utils/src/lib/backend-common/entity/UserProjectRelation.entity'
+import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/User.entity'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common/entity/response.entity'
 import {
   ICreateProjectReq,
@@ -53,22 +55,30 @@ export class ProjectService {
       .orderBy('p.created_at', 'DESC')
       .getMany()
 
-    // 查询每个项目的成员数量
-    const data: IProjectListItem[] = await Promise.all(
-      list.map(async (item) => {
-        const memberCount = await this.userProjectRepo.count({ where: { project: { id: item.id } } })
-        return {
-          id: Number(item.id),
-          projectName: item.projectName!,
-          projectKey: item.projectKey!,
-          description: item.description,
-          isEnable: item.isEnable === 1,
-          memberCount,
-          createTime: item.createdAt?.toISOString(),
-          updateTime: item.updatedAt?.toISOString(),
-        }
-      }),
-    )
+    // 批量查询每个项目的成员数量（避免 N+1）
+    const projectIds = list.map(item => Number(item.id))
+    const memberCounts = new Map<number, number>()
+    if (projectIds.length > 0) {
+      const counts = await this.userProjectRepo
+        .createQueryBuilder('up')
+        .select('up.project_id', 'projectId')
+        .addSelect('COUNT(*)', 'count')
+        .where('up.project_id IN (:...projectIds)', { projectIds })
+        .groupBy('up.project_id')
+        .getRawMany()
+      counts.forEach((r: any) => memberCounts.set(Number(r.projectId), Number(r.count)))
+    }
+
+    const data: IProjectListItem[] = list.map((item) => ({
+      id: Number(item.id),
+      projectName: item.projectName!,
+      projectKey: item.projectKey!,
+      description: item.description,
+      isEnable: item.isEnable === 1,
+      memberCount: memberCounts.get(Number(item.id)) || 0,
+      createTime: item.createdAt?.toISOString(),
+      updateTime: item.updatedAt?.toISOString(),
+    }))
 
     return { data, total, page, pageSize }
   }

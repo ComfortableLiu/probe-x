@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, SelectQueryBuilder } from 'typeorm'
 import {
@@ -25,6 +25,7 @@ import { EventAnalysisService } from '../data-analysis/event-analysis.service'
 import { FunnelAnalysisService } from '../data-analysis/funnel-analysis.service'
 import { UserPathAnalysisService } from '../data-analysis/user-path-analysis.service'
 import { AttributionAnalysisService } from '../data-analysis/attribution-analysis.service'
+import { FreeAnalysisService } from '../data-analysis/free-analysis.service'
 
 /**
  * 看板缓存Key前缀
@@ -36,6 +37,8 @@ const CACHE_EXPIRE_SECONDS = 300 // 缓存5分钟
 
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name)
+
   constructor(
     @InjectRepository(DashboardEntity)
     private dashboardRepository: Repository<DashboardEntity>,
@@ -48,6 +51,7 @@ export class DashboardService {
     private readonly funnelAnalysisService: FunnelAnalysisService,
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
+    private readonly freeAnalysisService: FreeAnalysisService,
   ) {}
 
   /**
@@ -203,7 +207,7 @@ export class DashboardService {
       // 如果是管理员，可以看到所有公共看板
       if (!isUserAdmin) {
         // 非管理员只能看到有权限的公共看板
-        const userRole = await this.getUserRole(user)
+        const { roleKey: userRole } = await this.getUserRoleInfo(user)
         queryBuilder.andWhere(
           '(dashboard.permissions IS NULL OR JSON_LENGTH(dashboard.permissions) = 0 OR JSON_CONTAINS(dashboard.permissions, :userRole))',
           { userRole: JSON.stringify(userRole) },
@@ -213,7 +217,7 @@ export class DashboardService {
     // 如果没有指定类型，返回用户有权限查看的所有看板
     else {
       const isUserAdmin = await this.isAdmin(user)
-      const userRole = await this.getUserRole(user)
+      const { roleKey: userRole } = await this.getUserRoleInfo(user)
       // 对于公共看板，如果没有设置权限（NULL 或空数组），所有用户都可以查看
       // 这与 canViewPublicDashboard 方法的逻辑一致
       queryBuilder.andWhere(
@@ -323,6 +327,15 @@ export class DashboardService {
         queryParams.timeRange = data.timeRange
       }
       analysisData = await this.attributionAnalysisService.queryEvent(queryParams, user)
+    } else if (
+      dashboard.analysisType === AnalysisType.FREE &&
+      config.freeAnalysis
+    ) {
+      const queryParams = { ...config.freeAnalysis }
+      if (data.timeRange) {
+        queryParams.timeRange = data.timeRange
+      }
+      analysisData = await this.freeAnalysisService.queryFree(queryParams, user)
     }
 
     // 检查配置是否匹配分析类型
@@ -332,6 +345,7 @@ export class DashboardService {
         [AnalysisType.FUNNEL]: '漏斗分析',
         [AnalysisType.USER_PATH]: '用户路径分析',
         [AnalysisType.ATTRIBUTION]: '归因分析',
+        [AnalysisType.FREE]: '自由分析',
       }[dashboard.analysisType] || dashboard.analysisType
       
       throw new BusinessException(
@@ -389,45 +403,42 @@ export class DashboardService {
   }
 
   /**
+   * 获取用户角色信息（一次查询，包含管理员判断和角色key）
+   * 返回 { isAdmin, roleKey }
+   */
+  private async getUserRoleInfo(user: IUser): Promise<{ isAdmin: boolean; roleKey: string }> {
+    if (!user.userId) {
+      return { isAdmin: false, roleKey: 'user' }
+    }
+    const userRoles = await this.userRoleRepository
+      .createQueryBuilder('user_role')
+      .leftJoinAndSelect('user_role.role', 'role')
+      .where('user_role.user_id = :userId', { userId: user.userId })
+      .getMany()
+
+    const roleKeys = userRoles.map((ur) => ur.role?.roleKey).filter(Boolean)
+    const isAdmin = roleKeys.some((roleKey) => roleKey === 'admin' || roleKey === 'super_admin')
+    const roleKey = roleKeys[0] || 'user'
+    return { isAdmin, roleKey }
+  }
+
+  /**
    * 检查用户是否为管理员
    */
   private async isAdmin(user: IUser): Promise<boolean> {
-    if (!user.userId) {
-      return false
-    }
-    const userRoles = await this.userRoleRepository
-      .createQueryBuilder('user_role')
-      .leftJoinAndSelect('user_role.role', 'role')
-      .where('user_role.user_id = :userId', { userId: user.userId })
-      .getMany()
-
-    const roleKeys = userRoles.map((ur) => ur.role?.roleKey).filter(Boolean)
-    return roleKeys.some((roleKey) => roleKey === 'admin' || roleKey === 'super_admin')
+    const { isAdmin } = await this.getUserRoleInfo(user)
+    return isAdmin
   }
 
   /**
-   * 获取用户角色（用于权限检查）
+   * 检查用户是否可以查看公共看板（使用预取的角色信息，避免重复查询）
    */
-  private async getUserRole(user: IUser): Promise<string> {
-    if (!user.userId) {
-      return 'user'
-    }
-    const userRoles = await this.userRoleRepository
-      .createQueryBuilder('user_role')
-      .leftJoinAndSelect('user_role.role', 'role')
-      .where('user_role.user_id = :userId', { userId: user.userId })
-      .getMany()
-
-    const roleKeys = userRoles.map((ur) => ur.role?.roleKey).filter(Boolean)
-    return roleKeys[0] || 'user'
-  }
-
-  /**
-   * 检查用户是否可以查看公共看板
-   */
-  private async canViewPublicDashboard(dashboard: DashboardEntity, user: IUser): Promise<boolean> {
+  private canViewPublicDashboardWithRole(
+    dashboard: DashboardEntity,
+    userRoleInfo: { isAdmin: boolean; roleKey: string },
+  ): boolean {
     // 管理员可以查看所有公共看板
-    if (await this.isAdmin(user)) {
+    if (userRoleInfo.isAdmin) {
       return true
     }
 
@@ -437,45 +448,42 @@ export class DashboardService {
     }
 
     // 检查用户角色是否在权限列表中
-    const userRole = await this.getUserRole(user)
-    return dashboard.permissions.includes(userRole)
+    return dashboard.permissions.includes(userRoleInfo.roleKey)
   }
 
   /**
-   * 过滤有权限查看的看板
-   * 注意：只过滤当前页的列表，不修改 total，因为 total 表示数据库中符合条件的总记录数
+   * 过滤有权限查看的看板（批量处理，只查询一次用户角色）
+   * 同时修正 total 为过滤后的可访问总数
    */
   private async filterAccessibleDashboards(
     result: IDashboardListRes,
     user: IUser,
   ): Promise<IDashboardListRes> {
-    const filteredList = []
-    for (const dashboard of result.list) {
-      if (dashboard.type === DashboardType.PERSONAL) {
-        if (dashboard.creatorId === user.userId) {
-          filteredList.push(dashboard)
-        }
-      } else {
-        const canView = await this.canViewPublicDashboard(
-          {
-            ...dashboard,
-            permissions: dashboard.permissions || [],
-          } as DashboardEntity,
-          user,
-        )
-        if (canView) {
-          filteredList.push(dashboard)
-        }
-      }
-    }
+    // 只查询一次用户角色信息
+    const userRoleInfo = await this.getUserRoleInfo(user)
 
-    // 保持原始的 total 不变，因为 total 表示数据库中符合条件的总记录数
-    // 如果当前页过滤后记录数减少，前端可能会看到当前页记录数少于 pageSize
-    // 但 total 仍然是正确的，分页信息不会出错
+    const filteredList = result.list.filter((dashboard) => {
+      if (dashboard.type === DashboardType.PERSONAL) {
+        return dashboard.creatorId === user.userId
+      }
+      return this.canViewPublicDashboardWithRole(
+        {
+          ...dashboard,
+          permissions: dashboard.permissions || [],
+        } as DashboardEntity,
+        userRoleInfo,
+      )
+    })
+
+    // 修正 total：缓存的 total 是数据库原始值，过滤后应反映可访问数量
+    // 使用差值估算：total 减去本页被过滤掉的数量
+    const removedCount = result.list.length - filteredList.length
+    const adjustedTotal = Math.max(0, result.total - removedCount)
+
     return {
       ...result,
       list: filteredList,
-      // total 保持不变，不设置为 filteredList.length
+      total: adjustedTotal,
     }
   }
 
@@ -526,7 +534,7 @@ export class DashboardService {
       }
     } catch (error) {
       // 缓存清除失败不应该影响主流程，只记录错误
-      console.error('清除看板缓存失败:', error)
+      this.logger.error('清除看板缓存失败:', error)
     }
   }
 }

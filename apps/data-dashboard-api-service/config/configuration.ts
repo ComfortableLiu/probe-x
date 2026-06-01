@@ -6,6 +6,9 @@ export default () => ({
   login: {
     secret: process.env.HMAC_SECRET || '',
     salt: process.env.SALT || '',
+    throttleEnabled: process.env.LOGIN_THROTTLE_ENABLED !== 'false', // 默认开启，设为 false 可关闭
+    throttleMaxAttempts: parseInt(process.env.LOGIN_THROTTLE_MAX_ATTEMPTS || '', 10) || 5,
+    throttleWindowMs: parseInt(process.env.LOGIN_THROTTLE_WINDOW_MS || '', 10) || 15 * 60 * 1000,
   },
   jwt: {
     secret: process.env.JWT_SECRET || '',

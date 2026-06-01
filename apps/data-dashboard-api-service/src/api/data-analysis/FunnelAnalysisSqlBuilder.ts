@@ -396,20 +396,20 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const sql = `WITH
 base_data AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, stepCaseExpr].join(", ")}
+    ${[...dimensionFields, ...requiredFields, stepCaseExpr].filter(Boolean).join(", ")}
   FROM ${tableName}
   ${baseWhereClause}
 ),
 ordered_steps AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].join(", ")},
+    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")},
     lag(${wrapFieldWithBacktick("step")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_step")},
     lag(${wrapFieldWithBacktick("$log_time")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_time")}
   FROM base_data
 ),
 valid_steps AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].join(", ")}
+    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")}
   FROM ordered_steps
   WHERE
     (
@@ -428,14 +428,14 @@ valid_steps AS (
 ),
 step_agg AS (
   SELECT
-    ${dimensionStr},
+    ${dimensionStr ? `${dimensionStr},` : ''}
     ${wrapFieldWithBacktick("step")},
     ${metricsAggExpr} AS ${wrapFieldWithBacktick("value")}
   FROM valid_steps
   ${dimensionStr ? `GROUP BY ${wrapFieldWithBacktick("step")}, ${dimensionStr}` : `GROUP BY ${wrapFieldWithBacktick("step")}`}
 )
 SELECT
-  ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")},
+  ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")}${dimensionFields.length > 0 ? ', ' : ''}
   ${params.funnelInfoList.map((stepInfo, index) => {
       const stepNum = index + 1
       // 优先使用stepName作为字段名，为空则使用默认命名

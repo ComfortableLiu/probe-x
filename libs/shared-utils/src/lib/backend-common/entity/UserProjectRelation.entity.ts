@@ -16,7 +16,7 @@ export class UserProjectRelation {
   id?: number
 
   /** 用户ID */
-  @ManyToOne(() => UserEntity, (user) => user.roleRelations, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   @Index()
   user?: UserEntity

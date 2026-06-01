@@ -21,7 +21,7 @@
  *   --skip-tracking        跳过 SPM/SCM 节点同步
  *
  * 示例:
- *   node scripts/sync-metadata.js --host=123.56.201.124 --port=6100 --password=12341234
+ *   node scripts/sync-metadata.js --host=localhost --port=3306 --password=your_password
  *   node scripts/sync-metadata.js --dry-run
  *   node scripts/sync-metadata.js --clean --skip-tracking
  */
@@ -175,8 +175,8 @@ async function upsertMetaEvent(conn, events) {
   for (const ev of events) {
     try {
       await execute(conn,
-        `INSERT INTO meta_event (event_name, event_aliases, event_remark, status)
-         VALUES (?, ?, ?, 1)
+        `INSERT INTO meta_event (event_name, event_aliases, event_remark, status, create_user_id, update_user_id)
+         VALUES (?, ?, ?, 1, 1, 1)
          ON DUPLICATE KEY UPDATE event_aliases = VALUES(event_aliases), event_remark = VALUES(event_remark)`,
         [ev.name, ev.aliases, ev.remark],
       )
@@ -395,8 +395,16 @@ async function main() {
   })
   console.log('MySQL 连接成功')
 
+  try {
+
   // clean 模式
   if (args.clean) {
+    // 安全检查：非 localhost 需要显式 --force
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(args.host)
+    if (!isLocalhost && !args.force) {
+      console.error(`错误: --clean 目标为远程主机 ${args.host}，请添加 --force 确认`)
+      process.exit(1)
+    }
     console.log('\n清除已有测试元数据...')
     // 注意顺序: 先删子表再删父表
     await execute(conn, 'DELETE FROM event_property_relation WHERE create_user_id = 1')
@@ -442,8 +450,10 @@ async function main() {
     }
   }
 
-  await conn.end()
-  console.log('\n=== 元数据同步完成 ===')
+  } finally {
+    await conn.end()
+    console.log('\n=== 元数据同步完成 ===')
+  }
 }
 
 main().catch(e => {

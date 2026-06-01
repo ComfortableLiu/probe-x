@@ -11,7 +11,7 @@ export const initProbeX = () => {
   }
 
   const config = {
-    apiUrl: 'http://localhost:3004/point/report',
+    apiUrl: 'http://localhost:8104/point/report',
     appId: 'ecommerce-demo',
     debug: true,
     autoTrack: true,

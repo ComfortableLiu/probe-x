@@ -47,18 +47,22 @@ const dataAnalysisAttributionModel = createModel<RootModel>()({
     },
     // 提交查询数据
     async submitQuery() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 200) {
-        message.error(msg || '查询失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitQueryTask(query)
+        if (code !== 200) {
+          message.error(msg || '查询失败')
+          return
+        }
+        // 储存查询结果（同时清空模型对比数据）
+        dispatch.dataAnalysisAttributionModel.updateItem({
+          data,
+          updateTime: new Date(),
+          modelComparisonData: undefined,
+        })
+      } catch (error) {
+        message.error('查询失败，请稍后重试')
       }
-      // 储存查询结果（同时清空模型对比数据）
-      dispatch.dataAnalysisAttributionModel.updateItem({
-        data,
-        updateTime: new Date(),
-        modelComparisonData: undefined,
-      })
     },
     // 并行查询所有归因模型数据（用于模型对比图）
     async queryAllModels() {
@@ -72,7 +76,7 @@ const dataAnalysisAttributionModel = createModel<RootModel>()({
       ]
 
       try {
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           models.map(async (model) => {
             const { data, code } = await submitQueryTask({
               ...query,
@@ -83,7 +87,10 @@ const dataAnalysisAttributionModel = createModel<RootModel>()({
           })
         )
 
-        const validResults = results.filter(Boolean) as IModelComparisonItem[]
+        const validResults = results
+          .filter((r): r is PromiseFulfilledResult<IModelComparisonItem | null> => r.status === 'fulfilled')
+          .map(r => r.value)
+          .filter(Boolean) as IModelComparisonItem[]
 
         dispatch.dataAnalysisAttributionModel.updateItem({
           modelComparisonData: validResults,

@@ -34,7 +34,10 @@ function DataSourceEditPopup(props: IDataSourceEditPopupProps) {
 
   const handleSubmit = useCallback(async (values: any) => {
     if (isEdit) {
-      const data: IUpdateDataSourceReq = { id: record!.id, ...values }
+      // 编辑时，密码为空则不提交，避免覆盖已有密码
+      const { password, ...rest } = values
+      const data: IUpdateDataSourceReq = { id: record!.id, ...rest }
+      if (password) data.password = password
       await onSubmit(data)
     } else {
       const data: ICreateDataSourceReq = { ...values }

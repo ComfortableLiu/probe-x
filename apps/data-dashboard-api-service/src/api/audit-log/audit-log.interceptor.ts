@@ -28,7 +28,7 @@ export class AuditLogInterceptor implements NestInterceptor {
 
     const startTime = Date.now()
     const user = request.user || {}
-    const body = request.body ? JSON.stringify(request.body).substring(0, 2000) : undefined
+    const body = request.body ? this.redactSensitive(JSON.stringify(request.body)).substring(0, 2000) : undefined
     const ip = request.ip || request.headers?.['x-forwarded-for'] || request.connection?.remoteAddress
     const userAgent = request.headers?.['user-agent']
 
@@ -66,6 +66,17 @@ export class AuditLogInterceptor implements NestInterceptor {
           }).catch(() => {})
         },
       }),
+    )
+  }
+
+  /**
+   * 脱敏处理：对敏感字段值替换为 ***
+   */
+  private redactSensitive(json: string): string {
+    // 对 JSON 中的敏感字段值进行替换
+    return json.replace(
+      /("(?:password|secret|token|config|smtp|authorization)":\s*")((?:[^"\\]|\\.)*)(?=")/gi,
+      '$1***',
     )
   }
 

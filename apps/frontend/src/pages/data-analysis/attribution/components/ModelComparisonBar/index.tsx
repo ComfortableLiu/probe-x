@@ -129,8 +129,12 @@ function ModelComparisonBar() {
     }
   }, [])
 
-  // 数据变化时更新图表
+  // 数据变化时更新图表（含懒初始化）
   useEffect(() => {
+    if (!chartOption && !isLoading) return
+    if (!chartRef.current && containerRef.current) {
+      chartRef.current = echarts.init(containerRef.current)
+    }
     if (!chartRef.current) return
     if (isLoading) {
       chartRef.current.showLoading()
@@ -139,24 +143,19 @@ function ModelComparisonBar() {
     }
     if (chartOption) {
       chartRef.current.setOption(chartOption, true)
+      chartRef.current.resize()
     } else {
       chartRef.current.clear()
     }
   }, [chartOption, isLoading])
 
-  if (!modelComparisonData?.length && !isLoading) {
-    return (
-      <div className={styles.container}>
-        <h3>归因模型对比</h3>
-        <Empty description="请点击"模型对比"按钮加载对比数据" style={{ padding: '40px 0' }} />
-      </div>
-    )
-  }
+  const hasData = !!modelComparisonData?.length || isLoading
 
   return (
     <div className={styles.container}>
       <h3>归因模型对比</h3>
-      <div ref={containerRef} className={styles.chartContainer} />
+      {!hasData && <Empty description={'请点击"模型对比"按钮加载对比数据'} style={{ padding: '40px 0' }} />}
+      <div ref={containerRef} className={styles.chartContainer} style={{ display: hasData ? 'block' : 'none' }} />
     </div>
   )
 }

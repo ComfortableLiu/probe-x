@@ -115,29 +115,25 @@ function AttributionFunnelChart() {
     }
   }, [])
 
-  // 数据变化时更新图表
+  // 数据变化时更新图表（含懒初始化：首次数据到达时初始化实例）
   useEffect(() => {
-    if (!chartRef.current) return
-    if (chartOption) {
+    if (!chartOption) return
+    if (!chartRef.current && containerRef.current) {
+      chartRef.current = echarts.init(containerRef.current)
+    }
+    if (chartRef.current) {
       chartRef.current.setOption(chartOption, true)
-    } else {
-      chartRef.current.clear()
+      chartRef.current.resize()
     }
   }, [chartOption])
 
-  if (!data?.tableData?.length) {
-    return (
-      <div className={styles.container}>
-        <h3>归因转化漏斗</h3>
-        <Empty description="暂无数据，请先查询" style={{ padding: '40px 0' }} />
-      </div>
-    )
-  }
+  const hasData = !!data?.tableData?.length
 
   return (
     <div className={styles.container}>
       <h3>归因转化漏斗</h3>
-      <div ref={containerRef} className={styles.chartContainer} />
+      {!hasData && <Empty description="暂无数据，请先查询" style={{ padding: '40px 0' }} />}
+      <div ref={containerRef} className={styles.chartContainer} style={{ display: hasData ? 'block' : 'none' }} />
     </div>
   )
 }

@@ -319,7 +319,7 @@ function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params:
 /** 构建归因权重逻辑 */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
   const serviceTimeField = `f.${wrapFieldWithBacktick('$service_time')}`
-  const sourcePageIdField = wrapFieldWithBacktick('$source_page_id')
+  const sourcePageIdField = wrapFieldWithBacktick('source_page_id')
   const attributionIndexField = wrapFieldWithBacktick('attribution_index')
   const eventTimeField = wrapFieldWithBacktick('event_time')
 
@@ -517,7 +517,7 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const mainTable = '`probe_x`.`final_event_log` f'
     const attrTable = '`probe_x`.`event_attribution` a'
     const joinClause = `LEFT JOIN ${attrTable} 
-      ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('$source_page_id')} 
+      ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('source_page_id')} 
       AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
 
     // 9. 动态排序子句

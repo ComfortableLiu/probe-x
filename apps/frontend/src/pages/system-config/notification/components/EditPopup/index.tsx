@@ -74,7 +74,7 @@ function NotificationEditPopup(props: INotificationEditPopupProps) {
         <Form.Item name="triggerCondition" label="触发条件">
           <Input placeholder="例如: 数据处理失败时通知" />
         </Form.Item>
-        <Form.Item name="config" label="配置（JSON）" extra="Webhook: {\"url\":\"...\"}，邮件: {\"smtp\":\"...\"}">
+        <Form.Item name="config" label="配置（JSON）" extra={'Webhook: {"url":"..."}，邮件: {"smtp":"..."}'}>
           <Input.TextArea placeholder='{"url":"https://example.com/webhook"}' rows={3} />
         </Form.Item>
         <Form.Item name="isEnable" label="启用状态" valuePropName="checked">

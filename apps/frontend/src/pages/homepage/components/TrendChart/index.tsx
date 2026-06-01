@@ -25,6 +25,7 @@ function TrendChart({ trend }: TrendChartProps) {
     return () => {
       window.removeEventListener('resize', handleResize)
       chartInstanceRef.current?.dispose()
+      chartInstanceRef.current = null
     }
   }, [])
 

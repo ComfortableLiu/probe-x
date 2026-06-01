@@ -115,41 +115,39 @@ function DataChart() {
     }
   }, [])
 
-  // 数据变化时更新图表
+  // 数据变化时更新图表（含懒初始化）
   useEffect(() => {
-    if (!chartRef.current) return
-    if (chartOption) {
+    if (!chartOption) return
+    if (!chartRef.current && containerRef.current) {
+      chartRef.current = echarts.init(containerRef.current)
+    }
+    if (chartRef.current) {
       chartRef.current.setOption(chartOption, true)
-    } else {
-      chartRef.current.clear()
+      chartRef.current.resize()
     }
   }, [chartOption])
 
-  if (!data?.length) {
-    return (
-      <div>
-        <h3>图形展示</h3>
-        <Empty description="暂无数据，请先查询" style={{ padding: '60px 0' }} />
-      </div>
-    )
-  }
+  const hasData = !!data?.length
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>图形展示</h3>
-        <Radio.Group
-          value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
-          optionType="button"
-          buttonStyle="solid"
-          size="small"
-        >
-          <Radio.Button value="line">折线图</Radio.Button>
-          <Radio.Button value="bar">柱状图</Radio.Button>
-        </Radio.Group>
+        {hasData && (
+          <Radio.Group
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+            size="small"
+          >
+            <Radio.Button value="line">折线图</Radio.Button>
+            <Radio.Button value="bar">柱状图</Radio.Button>
+          </Radio.Group>
+        )}
       </div>
-      <div ref={containerRef} style={{ width: '100%', height: 500 }} />
+      {!hasData && <Empty description="暂无数据，请先查询" style={{ padding: '60px 0' }} />}
+      <div ref={containerRef} style={{ width: '100%', height: 500, display: hasData ? 'block' : 'none' }} />
     </div>
   )
 }

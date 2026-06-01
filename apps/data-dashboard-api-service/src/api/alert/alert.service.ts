@@ -55,30 +55,28 @@ export class AlertService {
       .orderBy('r.created_at', 'DESC')
       .getMany()
 
-    // 批量查询关联的通知配置名称
-    const data: IAlertRuleListItem[] = await Promise.all(
-      list.map(async (item) => {
-        let notificationName: string | undefined
-        if (item.notificationId) {
-          const notification = await this.notificationRepo.findOne({ where: { id: item.notificationId } })
-          notificationName = notification?.notificationName
-        }
-        return {
-          id: Number(item.id),
-          ruleName: item.ruleName!,
-          ruleType: item.ruleType as any,
-          condition: item.condition!,
-          projectId: item.projectId ? Number(item.projectId) : undefined,
-          notificationId: item.notificationId ? Number(item.notificationId) : undefined,
-          notificationName,
-          isEnable: item.isEnable === 1,
-          description: item.description,
-          lastTriggerTime: item.lastTriggerTime?.toISOString(),
-          createTime: item.createdAt?.toISOString(),
-          updateTime: item.updatedAt?.toISOString(),
-        }
-      }),
-    )
+    // 批量查询关联的通知配置名称（避免 N+1）
+    const notificationIds = [...new Set(list.map(item => item.notificationId).filter(Boolean))]
+    const notificationMap = new Map<number, string>()
+    if (notificationIds.length > 0) {
+      const notifications = await this.notificationRepo.findByIds(notificationIds)
+      notifications.forEach(n => notificationMap.set(Number(n.id), n.notificationName!))
+    }
+
+    const data: IAlertRuleListItem[] = list.map((item) => ({
+      id: Number(item.id),
+      ruleName: item.ruleName!,
+      ruleType: item.ruleType as any,
+      condition: item.condition!,
+      projectId: item.projectId ? Number(item.projectId) : undefined,
+      notificationId: item.notificationId ? Number(item.notificationId) : undefined,
+      notificationName: item.notificationId ? notificationMap.get(Number(item.notificationId)) : undefined,
+      isEnable: item.isEnable === 1,
+      description: item.description,
+      lastTriggerTime: item.lastTriggerTime?.toISOString(),
+      createTime: item.createdAt?.toISOString(),
+      updateTime: item.updatedAt?.toISOString(),
+    }))
 
     return { data, total, page, pageSize }
   }

@@ -58,8 +58,8 @@ export class EventService {
       eventAliases: eventAliases || '',
       eventRemark: eventRemark || '',
       status: MetaEventStatus.VALID,
-      createUserId: user.id,
-      updateUserId: user.id,
+      createUserId: user.userId,
+      updateUserId: user.userId,
     })
 
     await this.eventRepository.save(event)
@@ -229,7 +229,7 @@ export class EventService {
     if (eventAliases !== undefined) updateData.eventAliases = eventAliases
     if (eventRemark !== undefined) updateData.eventRemark = eventRemark
     if (status !== undefined) updateData.status = status
-    if (user.id !== undefined) updateData.updateUserId = user.id
+    if (user.userId !== undefined) updateData.updateUserId = user.userId
     updateData.updateTime = new Date()
 
     const result = await this.eventRepository.update({ eventName }, updateData)

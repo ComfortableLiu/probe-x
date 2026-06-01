@@ -23,6 +23,13 @@ import { BullModule } from "@nestjs/bullmq"
 import { SystemDataModule } from "@src/api/system-data/system-data.module"
 import { SystemConfigModule } from "@src/api/system-config/system-config.module"
 import { DashboardModule } from "@src/api/dashboard/dashboard.module"
+import { HomepageModule } from "@src/api/homepage/homepage.module"
+import { ComputeNodeModule } from "@src/api/compute-node/compute-node.module"
+import { ProjectModule } from "@src/api/project/project.module"
+import { AlertModule } from "@src/api/alert/alert.module"
+import { AuditLogModule } from "@src/api/audit-log/audit-log.module"
+import { DataSourceModule } from "@src/api/datasource/datasource.module"
+import { NotificationModule } from "@src/api/notification/notification.module"
 
 @Module({
   imports: [
@@ -63,6 +70,13 @@ import { DashboardModule } from "@src/api/dashboard/dashboard.module"
     SystemDataModule,
     SystemConfigModule,
     DashboardModule,
+    HomepageModule,
+    ComputeNodeModule,
+    ProjectModule,
+    AlertModule,
+    AuditLogModule,
+    DataSourceModule,
+    NotificationModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

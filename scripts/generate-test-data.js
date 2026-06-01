@@ -27,10 +27,10 @@ const { URL } = require('url')
 function parseArgs() {
   const args = {
     days: 7, events: 50000, users: 500, sessions: 3000, batch: 5000, preview: 10,
-    host: 'http://123.56.201.124:9301',
+    host: process.env.CLICKHOUSE_HOST || 'http://localhost:8123',
     database: process.env.CLICKHOUSE_DATABASE || 'probe_x',
-    username: 'admin',
-    password: '12341234',
+    username: process.env.CLICKHOUSE_USER || 'default',
+    password: process.env.CLICKHOUSE_PASSWORD || '',
     dryRun: false, clean: false, dirtyRate: 0.03,
   }
   for (const raw of process.argv.slice(2)) {
@@ -849,6 +849,12 @@ async function main() {
     catch (e) { console.error('读取表结构失败:', e.message); process.exit(1) }
 
     if (args.clean) {
+      // 安全检查：非 localhost 需要显式 --force
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(args.host)
+      if (!isLocalhost && !args.force) {
+        console.error(`错误: --clean 目标为远程主机 ${args.host}，请添加 --force 确认`)
+        process.exit(1)
+      }
       console.log('清除旧数据...')
       for (const t of ['event_log','final_event_log','event_attribution']) {
         try { await executeDDL(args.host, args.database, `TRUNCATE TABLE ${t}`, args); console.log(`  ${t} 已清除`) }

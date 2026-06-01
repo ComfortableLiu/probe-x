@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { ProjectService } from './project.service'
 import {
   ICreateProjectReq,
@@ -13,7 +13,9 @@ import {
   IProjectMemberItem,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
+import { AdminGuard } from '../../guard/admin.guard'
 
+@UseGuards(AdminGuard)
 @Controller('project')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}

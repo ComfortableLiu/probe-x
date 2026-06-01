@@ -360,7 +360,7 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
 
       // 按日期生成指标列：为每个日期生成一个聚合列
       const dateMetricsArray = dateList.map(date => {
-        const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`)
+        const dateParamKey = generateParamKey(`event_date_${index}_${date.replace(/-/g, '')}`, indexRef)
         sqlParams[dateParamKey] = date
 
         const dateCondition = `toDate(${wrapFieldWithBacktick('$service_time')}) = toDate({${dateParamKey}:String})`

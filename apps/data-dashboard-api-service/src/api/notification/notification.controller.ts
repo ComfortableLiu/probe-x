@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
 import { NotificationService } from './notification.service'
 import {
   ICreateNotificationReq,
@@ -11,7 +11,9 @@ import {
   IUpdateNotificationRes,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
+import { AdminGuard } from '../../guard/admin.guard'
 
+@UseGuards(AdminGuard)
 @Controller('notification')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
