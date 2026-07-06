@@ -6,6 +6,13 @@ import {
   IFunnelAnalysisReq,
   IQueryDownloadTaskReq,
   IQueryDownloadTaskRes,
+  IRetentionAnalysisReq,
+  IRetentionAnalysisRes,
+  ISegmentCreateReq,
+  ISegmentExportReq,
+  ISegmentQueryReq,
+  ISegmentQueryRes,
+  ISegmentStats,
   ISubmitDownloadTaskReq,
   ISubmitDownloadTaskRes,
   IUser,
@@ -16,6 +23,8 @@ import { EventAnalysisService } from "./event-analysis.service"
 import { FunnelAnalysisService } from "./funnel-analysis.service"
 import { UserPathAnalysisService } from "./user-path-analysis.service"
 import { AttributionAnalysisService } from "./attribution-analysis.service"
+import { RetentionAnalysisService } from "./retention-analysis.service"
+import { UserSegmentationService } from "./user-segmentation.service"
 import { DataAnalysisRecordService } from "./record.service"
 import { Request } from 'express'
 
@@ -26,6 +35,8 @@ export class DataAnalysisController {
     private readonly funnelAnalysisService: FunnelAnalysisService,
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
+    private readonly retentionAnalysisService: RetentionAnalysisService,
+    private readonly userSegmentationService: UserSegmentationService,
     private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
@@ -268,5 +279,134 @@ export class DataAnalysisController {
     await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download/task', req.ip, req.get('User-Agent') || undefined)
 
     return await this.attributionAnalysisService.queryDownloadTask(data.taskId)
+  }
+
+  /**
+   * 留存分析 - 查询数据
+   */
+  @Post('/retention/query')
+  async queryRetention(
+    @Body() data: IRetentionAnalysisReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IRetentionAnalysisRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.retentionAnalysisService.queryRetention(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.cohorts.length, true)
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
+  }
+
+  /**
+   * 留存分析 - 创建数据下载
+   */
+  @Post('/retention/download')
+  async createRetentionDownloadTask(
+    @Body() data: IRetentionAnalysisReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISubmitDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download', req.ip, req.get('User-Agent') || undefined)
+
+    const res = await this.retentionAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', '留存分析数据导出', data)
+    return res
+  }
+
+  /**
+   * 留存分析 - 查询下载数据任务进度
+   */
+  @Post('/retention/download/task')
+  async queryRetentionDownloadTask(
+    @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download/task', req.ip, req.get('User-Agent') || undefined)
+
+    return await this.retentionAnalysisService.queryDownloadTask(data.taskId)
+  }
+
+  /**
+   * 用户分群 - 创建分群
+   */
+  @Post('/segment/create')
+  async createSegment(
+    @Body() data: ISegmentCreateReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISegmentStats> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/create', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.userSegmentationService.createSegment(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.totalUsers, true)
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
+  }
+
+  /**
+   * 用户分群 - 查询分群用户列表
+   */
+  @Post('/segment/query')
+  async querySegment(
+    @Body() data: ISegmentQueryReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISegmentQueryRes> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/query', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.userSegmentationService.querySegment(data, user)
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.users.length, true)
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      throw error
+    }
+  }
+
+  /**
+   * 用户分群 - 导出分群用户列表
+   */
+  @Post('/segment/export')
+  async exportSegment(
+    @Body() data: ISegmentExportReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<{ users: string[]; total: number }> {
+    // 记录访问日志
+    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/export', req.ip, req.get('User-Agent') || undefined)
+
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'csv', '用户分群导出', data)
+
+    return await this.userSegmentationService.exportSegment(data.segmentId, user)
   }
 }

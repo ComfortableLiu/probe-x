@@ -3,21 +3,10 @@ import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
-import copy from 'rollup-plugin-copy';
-
-import {readFileSync} from 'fs';
-import path from "node:path";
-import {fileURLToPath} from "node:url";
-
-const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
-
-const __filename = fileURLToPath(import.meta.url)
-const receivingPointServicePath = path.dirname(__filename)
-// 根目录路径
-const rootDir = path.resolve(receivingPointServicePath, '../..')
 
 const baseConfig = {
   input: 'src/index.ts',
+  // uuid 仅在 UMD 构建中内联（浏览器 script 标签使用），ESM/CJS 保持外部依赖以支持 tree-shaking
   external: ['uuid'],
   plugins: [
     resolve({
@@ -33,91 +22,134 @@ const baseConfig = {
   ],
 };
 
+// UMD 构建需要内联 uuid（浏览器无法自动解析 node_modules）
+const umdConfig = {
+  ...baseConfig,
+  external: [],
+  plugins: [
+    resolve({
+      browser: true,
+      preferBuiltins: false,
+    }),
+    commonjs(),
+    typescript({
+      tsconfig: './tsconfig.json',
+      declaration: false,
+      declarationMap: false,
+    }),
+  ],
+};
+
 export default [
-  // UMD build (for browsers)
+  // UMD build (用于 <script> 标签)
   {
-    ...baseConfig,
+    ...umdConfig,
     output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.js'),
+      file: 'dist/probe-x-sdk.umd.js',
       format: 'umd',
       name: 'ProbeX',
       sourcemap: true,
-      globals: {
-        uuid: 'uuid',
-      },
+      exports: 'named',
     },
   },
-  // UMD minified build
+  // UMD minified build (用于生产环境 CDN)
+  {
+    ...umdConfig,
+    plugins: [
+      ...umdConfig.plugins,
+      terser({
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+          passes: 2,
+        },
+        mangle: {
+          reserved: ['ProbeX'],
+        },
+        format: {
+          comments: false,
+        },
+      }),
+    ],
+    output: {
+      file: 'dist/probe-x-sdk.umd.min.js',
+      format: 'umd',
+      name: 'ProbeX',
+      sourcemap: true,
+      exports: 'named',
+    },
+  },
+  // ES module build (支持 tree-shaking)
+  {
+    ...baseConfig,
+    output: {
+      file: 'dist/probe-x-sdk.esm.js',
+      format: 'es',
+      sourcemap: true,
+    },
+  },
+  // ES module minified build
   {
     ...baseConfig,
     plugins: [
       ...baseConfig.plugins,
       terser({
         compress: {
-          drop_console: false, // 保留console.log用于调试
+          drop_console: true,
           drop_debugger: true,
+          passes: 2,
         },
-        mangle: {
-          reserved: ['ProbeX'], // 保留主类名
+        format: {
+          comments: false,
         },
       }),
     ],
     output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.min.js'),
-      format: 'umd',
-      name: 'ProbeX',
-      sourcemap: true,
-      globals: {
-        uuid: 'uuid',
-      },
-    },
-  },
-  // ES module build
-  {
-    ...baseConfig,
-    output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.esm.js'),
+      file: 'dist/probe-x-sdk.esm.min.js',
       format: 'es',
       sourcemap: true,
     },
   },
-  // CommonJS build
+  // CommonJS build (用于 require)
   {
     ...baseConfig,
     output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.cjs.js'),
+      file: 'dist/probe-x-sdk.cjs.js',
       format: 'cjs',
       sourcemap: true,
+      exports: 'named',
     },
   },
-  // TypeScript declarations
+  // CommonJS minified build
+  {
+    ...baseConfig,
+    plugins: [
+      ...baseConfig.plugins,
+      terser({
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+          passes: 2,
+        },
+        format: {
+          comments: false,
+        },
+      }),
+    ],
+    output: {
+      file: 'dist/probe-x-sdk.cjs.min.js',
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named',
+    },
+  },
+  // TypeScript declarations (.d.ts)
   {
     input: 'src/index.ts',
     output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/probe-x-sdk.d.ts'),
+      file: 'dist/probe-x-sdk.d.ts',
       format: 'es',
     },
     plugins: [dts()],
-  },
-  // Copy files
-  {
-    input: 'src/index.ts',
-    output: {
-      file: path.resolve(rootDir, 'dist/apps/web-sdk/temp.js'),
-      format: 'es',
-    },
-    plugins: [
-      typescript({
-        tsconfig: './tsconfig.json',
-        declaration: false,
-        declarationMap: false,
-      }),
-      copy({
-        targets: [
-          { src: 'README.md', dest: path.resolve(rootDir, 'dist/apps/web-sdk') },
-          { src: 'examples/**/*', dest: path.resolve(rootDir, 'dist/apps/web-sdk/examples') },
-        ],
-      }),
-    ],
   },
 ];

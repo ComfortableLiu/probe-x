@@ -95,7 +95,7 @@ export class ComputeNodeService {
       if (item.$is_attribution_event && item.$target_page_id) {
         // 从上个页面取出来，加上一起来的数据，存到目标页面的数据中
         // 累计的归因数据，路由事件的page_id就是下个页面的source_page_id
-        const sourceAttributionData = attributionDataMap.get(item.$page_id) || []
+        const sourceAttributionData = [...(attributionDataMap.get(item.$page_id) || [])]
         // 事件中传的除了spm scm以外的其他参数
         // item.$ex_attribution_params
         // 目标页面id

@@ -49,7 +49,33 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 方式一：Docker Compose 一键部署（推荐）
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/ComfortableLiu/probe-x.git
+cd probe-x
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，修改安全配置（必须！）
+
+# 3. 启动所有服务
+docker compose up -d --build
+
+# 4. 查看服务状态
+docker compose ps
+
+# 5. 访问系统
+# 前端界面: http://localhost
+# API 服务: http://localhost:8101/api
+```
+
+> 📚 详细部署文档请参考 [Docker 部署指南](./docs/docker-deployment.md)
+
+### 方式二：本地开发环境
+
+#### 环境要求
 - Node.js >= 18.12.0（暂定，Rspack限制）
 - Yarn >= 1.22.0
 - MySQL >= 5.7
@@ -57,7 +83,7 @@
 - Redis >= 6.0
 - ClickHouse >= 24.8
 
-### 安装和启动
+#### 安装和启动
 
 ```bash
 # 1. 克隆项目
@@ -252,6 +278,7 @@ open http://localhost:9000
 ## 📚 文档
 
 ### 主要文档
+- [Docker 部署指南](./docs/docker-deployment.md) - Docker 一键部署
 - [快速启动指南](./docs/QUICK_START.md) - 快速上手指南
 - [命令使用指南](./docs/COMMANDS_GUIDE.md) - 详细命令说明
 - [系统架构文档](./docs/SYSTEM_ARCHITECTURE.md) - 系统架构详解

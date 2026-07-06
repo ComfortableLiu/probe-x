@@ -1,0 +1,38 @@
+# Source code
+src/
+__tests__/
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+
+# Development config
+.eslintrc.json
+tsconfig.json
+jest.config.js
+rollup.config.js
+project.json
+test.html
+
+# Build cache and temp files
+.rollup.cache/
+dist/.tsbuildinfo
+dist/temp.js
+dist/temp.js.map
+dist/README.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+
+# Examples (不随包发布，通过 GitHub 查看)
+examples/

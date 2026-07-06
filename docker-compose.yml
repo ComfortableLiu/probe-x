@@ -1,0 +1,400 @@
+# Probe-X Docker Compose 配置
+# 一键部署 Probe-X 数据分析系统
+
+services:
+  # ==================== 基础设施服务 ====================
+
+  mysql:
+    image: mysql:8.0
+    container_name: probe-x-mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}
+      MYSQL_DATABASE: ${DB_DATABASE:-probe_x}
+      MYSQL_USER: ${DB_USERNAME:-probe_x}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: probe-x-kafka
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9092}:9092"
+    environment:
+      # KRaft 配置
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # 性能配置
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CFG_LOG_RETENTION_HOURS: 168
+      KAFKA_CFG_LOG_SEGMENT_BYTES: 1073741824
+      # 允许外部访问
+      KAFKA_CFG_LISTENER_NAME_PLAINTEXT_SASL_CLIENT_REQUEST: "false"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: probe-x-clickhouse
+    restart: unless-stopped
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_TCP_PORT:-9000}:9000"
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-probe_x}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./scripts/init-clickhouse.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  redis:
+    image: redis:7-alpine
+    container_name: probe-x-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-probe_x_redis_2024}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-probe_x_redis_2024}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==================== 应用服务 ====================
+
+  receiving-point-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: receiving-point-service
+    container_name: probe-x-receiving-point
+    restart: unless-stopped
+    ports:
+      - "${RECEIVING_POINT_SERVICE_PORT:-8104}:8104"
+    environment:
+      NODE_ENV: production
+      PORT: 8104
+      # 数据库配置
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-probe_x}
+      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_DATABASE: ${DB_DATABASE:-probe_x}
+      DB_SYNCHRONIZE: "true"
+      # ClickHouse 配置
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-probe_x}
+      CLICKHOUSE_TLS: "false"
+      CLICKHOUSE_REJECT_UNAUTHORIZED: "false"
+      # Kafka 配置
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: receiving-point-service
+      KAFKA_CONSUMER_GROUP_ID: receiving-point-consumer-group
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      # 安全配置
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
+      SALT: ${SALT:-your_salt_here}
+      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8104/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  preliminary-data-processing-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: preliminary-data-processing-service
+    container_name: probe-x-preliminary-processing
+    restart: unless-stopped
+    ports:
+      - "${PRELIMINARY_DATA_PROCESSING_SERVICE_PORT:-8103}:3002"
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      # 数据库配置
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-probe_x}
+      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_DATABASE: ${DB_DATABASE:-probe_x}
+      DB_SYNCHRONIZE: "true"
+      # ClickHouse 配置
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-probe_x}
+      CLICKHOUSE_TLS: "false"
+      CLICKHOUSE_REJECT_UNAUTHORIZED: "false"
+      # Kafka 配置
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: preliminary-data-processing-service
+      KAFKA_CONSUMER_GROUP_ID: preliminary-data-processing-consumer
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      # 安全配置
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
+      SALT: ${SALT:-your_salt_here}
+      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - probe-x-network
+
+  final-data-cleaning-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: final-data-cleaning-service
+    container_name: probe-x-final-cleaning
+    restart: unless-stopped
+    ports:
+      - "${FINAL_DATA_CLEANING_SERVICE_PORT:-10000}:10000"
+    environment:
+      NODE_ENV: production
+      PORT: 10000
+      # 数据库配置
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-probe_x}
+      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_DATABASE: ${DB_DATABASE:-probe_x}
+      DB_SYNCHRONIZE: "true"
+      # ClickHouse 配置
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-probe_x}
+      CLICKHOUSE_TLS: "false"
+      CLICKHOUSE_REJECT_UNAUTHORIZED: "false"
+      # Kafka 配置
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: final-data-cleaning-service
+      KAFKA_CONSUMER_GROUP_ID: final-data-cleaning-consumer-group
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      # 安全配置
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
+      SALT: ${SALT:-your_salt_here}
+      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - probe-x-network
+
+  data-dashboard-api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: data-dashboard-api-service
+    container_name: probe-x-dashboard-api
+    restart: unless-stopped
+    ports:
+      - "${DATA_DASHBOARD_API_SERVICE_PORT:-8101}:8101"
+    environment:
+      NODE_ENV: production
+      PORT: 8101
+      # 数据库配置
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-probe_x}
+      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_DATABASE: ${DB_DATABASE:-probe_x}
+      DB_SYNCHRONIZE: "true"
+      # ClickHouse 配置
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-probe_x}
+      CLICKHOUSE_TLS: "false"
+      CLICKHOUSE_REJECT_UNAUTHORIZED: "false"
+      # Kafka 配置
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: data-dashboard-api-service
+      KAFKA_CONSUMER_GROUP_ID: data-dashboard-api-group
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      # 服务配置
+      CLIENT_HOST: http://frontend
+      CLIENT_PORT: 80
+      SSO: http://frontend
+      DATA_DASHBOARD_API_SERVICE_HOST: http://data-dashboard-api-service
+      DATA_DASHBOARD_API_SERVICE_PORT: 8101
+      FINAL_DATA_CLEANING_SERVICE_HOST: http://final-data-cleaning-service
+      FINAL_DATA_CLEANING_SERVICE_PORT: 10000
+      PRELIMINARY_DATA_PROCESSING_SERVICE_HOST: http://preliminary-data-processing-service
+      PRELIMINARY_DATA_PROCESSING_SERVICE_PORT: 3002
+      RECEIVING_POINT_SERVICE_HOST: http://receiving-point-service
+      RECEIVING_POINT_SERVICE_PORT: 8104
+      # CORS 配置
+      CORS_ORIGINS: http://localhost,http://localhost:80,http://frontend
+      # 安全配置
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
+      SALT: ${SALT:-your_salt_here}
+      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-86400}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-604800}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8101/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: probe-x-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      NODE_ENV: production
+      # API 服务地址
+      DASHBOARD_HOST: http://data-dashboard-api-service
+      DASHBOARD_PORT: 8101
+    depends_on:
+      data-dashboard-api-service:
+        condition: service_healthy
+    networks:
+      - probe-x-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ==================== 数据卷 ====================
+volumes:
+  mysql_data:
+    driver: local
+  kafka_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+  redis_data:
+    driver: local
+
+# ==================== 网络 ====================
+networks:
+  probe-x-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
