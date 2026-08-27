@@ -114,7 +114,7 @@ function Project() {
         <Space>
           <a onClick={() => handleEdit(record)}>编辑</a>
           <Popconfirm title="确定要删除该项目吗？删除后关联数据将被清除。" onConfirm={() => handleDelete(record)} okText="确定" cancelText="取消">
-            <a style={{ color: '#ff4d4f' }}>删除</a>
+            <a style={{ color: 'var(--px-color-error)' }}>删除</a>
           </Popconfirm>
         </Space>
       ),

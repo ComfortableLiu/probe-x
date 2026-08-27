@@ -138,7 +138,8 @@ export class RetentionAnalysisService {
 
     // 任务加入 BullMQ 队列（异步执行）
     const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
-    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData)
+    // 任务状态写入 Redis，设置 24h TTL 防止无限堆积
+    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData, 60 * 60 * 24)
     return {
       taskId,
     }

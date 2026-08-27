@@ -1,6 +1,7 @@
 import React, { memo } from "react"
-import { Card, Col, Row, Statistic } from "antd"
+import { Col, Row } from "antd"
 import { ISystemPerformanceMetrics } from "@probe-x/shared-types/src"
+import MetricCard from "@components/MetricCard"
 import * as styles from "./styles.module.scss"
 
 interface SystemAvailabilityProps {
@@ -12,24 +13,22 @@ function SystemAvailability({ systemPerformanceMetrics }: SystemAvailabilityProp
     <div>
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={12}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="当前可用性"
-              value={systemPerformanceMetrics.systemAvailability}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
+          <MetricCard
+            title="当前可用性"
+            value={systemPerformanceMetrics.systemAvailability}
+            suffix="%"
+            precision={2}
+            status="good"
+          />
         </Col>
         <Col span={12}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="本月可用性"
-              value={systemPerformanceMetrics.currentMonthAvailability}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
+          <MetricCard
+            title="本月可用性"
+            value={systemPerformanceMetrics.currentMonthAvailability}
+            suffix="%"
+            precision={2}
+            status="good"
+          />
         </Col>
       </Row>
     </div>

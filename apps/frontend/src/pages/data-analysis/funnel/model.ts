@@ -32,7 +32,6 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
       const {
         globalFilters,
         timeRange,
-        dimension,
         funnelType,
         funnelInfoList,
         windowPeriod,
@@ -43,9 +42,7 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
       if (!timeRange?.length) {
         return '请选择时间范围'
       }
-      if (!dimension?.length) {
-        return '请选择维度项'
-      }
+      // 维度非必填，默认按「总体」统计
 
       if (funnelInfoList.map(item => item.eventInfo).some(item => !item.eventName || !item.metrics || (item.filters?.length && item.filters.some(filter => !filter.propertyName || !filter.propertyType || !filter.compareType || isEmpty(filter.propertyValue) || (Array.isArray(filter.propertyValue) && (filter.propertyValue.length === 0 || filter.propertyValue.some(item => isEmpty(item)))))))) {
         return '请完善事件项'
@@ -68,38 +65,54 @@ const dataAnalysisFunnelModel = createModel<RootModel>()({
     },
     // 提交查询数据
     async submitQuery() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 200) {
-        message.error(msg || '查询失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitQueryTask(query)
+        if (code !== 200) {
+          message.error(msg || '查询失败')
+          return
+        }
+        // 储存查询结果及本次查询参数快照（结果区按快照渲染，不实时跟随筛选配置）
+        dispatch.dataAnalysisFunnelModel.updateItem({
+          data,
+          updateTime: new Date(),
+          querySnapshot: query,
+        })
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      // 储存查询结果
-      dispatch.dataAnalysisFunnelModel.updateItem({
-        data,
-        updateTime: new Date(),
-      })
     },
     // 下载数据
     async downloadData() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitDownloadTask(query)
-      if (code !== 200 || !data?.taskId) {
-        message.error(msg || '提交下载任务失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitDownloadTask(query)
+        if (code !== 200 || !data?.taskId) {
+          message.error(msg || '提交下载任务失败')
+          return
+        }
+        return data.taskId
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      return data.taskId
     },
     // 查询下载任务
     async queryDownloadTask({ taskId }: { taskId: string }) {
-      if (!taskId) return null
-      const { data, code, msg } = await queryDownloadTask({ taskId })
+      try {
+        if (!taskId) return null
+        const { data, code, msg } = await queryDownloadTask({ taskId })
 
-      if (code !== 200 || !data) {
-        message.error(msg || '查询失败')
-        return
+        if (code !== 200 || !data) {
+          message.error(msg || '查询失败')
+          return
+        }
+        return data
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      return data
     },
   }),
 })

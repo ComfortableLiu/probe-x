@@ -168,24 +168,25 @@ export class AnalysisService {
       const queryTrendResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select([
-          'DATE(create_time) as date',
+          // 使用 DATE_FORMAT 返回字符串，避免 DATE 被驱动解析为 Date 对象导致去重/查找失效
+          "DATE_FORMAT(create_time, '%Y-%m-%d') as date",
           'COUNT(*) as count',
         ])
         .where(whereCondition, whereParams)
-        .groupBy('DATE(create_time)')
-        .orderBy('DATE(create_time)', 'ASC')
+        .groupBy("DATE_FORMAT(create_time, '%Y-%m-%d')")
+        .orderBy("DATE_FORMAT(create_time, '%Y-%m-%d')", 'ASC')
         .getRawMany()
 
       // 查询每日查询人数趋势
       const userTrendResult = await this.dataAnalysisQueryStatsRepository
         .createQueryBuilder('stats')
         .select([
-          'DATE(create_time) as date',
+          "DATE_FORMAT(create_time, '%Y-%m-%d') as date",
           'COUNT(DISTINCT user_id) as count',
         ])
         .where(whereCondition, whereParams)
-        .groupBy('DATE(create_time)')
-        .orderBy('DATE(create_time)', 'ASC')
+        .groupBy("DATE_FORMAT(create_time, '%Y-%m-%d')")
+        .orderBy("DATE_FORMAT(create_time, '%Y-%m-%d')", 'ASC')
         .getRawMany()
 
       // 整合数据

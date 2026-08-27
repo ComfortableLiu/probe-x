@@ -3,8 +3,7 @@ import FormComponent from "@components/FormComponent"
 import TableComponent from "@components/TableComponent"
 import { IFormItem } from "@components/FormComponent/type"
 import { FormItemType } from "@components/FormComponent/constants"
-import { Button, Space, TableProps } from "antd"
-import { AddOne } from "@icon-park/react"
+import { TableProps, Tag } from "antd"
 import * as styles from "./styles.module.scss"
 import PageHeader from "@components/PageHeader"
 
@@ -12,6 +11,9 @@ import PageHeader from "@components/PageHeader"
  * 系统参数配置
  * 功能说明：管理系统级别的参数配置，包括系统参数的新增、编辑、删除和查看
  * 用途：用于配置系统运行的关键参数，如数据保留时间、采样率、缓存大小等全局设置
+ *
+ * TODO: 后端系统参数接口尚未实现，当前页面仅为占位（列表数据为空，不提供新增/编辑入口），
+ * 待接口就绪后补齐数据源与操作按钮
  */
 function SystemParams() {
 
@@ -61,35 +63,21 @@ function SystemParams() {
       title: '更新人',
       dataIndex: 'updateUser',
       width: 120,
-    }, {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      fixed: 'right',
-      render: () => (
-        <Space>
-          <a>编辑</a>
-          <a>详情</a>
-        </Space>
-      ),
     },
   ]
 
   return (
     <div className={styles.systemParams}>
-      <PageHeader title="系统参数配置" />
+      <PageHeader
+        title="系统参数配置"
+        extra={<Tag color="warning">功能建设中</Tag>}
+      />
       <p className={styles.description}>
         管理系统级别的参数配置，包括系统参数的新增、编辑、删除和查看。用于配置系统运行的关键参数，如数据保留时间、采样率、缓存大小等全局设置。
       </p>
       <FormComponent formItems={formItems} />
       <TableComponent
         scroll={{ x: 'max-content' }}
-        exButtons={(
-          <Button type="primary">
-            新增参数
-            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-          </Button>
-        )}
         dataSource={[]}
         columns={columns}
         loading={false}

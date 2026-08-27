@@ -43,7 +43,8 @@ function EventSelector() {
               {item.eventRemark}
             </>
           )}>
-            {item.eventAliases}
+            {/* 别名可能为空，为空时回退展示事件名，避免下拉项空白 */}
+            {item.eventAliases || item.eventName}
           </Tooltip>
         ),
         value: item.eventName,

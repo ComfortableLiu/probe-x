@@ -8,6 +8,20 @@ import { Dispatch } from "@/store/storeContext"
 import { hmacSHA } from "@utils/encryption"
 import { get } from "@config"
 
+// 校验重定向地址，仅允许同源路径，防止开放重定向
+const getSafeRedirectUri = (uri: string): string => {
+  if (typeof uri !== 'string' || !uri) return '/'
+  if (uri.startsWith('/') && !uri.startsWith('//')) return uri
+  try {
+    if (new URL(uri, window.location.origin).origin === window.location.origin) {
+      return uri
+    }
+  } catch (e) {
+    // 非法 URL，走默认回退
+  }
+  return '/'
+}
+
 function Login() {
   const { redirectUri } = useQuery()
 
@@ -26,11 +40,7 @@ function Login() {
       message.success('登录成功')
 
       setTimeout(() => {
-        if (redirectUri) {
-          window.location.replace(redirectUri)
-        } else {
-          window.location.replace('/')
-        }
+        window.location.replace(getSafeRedirectUri(redirectUri))
       }, 1000)
     } catch (e) {
       message.error('登录失败')

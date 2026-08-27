@@ -1,4 +1,4 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
+import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
 import { Observable } from 'rxjs'
 
 @Injectable()
@@ -16,8 +16,8 @@ export class JsonBodyInterceptor implements NestInterceptor {
           request.body = JSON.parse(jsonString) // 解析后覆盖原 body
         }
       } catch (error: any) {
-        // 解析失败时可抛出异常（如 400 Bad Request）
-        throw new Error(`Invalid JSON in request body: ${error.message}`)
+        // 解析失败时抛出 400 Bad Request
+        throw new BadRequestException(`Invalid JSON in request body: ${error.message}`)
       }
     }
 

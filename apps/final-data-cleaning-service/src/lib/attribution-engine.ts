@@ -29,13 +29,21 @@ export interface AttributionEngineResult {
  *   - 将新归因项追加到源页面的归因数组中
  *   - 以 $target_page_id 为 key 存入 Map
  * - 遍历完成后，将所有归因数据展开为 KV 格式
+ * 
+ * @param eventList 按时间排序的事件列表
+ * @param onProgress 可选的进度回调，每处理完一个事件调用一次
  */
-export function computeAttribution(eventList: IPreEventLog[]): AttributionEngineResult {
+export function computeAttribution(
+  eventList: IPreEventLog[],
+  onProgress?: (processed: number, total: number) => void,
+): AttributionEngineResult {
   // 页面级别的累积归因状态
   const attributionDataMap = new Map<string, IAttributionInfo>()
 
   // 从第一个事件向后扫描
-  eventList.forEach((item) => {
+  eventList.forEach((item, index) => {
+    // 逐条推送进度
+    onProgress?.(index + 1, eventList.length)
     // 检查是否是更新归因逻辑的事件
     if (item.$is_attribution_event && item.$target_page_id) {
       // 从上个页面取出来累计归因数据

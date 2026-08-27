@@ -1,51 +1,53 @@
 // Probe-X SDK集成
-import ProbeX from '@probe-x/web-sdk';
+import ProbeX from '@probe-x/web-sdk'
 
 // 全局ProbeX实例
-let probeXInstance: ProbeX | null = null;
+let probeXInstance: ProbeX | null = null
 
 // 初始化Probe-X SDK
 export const initProbeX = () => {
   if (probeXInstance) {
-    return probeXInstance;
+    return probeXInstance
   }
 
   const config = {
-    apiUrl: 'http://localhost:8104/point/report',
+    // apiUrl/debug 通过 rspack DefinePlugin 注入环境变量，未配置时使用本地默认值
+    apiUrl: process.env.PROBE_X_API_URL || 'http://localhost:8104/point/report',
     appId: 'ecommerce-demo',
-    debug: true,
+    debug: process.env.PROBE_X_DEBUG === 'true',
     autoTrack: true,
-    autoTrackPageView: true,
+    // 关闭自动页面浏览上报，各页面通过 trackPageView 手动上报，避免重复
+    autoTrackPageView: false,
     autoTrackClick: true,
     autoTrackScroll: true,
     autoTrackForm: true,
     batchSize: 10,
     flushInterval: 5000,
-  };
+  }
 
-  probeXInstance = new ProbeX(config);
-  return probeXInstance;
-};
+  probeXInstance = new ProbeX(config)
+  return probeXInstance
+}
 
 // 获取ProbeX实例
 export const getProbeX = (): ProbeX => {
   if (!probeXInstance) {
-    return initProbeX();
+    return initProbeX()
   }
-  return probeXInstance;
-};
+  return probeXInstance
+}
 
 // 埋点事件跟踪函数
 export const trackEvent = (eventName: string, properties: Record<string, any> = {}) => {
-  const probeX = getProbeX();
-  probeX.track(eventName, properties);
-};
+  const probeX = getProbeX()
+  probeX.track(eventName, properties)
+}
 
 // 设置用户属性
 export const setUserProperties = (userProperties: Record<string, any>) => {
-  const probeX = getProbeX();
-  probeX.setUser(userProperties);
-};
+  const probeX = getProbeX()
+  probeX.setUser(userProperties)
+}
 
 // 页面访问埋点
 export const trackPageView = (pageName: string, additionalProperties: Record<string, any> = {}) => {
@@ -54,8 +56,8 @@ export const trackPageView = (pageName: string, additionalProperties: Record<str
     page_url: window.location.href,
     referrer: document.referrer,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 商品浏览埋点
 export const trackProductView = (product: any, additionalProperties: Record<string, any> = {}) => {
@@ -66,8 +68,8 @@ export const trackProductView = (product: any, additionalProperties: Record<stri
     product_brand: product.brand,
     product_price: product.price,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 商品点击埋点
 export const trackProductClick = (product: any, clickType: string = 'card', additionalProperties: Record<string, any> = {}) => {
@@ -79,8 +81,8 @@ export const trackProductClick = (product: any, clickType: string = 'card', addi
     product_price: product.price,
     click_type: clickType,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 添加到购物车埋点
 export const trackAddToCart = (product: any, quantity: number = 1, additionalProperties: Record<string, any> = {}) => {
@@ -93,28 +95,28 @@ export const trackAddToCart = (product: any, quantity: number = 1, additionalPro
     quantity: quantity,
     total_value: product.price * quantity,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 购物车操作埋点
 export const trackCartAction = (action: string, product?: any, quantity?: number, additionalProperties: Record<string, any> = {}) => {
   const eventProperties: Record<string, any> = {
     action: action,
     ...additionalProperties,
-  };
+  }
 
   if (product) {
-    eventProperties.product_id = product.id;
-    eventProperties.product_name = product.name;
-    eventProperties.product_price = product.price;
+    eventProperties.product_id = product.id
+    eventProperties.product_name = product.name
+    eventProperties.product_price = product.price
   }
 
   if (quantity !== undefined) {
-    eventProperties.quantity = quantity;
+    eventProperties.quantity = quantity
   }
 
-  trackEvent('cart_action', eventProperties);
-};
+  trackEvent('cart_action', eventProperties)
+}
 
 // 搜索埋点
 export const trackSearch = (keyword: string, resultsCount: number = 0, additionalProperties: Record<string, any> = {}) => {
@@ -122,8 +124,8 @@ export const trackSearch = (keyword: string, resultsCount: number = 0, additiona
     keyword: keyword,
     results_count: resultsCount,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 购买埋点
 export const trackPurchase = (order: any, additionalProperties: Record<string, any> = {}) => {
@@ -134,8 +136,8 @@ export const trackPurchase = (order: any, additionalProperties: Record<string, a
     item_count: order.items.length,
     payment_method: order.paymentMethod,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 用户注册埋点
 export const trackUserRegister = (user: any, additionalProperties: Record<string, any> = {}) => {
@@ -143,8 +145,8 @@ export const trackUserRegister = (user: any, additionalProperties: Record<string
     user_id: user.id,
     register_method: 'email',
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 用户登录埋点
 export const trackUserLogin = (user: any, additionalProperties: Record<string, any> = {}) => {
@@ -152,8 +154,8 @@ export const trackUserLogin = (user: any, additionalProperties: Record<string, a
     user_id: user.id,
     login_method: 'email',
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 表单提交埋点
 export const trackFormSubmit = (formName: string, formData: Record<string, any> = {}, additionalProperties: Record<string, any> = {}) => {
@@ -161,8 +163,8 @@ export const trackFormSubmit = (formName: string, formData: Record<string, any> 
     form_name: formName,
     form_data: formData,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 按钮点击埋点
 export const trackButtonClick = (buttonName: string, buttonLocation: string, additionalProperties: Record<string, any> = {}) => {
@@ -170,8 +172,8 @@ export const trackButtonClick = (buttonName: string, buttonLocation: string, add
     button_name: buttonName,
     button_location: buttonLocation,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 链接点击埋点
 export const trackLinkClick = (linkText: string, linkUrl: string, linkLocation: string, additionalProperties: Record<string, any> = {}) => {
@@ -180,8 +182,8 @@ export const trackLinkClick = (linkText: string, linkUrl: string, linkLocation: 
     link_url: linkUrl,
     link_location: linkLocation,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 错误埋点
 export const trackError = (errorMessage: string, errorType: string = 'javascript', additionalProperties: Record<string, any> = {}) => {
@@ -189,8 +191,8 @@ export const trackError = (errorMessage: string, errorType: string = 'javascript
     error_message: errorMessage,
     error_type: errorType,
     ...additionalProperties,
-  });
-};
+  })
+}
 
 // 性能埋点
 export const trackPerformance = (metricName: string, value: number, additionalProperties: Record<string, any> = {}) => {
@@ -198,5 +200,5 @@ export const trackPerformance = (metricName: string, value: number, additionalPr
     metric_name: metricName,
     metric_value: value,
     ...additionalProperties,
-  });
-};
+  })
+}

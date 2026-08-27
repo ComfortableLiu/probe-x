@@ -36,6 +36,21 @@ export enum PagePermission {
 }
 
 /**
+ * 需要做页面权限校验的路由路径 → 页面权限映射
+ * RouteGuard 与 appModel.validRouter 共用，未在表中的路径不做页面权限拦截
+ */
+export const ROUTE_PATH_PERMISSION: Record<string, PagePermission> = {
+  '/system-config/user': PagePermission.SYSTEM_CONFIG_USER,
+  '/system-config/role': PagePermission.SYSTEM_CONFIG_ROLE,
+  '/system-config/permission-list': PagePermission.SYSTEM_CONFIG_PERMISSION,
+  '/system-config/datasource': PagePermission.SYSTEM_CONFIG_DATASOURCE,
+  '/system-config/system-params': PagePermission.SYSTEM_CONFIG_SYSTEM_PARAMS,
+  '/system-config/notification': PagePermission.SYSTEM_CONFIG_NOTIFICATION,
+  '/system-config/log-config': PagePermission.SYSTEM_CONFIG_LOG_CONFIG,
+  '/system-config/computing-node': PagePermission.SYSTEM_CONFIG_COMPUTING_NODE,
+}
+
+/**
  * 功能权限枚举
  */
 export enum FunctionPermission {
@@ -121,8 +136,7 @@ export enum SystemRoleKey {
 /**
  * 系统角色配置
  */
-export interface ISystemRoleConfig {
-  roleKey: SystemRoleKey
+export interface ISystemRoleConfig {  roleKey: SystemRoleKey
   roleName: string
   description: string
   isSystemRole: true // 标识为系统角色

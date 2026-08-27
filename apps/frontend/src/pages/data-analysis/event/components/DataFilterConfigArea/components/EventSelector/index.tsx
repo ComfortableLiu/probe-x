@@ -75,7 +75,7 @@ function EventSelector() {
         href="#"
         onClick={() => addEvent()}
       >
-        <AddOne theme="filled" size="24" fill="#536DFE" style={{ display: 'flex' }} />
+        <AddOne theme="filled" size="24" fill="currentColor" style={{ display: 'flex' }} />
         添加指标
       </a>
     </div>

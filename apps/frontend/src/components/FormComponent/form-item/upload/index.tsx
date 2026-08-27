@@ -20,14 +20,17 @@ function FormUpload(props: IFormUploadProps) {
   } = props
 
   const handleChange: UploadProps['onChange'] = (info) => {
-    const { fileList } = info
+    const { file, fileList } = info
     const fileUrlList = fileList
       .filter(file => file.status === 'done')
       .map(file => file.response?.url || file.url)
       .filter(Boolean)
-    
+
     onChange && onChange(maxCount === 1 ? fileUrlList[0] : fileUrlList)
-    submit && submit()
+    // 仅上传完成后才触发提交，避免上传中/失败时提交脏数据
+    if (file.status === 'done') {
+      submit && submit()
+    }
   }
 
   const fileList: UploadFile[] = value 

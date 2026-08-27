@@ -22,6 +22,9 @@ async function bootstrap() {
     },
   })
 
+  // 启用优雅关机钩子，保证进程退出前正确释放资源
+  app.enableShutdownHooks()
+
   await app.listen()
 
   const nodeService = app.get(ComputeNodeService)

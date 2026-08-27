@@ -1,11 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common'
 import { Client } from 'minio'
 import { Readable } from 'stream'
 import { ConfigService } from '@nestjs/config'
 import { MinioModuleOptions } from "./type"
 
 @Injectable()
-export class MinioService {
+export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name)
   private readonly minioClient: Client
   private readonly defaultBucket: string
@@ -19,7 +19,7 @@ export class MinioService {
       secretKey: this.configService.get<string>('minio.secretKey', ''),
       useSSL: this.configService.get<boolean>('minio.useSSL', false),
       bucket: this.configService.get<string>('minio.bucket', ''),
-      downloadExpires: this.configService.get<number>('DOWNLOAD_EXPIRES', 86400),
+      downloadExpires: this.configService.get<number>('minio.downloadExpires', 86400),
     }
 
     // 初始化 MinIO 客户端
@@ -32,13 +32,16 @@ export class MinioService {
     })
 
     this.defaultBucket = minioConfig.bucket
+  }
 
-    // 验证桶是否存在（启动时执行）
-    this.ensureBucketExists(this.defaultBucket)
-      .catch((err) => {
-        this.logger.error(`MinIO 桶验证失败：${err.message}`, err.stack)
-        throw new Error(`MinIO 连接失败，请检查配置和服务器状态`)
-      })
+  // 模块初始化时验证桶是否存在（await 等待完成，失败则阻止启动）
+  async onModuleInit() {
+    try {
+      await this.ensureBucketExists(this.defaultBucket)
+    } catch (err: any) {
+      this.logger.error(`MinIO 桶验证失败：${err.message}`, err.stack)
+      throw new Error(`MinIO 连接失败，请检查配置和服务器状态`)
+    }
   }
 
   /** 确保桶存在，不存在则创建（兜底） */

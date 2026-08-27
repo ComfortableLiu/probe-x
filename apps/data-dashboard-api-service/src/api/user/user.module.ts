@@ -8,6 +8,7 @@ import { JwtAuthGuard } from "./JwtAuthGuard"
 import { AuthService } from "@src/service/auth.service"
 import { JwtService } from "@nestjs/jwt"
 import { Permission, Role, UserEntity, UserRoleRelation } from "@probe-x/shared-utils/src/lib/backend-common"
+import { AdminGuard } from "../../guard/admin.guard"
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { Permission, Role, UserEntity, UserRoleRelation } from "@probe-x/shared-
     ConfigModule,
   ],
   controllers: [UserController],
-  providers: [UserService, AuthService, JwtStrategy, JwtAuthGuard, JwtService],
+  providers: [UserService, AuthService, JwtStrategy, JwtAuthGuard, JwtService, AdminGuard],
   exports: [UserService, JwtAuthGuard],
 })
 export class UserModule {

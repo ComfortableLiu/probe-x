@@ -245,22 +245,6 @@ function buildRegexFilter(
 }
 
 /**
- * 获取漏斗类型对应的聚合函数
- */
-function getFunnelAggregationFunc(funnelType: FunnelTypeEnum): string {
-  switch (funnelType) {
-    case FunnelTypeEnum.COUNT:
-      return `COUNT(*)`
-    case FunnelTypeEnum.USER:
-      return `COUNT(DISTINCT ${wrapFieldWithBacktick("$uid")})`
-    case FunnelTypeEnum.SESSION:
-      return `COUNT(DISTINCT ${wrapFieldWithBacktick("$session_id")})`
-    default:
-      throw new Error(`不支持的漏斗类型：${funnelType}`)
-  }
-}
-
-/**
  * 生成步骤事件条件
  * 使用CASE WHEN将所有步骤判断合并为一个step字段，避免重复别名
  * @returns stepCaseExpr: step字段表达式，stepFilterExpr: 过滤有效步骤的表达式
@@ -329,8 +313,8 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
       return { sql: "", params: {}, error: "窗口期参数格式错误" }
     }
     
-    // 提供默认漏斗模式
-    const funnelMode = params.funnelMode || 'strict'
+    // 提供默认漏斗模式（前端暂未提供模式选择，默认宽松模式：按顺序转化即可，允许中间穿插其他事件）
+    const funnelMode = params.funnelMode || 'loose'
     if (!["strict", "loose"].includes(funnelMode)) {
       return { sql: "", params: {}, error: "漏斗模式只能是strict或loose" }
     }
@@ -351,8 +335,10 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     const whereClauses = [timeFilter, globalWhereClause].filter(Boolean)
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ""
 
-    // 4. 维度字段处理
-    const dimensionFields = [...new Set(dimension)].map(field => wrapFieldWithBacktick(field))
+    // 4. 维度字段处理（过滤空值，避免生成 `` 这种非法字段名导致 ClickHouse 报错）
+    const dimensionFields = [...new Set(dimension)]
+      .filter(field => typeof field === 'string' && field.trim())
+      .map(field => wrapFieldWithBacktick(field))
     const dimensionStr = dimensionFields.join(", ")
     const groupByClause = dimensionStr ? `GROUP BY ${dimensionStr}` : ""
     const orderByClause = dimensionStr ? `ORDER BY ${dimensionStr} ASC` : ""
@@ -360,79 +346,47 @@ export function generateFunnelAnalysisSql(params: IFunnelAnalysisReq): ISqlGener
     // 5. 构建step字段：使用CASE WHEN将所有步骤判断合并为一个字段
     const { stepCaseExpr, stepFilterExpr } = buildStepCaseExpr(params.funnelInfoList, sqlParams, indexRef)
 
-    // 6. 窗口期配置：使用INTERVAL语法计算时间窗口
-    const windowValueParamKey = generateParamKey("window_value", indexRef)
-    sqlParams[windowValueParamKey] = params.windowPeriod.value
-    const unitMap: Record<string, string> = { m: "MINUTE", h: "HOUR", d: "DAY" }
-    const windowUnit = unitMap[params.windowPeriod.unit]
-    const intervalExpr = `${wrapFieldWithBacktick("prev_time")} + INTERVAL {${windowValueParamKey}:Int64} ${windowUnit}`
+    // 6. 窗口期配置：windowFunnel 的窗口单位为秒
+    const unitSecondsMap: Record<string, number> = { m: 60, h: 3600, d: 86400 }
+    const windowSecondsParamKey = generateParamKey("window_seconds", indexRef)
+    sqlParams[windowSecondsParamKey] = params.windowPeriod.value * unitSecondsMap[params.windowPeriod.unit]
 
-    // 7. 漏斗模式参数
-    const modeParamKey = generateParamKey("funnel_mode", indexRef)
-    sqlParams[modeParamKey] = funnelMode
-    const modePlaceholder = `{${modeParamKey}:String}`
+    // 7. 聚合实体字段：按漏斗类型决定链式匹配的粒度
+    // USER=按用户，SESSION=按会话，COUNT=按用户+会话（每次会话视为一次独立转化机会）
+    const entityFields = funnelType === FunnelTypeEnum.USER
+      ? [wrapFieldWithBacktick("$uid")]
+      : funnelType === FunnelTypeEnum.SESSION
+        ? [wrapFieldWithBacktick("$session_id")]
+        : [wrapFieldWithBacktick("$uid"), wrapFieldWithBacktick("$session_id")]
 
-    // 8. 聚合函数配置
-    const metricsAggExpr = getFunnelAggregationFunc(funnelType)
+    // 8. windowFunnel 函数：负责链式匹配，mode 必须是字符串字面量，无法参数化
+    // loose=默认滑窗（允许中间穿插其他漏斗事件）；strict=strict_order（链上事件必须连续）
+    // 注意：windowFunnel 时间参数不支持 DateTime64，需用 toUnixTimestamp 转成 UInt32
+    const stepConditions = params.funnelInfoList.map((_, index) => `${wrapFieldWithBacktick("step")} = ${index + 1}`).join(", ")
+    const funnelFunc = funnelMode === 'strict'
+      ? `windowFunnel({${windowSecondsParamKey}:UInt64}, 'strict_order')`
+      : `windowFunnel({${windowSecondsParamKey}:UInt64})`
+    const eventTimestampExpr = `toUnixTimestamp(${wrapFieldWithBacktick("$log_time")})`
 
-    // 9. 必须包含的字段（用户ID/会话ID，COUNT模式不需要额外字段）
-    const requiredFields = [wrapFieldWithBacktick("$log_time")]
-    if (funnelType === FunnelTypeEnum.USER) {
-      requiredFields.push(wrapFieldWithBacktick("$uid"))
-    } else if (funnelType === FunnelTypeEnum.SESSION) {
-      requiredFields.push(wrapFieldWithBacktick("$session_id"))
-    }
-
-    // 10. PARTITION BY 字段
-    const partitionByFields = [...dimensionFields, ...requiredFields.slice(1)]
-    const partitionByClause = partitionByFields.length > 0 ? partitionByFields.join(", ") : "1"
-
-    // 11. 构建最终SQL
-    // 正确处理WHERE子句：如果已有whereClause则追加AND，否则使用WHERE
+    // 9. 构建最终SQL：先按实体计算触达的最大层级，再统计各步骤触达数（单调递减漏斗）
     const tableName = "`probe_x`.`final_event_log`"
-    const baseWhereClause = whereClause 
-      ? `${whereClause} AND ${stepFilterExpr}` 
+    const baseWhereClause = whereClause
+      ? `${whereClause} AND ${stepFilterExpr}`
       : `WHERE ${stepFilterExpr}`
+    const entityGroupBy = [...dimensionFields, ...entityFields].join(", ")
     const sql = `WITH
 base_data AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, stepCaseExpr].filter(Boolean).join(", ")}
+    ${[...dimensionFields, ...entityFields, wrapFieldWithBacktick("$log_time"), stepCaseExpr].filter(Boolean).join(", ")}
   FROM ${tableName}
   ${baseWhereClause}
 ),
-ordered_steps AS (
+entity_funnel AS (
   SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")},
-    lag(${wrapFieldWithBacktick("step")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_step")},
-    lag(${wrapFieldWithBacktick("$log_time")}) OVER (PARTITION BY ${partitionByClause} ORDER BY ${wrapFieldWithBacktick("$log_time")}) AS ${wrapFieldWithBacktick("prev_time")}
+    ${entityGroupBy},
+    ${funnelFunc}(${eventTimestampExpr}, ${stepConditions}) AS ${wrapFieldWithBacktick("level")}
   FROM base_data
-),
-valid_steps AS (
-  SELECT
-    ${[...dimensionFields, ...requiredFields, wrapFieldWithBacktick("step")].filter(Boolean).join(", ")}
-  FROM ordered_steps
-  WHERE
-    (
-      ${modePlaceholder} = 'strict' AND ${wrapFieldWithBacktick("step")} = 1
-      OR
-      ${modePlaceholder} = 'loose' AND ${wrapFieldWithBacktick("step")} > 0
-    )
-      AND (
-        ${wrapFieldWithBacktick("prev_step")} IS NULL
-        OR (
-          -- 步骤连续性检查：当前步骤必须是上一个步骤+1，且必须在时间窗口内
-          ${wrapFieldWithBacktick("step")} = (CASE WHEN isNull(${wrapFieldWithBacktick("prev_step")}) THEN 0 ELSE ${wrapFieldWithBacktick("prev_step")} END) + 1
-          AND ${wrapFieldWithBacktick("$log_time")} <= ${intervalExpr}
-        )
-      )
-),
-step_agg AS (
-  SELECT
-    ${dimensionStr ? `${dimensionStr},` : ''}
-    ${wrapFieldWithBacktick("step")},
-    ${metricsAggExpr} AS ${wrapFieldWithBacktick("value")}
-  FROM valid_steps
-  ${dimensionStr ? `GROUP BY ${wrapFieldWithBacktick("step")}, ${dimensionStr}` : `GROUP BY ${wrapFieldWithBacktick("step")}`}
+  GROUP BY ${entityGroupBy}
 )
 SELECT
   ${dimensionFields.map(field => `COALESCE(${field}, '') AS ${field}`).join(", ")}${dimensionFields.length > 0 ? ', ' : ''}
@@ -442,9 +396,9 @@ SELECT
       const stepFieldName = stepInfo.stepName
         ? stepInfo.stepName
         : `step_${stepNum}_value`
-      return `MAX(CASE WHEN ${wrapFieldWithBacktick("step")} = ${stepNum} THEN ${wrapFieldWithBacktick("value")} ELSE 0 END) AS ${wrapFieldWithBacktick(stepFieldName)}`
+      return `countIf(${wrapFieldWithBacktick("level")} >= ${stepNum}) AS ${wrapFieldWithBacktick(stepFieldName)}`
     }).join(", ")}
-FROM step_agg
+FROM entity_funnel
 ${groupByClause}
 ${orderByClause};`.trim()
 

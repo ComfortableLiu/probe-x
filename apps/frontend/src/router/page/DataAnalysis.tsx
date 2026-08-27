@@ -6,7 +6,7 @@ export default {
   name: '数据分析',
   key: 'data-analysis',
   meta: {
-    icon: <ChartPieOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+    icon: <ChartPieOne theme="outline" size="16" fill="currentColor" />,
   },
   children: [{
     path: '/data-analysis/event',
@@ -18,11 +18,6 @@ export default {
     name: '漏斗分析',
     key: 'data-analysis-funnel',
     component: lazy(() => import('@pages/data-analysis/funnel/index')),
-  }, {
-    path: '/data-analysis/free',
-    name: '自由分析',
-    key: 'data-analysis-free',
-    component: lazy(() => import('@pages/data-analysis/free/index')),
   }, {
     path: '/data-analysis/userPath',
     name: '用户路径分析',

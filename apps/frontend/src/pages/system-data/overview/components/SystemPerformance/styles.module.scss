@@ -11,25 +11,3 @@
 .metricGroup {
   margin-bottom: 16px;
 }
-
-.metricCard {
-  border-radius: var(--px-radius-base);
-  border: 1px solid var(--px-color-border-secondary);
-  box-shadow: var(--px-shadow-sm);
-}
-
-.metricCard:hover {
-  box-shadow: var(--px-shadow-base);
-}
-
-.goodStatus {
-  border-left: 4px solid var(--px-color-success);
-}
-
-.warningStatus {
-  border-left: 4px solid var(--px-color-warning);
-}
-
-.criticalStatus {
-  border-left: 4px solid var(--px-color-error);
-}

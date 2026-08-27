@@ -57,38 +57,53 @@ const dataAnalysisUserPathModel = createModel<RootModel>()({
 
     // 提交查询数据
     async submitQuery() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitQueryTask(query)
-      if (code !== 200) {
-        message.error(msg || '查询失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitQueryTask(query)
+        if (code !== 200) {
+          message.error(msg || '查询失败')
+          return
+        }
+        // 储存查询结果
+        dispatch.dataAnalysisUserPathModel.updateItem({
+          data,
+          updateTime: new Date(),
+        })
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      // 储存查询结果
-      dispatch.dataAnalysisUserPathModel.updateItem({
-        data,
-        updateTime: new Date(),
-      })
     },
     // 下载数据
     async downloadData() {
-      const query = getParamsOrQuery<IQuery>()
-      const { data, code, msg } = await submitDownloadTask(query)
-      if (code !== 200 || !data?.taskId) {
-        message.error(msg || '提交下载任务失败')
-        return
+      try {
+        const query = getParamsOrQuery<IQuery>()
+        const { data, code, msg } = await submitDownloadTask(query)
+        if (code !== 200 || !data?.taskId) {
+          message.error(msg || '提交下载任务失败')
+          return
+        }
+        return data.taskId
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      return data.taskId
     },
     // 查询下载任务
     async queryDownloadTask({ taskId }: { taskId: string }) {
-      if (!taskId) return null
-      const { data, code, msg } = await queryDownloadTask({ taskId })
+      try {
+        if (!taskId) return null
+        const { data, code, msg } = await queryDownloadTask({ taskId })
 
-      if (code !== 200 || !data) {
-        message.error(msg || '查询失败')
-        return
+        if (code !== 200 || !data) {
+          message.error(msg || '查询失败')
+          return
+        }
+        return data
+      } catch (error) {
+        // 请求层已统一 toast 错误信息，这里兜底避免未捕获的 rejection
+        console.warn(error)
       }
-      return data
     },
   }),
 })

@@ -45,9 +45,12 @@ export class FunnelAnalysisService {
     //     "3333": 89,     // 步骤3（stepName="3333"，page_view事件）且跟随步骤2的事件数
     //   },
     // ]
-    const result = await this.clickhouseService.query<any>(sql, params)
-    // console.log('数据查询结果：', result)
-    return result
+    // ClickHouse 查询失败时转为业务异常，前端可展示具体原因而不是裸 500
+    try {
+      return await this.clickhouseService.query<any>(sql, params)
+    } catch (e) {
+      throw new BusinessException(`漏斗查询失败：${e instanceof Error ? e.message : '未知错误'}`)
+    }
   }
 
   async createDownloadTask(data: ISubmitDownloadTaskReq, user: IUser) {
@@ -73,7 +76,8 @@ export class FunnelAnalysisService {
 
     // 任务加入 BullMQ 队列（异步执行）
     const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
-    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData)
+    // 任务状态写入 Redis，设置 24h TTL 防止无限堆积
+    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData, 60 * 60 * 24)
     return {
       taskId,
     }

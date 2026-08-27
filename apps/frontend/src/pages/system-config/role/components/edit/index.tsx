@@ -169,7 +169,7 @@ function RoleEditPopup(props: IRoleEditPopupProps) {
         )}
         {isSystemRole && (
           <Form.Item label="系统角色说明">
-            <div style={{ color: '#999', fontSize: '12px' }}>
+            <div style={{ color: 'var(--px-color-text-tertiary)', fontSize: '12px' }}>
               {role?.roleKey && SYSTEM_ROLE_CONFIGS[role.roleKey as SystemRoleKey]?.description}
             </div>
           </Form.Item>

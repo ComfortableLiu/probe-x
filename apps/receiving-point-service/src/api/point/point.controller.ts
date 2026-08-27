@@ -8,6 +8,21 @@ export class PointController {
   constructor(private readonly pointService: PointService) {
   }
 
+  /**
+   * 解析客户端真实 IP：
+   * x-forwarded-for 可能是逗号分隔的代理链或 string[]，取首跳；
+   * req.connection 已废弃，改用 req.socket
+   */
+  private getClientIp(req: Request): string {
+    const forwarded = req.headers['x-forwarded-for']
+    const firstForwarded = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim()
+    const realIp = req.headers['x-real-ip']
+    return firstForwarded
+      || (Array.isArray(realIp) ? realIp[0] : realIp)
+      || req.socket.remoteAddress
+      || req.ip
+  }
+
   @Post('/report')
   async handleBeacon(
     @Body() data: any,
@@ -41,7 +56,7 @@ export class PointController {
     }
 
     const ua = req.header('user-agent')
-    const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.connection.remoteAddress || req.ip
+    const ip = this.getClientIp(req)
 
     // 如果 beaconData 是批量数据（包含 events 数组），将 ip 和 ua 添加到顶层
     // 如果 beaconData 是单个事件，直接合并
@@ -89,7 +104,7 @@ export class PointController {
       }
 
       const ua = req.header('user-agent')
-      const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.connection.remoteAddress || req.ip
+      const ip = this.getClientIp(req)
 
       const eventData = {
         ua,

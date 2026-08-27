@@ -2,7 +2,7 @@
 
 declare module 'react' {
   namespace React {
-    type ReactNode = 
+    type ReactNode =
       | ReactElement
       | string
       | number
@@ -30,4 +30,4 @@ declare global {
   }
 }
 
-export {};
+export {}

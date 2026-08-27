@@ -97,7 +97,7 @@ function ConvertToPublicPopup(props: IConvertToPublicPopupProps) {
           />
         </Form.Item>
         <Form.Item label="说明">
-          <div style={{ color: '#999', fontSize: '12px' }}>
+          <div style={{ color: 'var(--px-color-text-tertiary)', fontSize: '12px' }}>
             转为公共看板后，所有拥有相应权限的用户都可以查看此看板。您仍然可以编辑此看板，但删除权限需要管理员权限。
           </div>
         </Form.Item>

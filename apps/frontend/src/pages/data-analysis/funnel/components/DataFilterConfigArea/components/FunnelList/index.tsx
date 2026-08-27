@@ -77,7 +77,7 @@ function FunnelList() {
         href="#"
         onClick={() => addFunnel()}
       >
-        <AddOne theme="filled" size="24" fill="#536DFE" style={{ display: 'flex' }} />
+        <AddOne theme="filled" size="24" fill="currentColor" style={{ display: 'flex' }} />
         增加步骤
       </a>
 

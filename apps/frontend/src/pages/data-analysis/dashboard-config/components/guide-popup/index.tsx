@@ -50,7 +50,7 @@ function GuidePopup(props: IGuidePopupProps) {
       destroyOnClose
     >
       <div style={{ padding: '16px 0' }}>
-        <p style={{ marginBottom: 16, color: '#666' }}>
+        <p style={{ marginBottom: 16, color: 'var(--px-color-text-secondary)' }}>
           创建看板需要在对应的数据分析页面配置参数后保存。请选择您要创建的分析类型：
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -83,8 +83,8 @@ function GuidePopup(props: IGuidePopupProps) {
             创建归因分析看板
           </Button>
         </div>
-        <div style={{ marginTop: 24, padding: 12, background: '#f0f0f0', borderRadius: 4 }}>
-          <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 24, padding: 12, background: 'var(--px-color-border-secondary)', borderRadius: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--px-color-text-secondary)', lineHeight: 1.6 }}>
             <p style={{ margin: 0, marginBottom: 8, fontWeight: 'bold' }}>操作提示：</p>
             <ol style={{ margin: 0, paddingLeft: 20 }}>
               <li>点击上方按钮跳转到对应的数据分析页面</li>

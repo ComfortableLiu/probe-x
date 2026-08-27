@@ -21,6 +21,11 @@ const SEGMENT_CACHE_KEY = process.env.NODE_ENV + ':data-dashboard-api-service:se
  */
 const SEGMENT_CACHE_TTL = 3600 // 1小时
 
+/**
+ * 写入 Redis 的分群用户列表最大长度，防止缓存过大
+ */
+const SEGMENT_CACHE_MAX_USERS = 1000000
+
 @Injectable()
 export class UserSegmentationService {
   constructor(
@@ -64,10 +69,10 @@ export class UserSegmentationService {
       updatedAt: now,
     }
 
-    // 缓存分群结果
+    // 缓存分群结果（用户列表写入前切片，防止缓存过大）
     await this.cacheSegmentResult(segmentId, {
       stats,
-      users,
+      users: users.slice(0, SEGMENT_CACHE_MAX_USERS),
     })
 
     // 记录创建日志

@@ -1,9 +1,6 @@
 import React from 'react'
-import axios from 'axios'
 import { IOption, IResult } from './type'
 // import env from '@/patch/env'
-import cancelToken from "@/lib/request/cancelToken"
-import whiteList from "@/lib/request/whiteList"
 import { Button, message } from "antd"
 import { Localstorage } from "@utils/storage"
 import { IAnyObj } from "@probe-x/shared-types/src/index"
@@ -21,10 +18,6 @@ const API_BASE_URL = get<string>("apiBaseUrl") || ''
  * @param options
  */
 const getConfig = async (options: IOption) => {
-  // 取消请求
-  const cancel = axios.CancelToken
-  const source = cancel.source()
-
   const { baseURL = API_BASE_URL, target = defaultTarget, data = {}, params = {} } = options
 
   const token = Localstorage.get<string>(KEY_ACCESS_TOKEN)
@@ -36,10 +29,6 @@ const getConfig = async (options: IOption) => {
   if (token && typeof token === 'string') {
     headers['authorization'] = `Bearer ${token}`
     headers['access_token'] = token
-  }
-  if (!whiteList.includes(options.url)) {
-    options.cancelToken = source.token
-    cancelToken.add(source)
   }
 
   options.data = data
@@ -81,12 +70,12 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
   const config = await getConfig(options)
 
   const { successCode = 200 } = config
+  let loadingId: number | undefined
   try {
     if (config.loading) {
-      LoadingToast.createLoading(config.loadingText)
+      loadingId = LoadingToast.createLoading(config.loadingText)
     }
     const res = await apiClient.request<IResult<T>>(config)
-    LoadingToast.destory()
     if (config.responseType === 'blob') {
       return Promise.resolve(res as any)
     }
@@ -99,7 +88,13 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
     throw res.data
   } catch (e: any) {
     if (config.noCatch) {
-      return Promise.reject({ noMessage: true })
+      // 保留原始错误抛给调用方自行处理
+      return Promise.reject(e)
+    }
+    // 业务失败（HTTP 200 但 code 非成功值，见上方 throw res.data）：直接 toast 后端返回的 message
+    if (e && !e.response && typeof e.code === 'number' && typeof e.message === 'string') {
+      message.error(e.message)
+      return Promise.reject({ ...e, msg: e.message })
     }
     console.error('Network Error: ', JSON.stringify(e), 'request:', JSON.stringify(e.request), 'response:', JSON.stringify(e.response))
     if (!e || !e?.response) {
@@ -120,6 +115,6 @@ export default async function <T>(options: IOption): Promise<IResult<T>> {
     // 如果 response 存在但没有 data，返回包含状态码的错误对象
     return Promise.reject({ msg: `HTTP ${status} - ${config.baseURL}${config.url}`, code: status, response: e.response })
   } finally {
-    LoadingToast.destory()
+    LoadingToast.destory(loadingId)
   }
 }

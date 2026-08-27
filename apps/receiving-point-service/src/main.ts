@@ -7,6 +7,9 @@ import { ConfigService } from "@nestjs/config"
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
+  // 启用优雅关机钩子，保证进程退出前正确释放资源
+  app.enableShutdownHooks()
+
   // 从应用实例中获取 ConfigService
   const configService = app.get(ConfigService)
 
@@ -20,10 +23,9 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }))
 
-  // 启用CORS
+  // 启用CORS（不携带 credentials，origin: true 与 credentials: true 组合存在安全隐患）
   app.enableCors({
     origin: true,
-    credentials: true,
   })
 
   // 全局注册异常过滤器

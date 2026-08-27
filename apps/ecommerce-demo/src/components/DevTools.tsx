@@ -1,23 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Space, Typography, Select, Divider, message } from 'antd';
-import { ToolOutlined, CloseOutlined } from '@ant-design/icons';
-import { getProbeX } from '../utils/probeX';
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Button, Space, Typography, Select, Divider, message } from 'antd'
+import { ToolOutlined, CloseOutlined } from '@ant-design/icons'
+import { getProbeX } from '../utils/probeX'
 
 // 简单的UUID生成函数
 const generateUUID = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+    return crypto.randomUUID()
   }
   // 降级方案
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
 
-const { Text, Title } = Typography;
-const { Option } = Select;
+const { Text, Title } = Typography
+const { Option } = Select
 
 // 测试用户列表
 const TEST_USERS = [
@@ -26,7 +26,7 @@ const TEST_USERS = [
   { id: '3', username: '王五', email: 'wangwu@example.com' },
   { id: '4', username: '赵六', email: 'zhaoliu@example.com' },
   { id: '5', username: '钱七', email: 'qianqi@example.com' },
-];
+]
 
 interface Position {
   x: number;
@@ -34,134 +34,145 @@ interface Position {
 }
 
 const DevTools: React.FC = () => {
-  const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState<Position>({ x: window.innerWidth - 100, y: 100 });
-  const [dragging, setDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
-  const [currentUser, setCurrentUser] = useState(TEST_USERS[0]);
-  const [deviceId, setDeviceId] = useState<string>('');
-  const [sessionId, setSessionId] = useState<string>('');
-  
-  const iconRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false)
+  const [position, setPosition] = useState<Position>({ x: window.innerWidth - 100, y: 100 })
+  const [dragging, setDragging] = useState(false)
+  const [currentUser, setCurrentUser] = useState(TEST_USERS[0])
+  const [deviceId, setDeviceId] = useState<string>('')
+  const [sessionId, setSessionId] = useState<string>('')
+
+  const iconRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  // 拖动状态用 ref 保存，避免拖动事件监听随 state 反复注册
+  const draggingRef = useRef(false)
+  const dragOffsetRef = useRef<Position>({ x: 0, y: 0 })
+  const positionRef = useRef(position)
 
   // 获取设备ID和会话ID
   useEffect(() => {
     const updateIds = () => {
-      const probeX = getProbeX();
-      const session = probeX.getSession();
-      setSessionId(session.id);
-      
+      const probeX = getProbeX()
+      const session = probeX.getSession()
+      setSessionId(session.id)
+
       // 从localStorage获取设备ID
-      const deviceKey = 'probe_x_device_id';
-      const storedDeviceId = localStorage.getItem(deviceKey);
-      setDeviceId(storedDeviceId || '');
-    };
+      const deviceKey = 'probe_x_device_id'
+      const storedDeviceId = localStorage.getItem(deviceKey)
+      setDeviceId(storedDeviceId || '')
+    }
 
-    updateIds();
-    const interval = setInterval(updateIds, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    updateIds()
+    const interval = setInterval(updateIds, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
-  // 图标拖动处理
+  // position 同步到 ref，供拖动事件回调读取最新值
   useEffect(() => {
-    if (!iconRef.current) return;
+    positionRef.current = position
+  }, [position])
+
+  // 图标拖动处理（监听只注册一次）
+  useEffect(() => {
+    if (!iconRef.current) return
 
     const handleMouseDown = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest('.dev-tools-panel')) {
-        return;
+        return
       }
-      setDragging(true);
-      setDragStart({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
-      });
-    };
+      draggingRef.current = true
+      setDragging(true)
+      dragOffsetRef.current = {
+        x: e.clientX - positionRef.current.x,
+        y: e.clientY - positionRef.current.y,
+      }
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging) return;
-      
-      const newX = e.clientX - dragStart.x;
-      const newY = e.clientY - dragStart.y;
-      
+      if (!draggingRef.current) return
+
+      const newX = e.clientX - dragOffsetRef.current.x
+      const newY = e.clientY - dragOffsetRef.current.y
+
       // 限制在窗口内
-      const maxX = window.innerWidth - 50;
-      const maxY = window.innerHeight - 50;
-      const minX = 0;
-      const minY = 0;
-      
+      const maxX = window.innerWidth - 50
+      const maxY = window.innerHeight - 50
+      const minX = 0
+      const minY = 0
+
       setPosition({
         x: Math.max(minX, Math.min(maxX, newX)),
         y: Math.max(minY, Math.min(maxY, newY)),
-      });
-    };
+      })
+    }
 
     const handleMouseUp = () => {
-      setDragging(false);
-    };
+      if (!draggingRef.current) return
+      draggingRef.current = false
+      setDragging(false)
+    }
 
-    const iconElement = iconRef.current;
-    iconElement.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    const iconElement = iconRef.current
+    iconElement.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
 
     return () => {
-      iconElement.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [dragging, dragStart, position]);
+      iconElement.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
 
   // 切换用户
   const handleSwitchUser = (userId: string) => {
-    const user = TEST_USERS.find(u => u.id === userId);
+    const user = TEST_USERS.find(u => u.id === userId)
     if (user) {
-      const probeX = getProbeX();
+      const probeX = getProbeX()
       probeX.setUser({
         user_id: user.id,
         user_name: user.username,
         email: user.email,
-      });
-      setCurrentUser(user);
-      message.success(`已切换用户：${user.username}`);
+      })
+      setCurrentUser(user)
+      message.success(`已切换用户：${user.username}`)
     }
-  };
+  }
 
   // 切换设备ID
   const handleSwitchDeviceId = () => {
-    const newDeviceId = generateUUID();
-    const deviceKey = 'probe_x_device_id';
-    localStorage.setItem(deviceKey, newDeviceId);
-    setDeviceId(newDeviceId);
-    message.success('设备ID已切换，请刷新页面生效');
-  };
+    const newDeviceId = generateUUID()
+    const deviceKey = 'probe_x_device_id'
+    localStorage.setItem(deviceKey, newDeviceId)
+    setDeviceId(newDeviceId)
+    message.success('设备ID已切换，请刷新页面生效')
+  }
 
   // 新会话
   const handleNewSession = () => {
     // 清除会话相关的localStorage (使用session-manager的键名格式)
-    const prefix = 'probe_x_';
-    const sessionKey = `${prefix}session_id`;
-    const sessionTimeKey = `${prefix}session_time`;
-    const sessionStartKey = `${prefix}session_start_time`;
-    const pageViewsKey = `${prefix}session_page_views`;
-    const eventsKey = `${prefix}session_events`;
-    
-    localStorage.removeItem(sessionKey);
-    localStorage.removeItem(sessionTimeKey);
-    localStorage.removeItem(sessionStartKey);
-    localStorage.removeItem(pageViewsKey);
-    localStorage.removeItem(eventsKey);
-    
+    const prefix = 'probe_x_'
+    const sessionKey = `${prefix}session_id`
+    const sessionTimeKey = `${prefix}session_time`
+    const sessionStartKey = `${prefix}session_start_time`
+    const pageViewsKey = `${prefix}session_page_views`
+    const eventsKey = `${prefix}session_events`
+
+    localStorage.removeItem(sessionKey)
+    localStorage.removeItem(sessionTimeKey)
+    localStorage.removeItem(sessionStartKey)
+    localStorage.removeItem(pageViewsKey)
+    localStorage.removeItem(eventsKey)
+
     // 生成新的会话ID
-    const newSessionId = generateUUID();
-    const now = Date.now();
-    localStorage.setItem(sessionKey, newSessionId);
-    localStorage.setItem(sessionTimeKey, now.toString());
-    localStorage.setItem(sessionStartKey, now.toString());
-    
-    setSessionId(newSessionId);
-    message.success('新会话已创建，请刷新页面生效');
-  };
+    const newSessionId = generateUUID()
+    const now = Date.now()
+    localStorage.setItem(sessionKey, newSessionId)
+    localStorage.setItem(sessionTimeKey, now.toString())
+    localStorage.setItem(sessionStartKey, now.toString())
+
+    setSessionId(newSessionId)
+    message.success('新会话已创建，请刷新页面生效')
+  }
 
   return (
     <>
@@ -188,12 +199,12 @@ const DevTools: React.FC = () => {
         }}
         onMouseEnter={(e) => {
           if (!dragging) {
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)'
           }
         }}
         onMouseLeave={(e) => {
           if (!dragging) {
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
           }
         }}
       >
@@ -297,8 +308,8 @@ const DevTools: React.FC = () => {
         </div>
       )}
     </>
-  );
-};
+  )
+}
 
-export default DevTools;
+export default DevTools
 

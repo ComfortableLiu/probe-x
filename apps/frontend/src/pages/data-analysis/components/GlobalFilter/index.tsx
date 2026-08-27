@@ -46,7 +46,7 @@ function GlobalFilter() {
         onClick={() => handleAdd()}
         href="#"
       >
-        <Plus theme="outline" size="16" fill="#3F51B5" style={{ display: 'flex' }} />
+        <Plus theme="outline" size="16" fill="currentColor" style={{ display: 'flex' }} />
         全局筛选
       </a>
     </div>

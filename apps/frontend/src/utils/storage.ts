@@ -13,7 +13,8 @@ export class Localstorage {
   }
 
   static set<T>(key: string, value: T): void {
-    if (!value) return
+    // 只过滤 undefined/null，允许 0、false、'' 等合法的 falsy 值
+    if (value === undefined || value === null) return
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(key, JSON.stringify(value))
@@ -49,7 +50,8 @@ export class SessionStorage {
   }
 
   static set<T>(key: string, value: T): void {
-    if (!value) return
+    // 只过滤 undefined/null，允许 0、false、'' 等合法的 falsy 值
+    if (value === undefined || value === null) return
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(key, JSON.stringify(value))

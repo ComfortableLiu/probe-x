@@ -2,6 +2,7 @@
  * 数据发送器
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import type { ProbeXEvent } from './types';
 import { ConfigManager } from './config';
 
@@ -16,6 +17,7 @@ export class DataSender {
   private flushInterval: number;
   private sendTimeout: number;
   private timer?: number;
+  private retryTimer?: number;
 
   constructor(config: ConfigManager) {
     this.config = config;
@@ -66,7 +68,8 @@ export class DataSender {
       // 重试逻辑
       if (this.retryCount < this.maxRetries) {
         this.retryCount++;
-        setTimeout(() => {
+        this.retryTimer = window.setTimeout(() => {
+          this.retryTimer = undefined;
           this.queue.unshift(...events); // 重新加入队列
           this.isSending = false;
           this.flush();
@@ -146,6 +149,17 @@ export class DataSender {
           new Image().src = compressedUrl;
           return;
         }
+        // 压缩后仍然太长，只发送关键数据（与 gifRequest 的 minimalData 逻辑一致）
+        const minimalData = {
+          appId: payload.appId,
+          batchId: payload.batchId,
+          timestamp: payload.timestamp,
+          eventCount: payload.events?.length || 0,
+        };
+        const minimalParams = new URLSearchParams();
+        minimalParams.append('data', JSON.stringify(minimalData));
+        new Image().src = `${gifUrl}?${minimalParams.toString()}`;
+        return;
       } else {
         new Image().src = fullUrl;
         return;
@@ -205,7 +219,14 @@ export class DataSender {
    * 准备事件数据
    */
   private prepareEvent(event: ProbeXEvent): any {
+    // $event_id 是端到端幂等去重键：复用 collector 生成的 uuid；
+    // 缺失时补一个并写回事件，保证同一事件重试/重发时 $event_id 不变
+    if (!event.id) {
+      event.id = uuidv4();
+    }
+
     return {
+      $event_id: event.id,
       eventName: event.eventName,
       ip: this.getClientIP(),
       ua: event.device.userAgent,
@@ -231,6 +252,7 @@ export class DataSender {
       scrollHeight: document.documentElement.scrollHeight,
       viewportHeight: event.device.viewport.height,
       viewportWidth: event.device.viewport.width,
+      // 字段名为 zoon 是与后端约定一致（receiving-point-service 解析 data.zoon），非笔误，勿改为 zoom
       zoon: event.device.screen.pixelRatio,
       data: event.properties,
       rawData: event,
@@ -240,31 +262,11 @@ export class DataSender {
 
   /**
    * 发送HTTP请求
-   * 按优先级顺序尝试：sendBeacon → fetch → XMLHttpRequest → gif图片请求
+   * 常规批量发送按优先级：fetch → XMLHttpRequest → gif图片请求
+   * sendBeacon 无法拿到响应且无法判断失败，仅用于页面卸载场景（flushSync）
    */
   private async makeRequest(url: string, data: any): Promise<Response> {
-    // 1. 优先使用 sendBeacon（适合页面卸载场景，异步发送，不阻塞页面）
-    if (this.canUseBeacon()) {
-      try {
-        // 使用 Blob 设置正确的 Content-Type，确保服务器能正确解析 JSON
-        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const success = navigator.sendBeacon(url, blob);
-        if (success) {
-          return {
-            ok: true,
-            status: 200,
-            statusText: 'OK',
-          } as Response;
-        }
-      } catch (error) {
-        // sendBeacon 失败，继续尝试其他方式
-        if (this.config.get('debug')) {
-          console.warn('ProbeX: sendBeacon failed, trying fallback methods', error);
-        }
-      }
-    }
-
-    // 2. 其次使用 fetch
+    // 1. 优先使用 fetch
     if (typeof fetch !== 'undefined') {
       try {
         const controller = new AbortController();
@@ -290,7 +292,7 @@ export class DataSender {
       }
     }
 
-    // 3. 降级到 XMLHttpRequest
+    // 2. 降级到 XMLHttpRequest
     try {
       const options: RequestInit = {
         method: 'POST',
@@ -307,7 +309,7 @@ export class DataSender {
       }
     }
 
-    // 4. 最后降级到 gif 图片请求
+    // 3. 最后降级到 gif 图片请求
     return await this.gifRequest(url, data);
   }
 
@@ -476,14 +478,20 @@ export class DataSender {
    */
   private getDeviceId(): string {
     const deviceKey = this.config.getStorageKey('device_id');
-    let deviceId = localStorage.getItem(deviceKey);
     
-    if (!deviceId) {
-      deviceId = this.generateDeviceId();
-      localStorage.setItem(deviceKey, deviceId);
+    try {
+      let deviceId = localStorage.getItem(deviceKey);
+      
+      if (!deviceId) {
+        deviceId = this.generateDeviceId();
+        localStorage.setItem(deviceKey, deviceId);
+      }
+      
+      return deviceId;
+    } catch {
+      // localStorage 不可用（隐私模式/SSR），回退到内存
+      return this.generateDeviceId();
     }
-    
-    return deviceId;
   }
 
   /**
@@ -589,9 +597,20 @@ export class DataSender {
   destroy(): void {
     this.stopFlushTimer();
     
+    // 清理待执行的重试定时器
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
+    
     // 最后一次发送队列中的数据
     if (this.queue.length > 0) {
-      this.flush();
+      if (this.isSending) {
+        // 正在异步发送中，改用同步方式（sendBeacon/gif）发送剩余队列，避免 clearQueue 丢数据
+        this.flushSync();
+      } else {
+        this.flush();
+      }
     }
     
     this.clearQueue();

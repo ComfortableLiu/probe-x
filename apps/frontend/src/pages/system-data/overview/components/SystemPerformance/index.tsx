@@ -1,6 +1,7 @@
 import React, { memo } from "react"
-import { Card, Col, Row, Statistic } from "antd"
+import { Col, Row } from "antd"
 import { ISystemPerformanceMetrics } from "@probe-x/shared-types/src"
+import MetricCard from "@components/MetricCard"
 import * as styles from "./styles.module.scss"
 
 interface SystemPerformanceProps {
@@ -12,31 +13,28 @@ function SystemPerformance({ systemPerformanceMetrics }: SystemPerformanceProps)
     <div>
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="当前QPS"
-              value={systemPerformanceMetrics.currentQps}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="当前QPS"
+            value={systemPerformanceMetrics.currentQps}
+            precision={0}
+            status="good"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.warningStatus}`}>
-            <Statistic
-              title="峰值QPS"
-              value={systemPerformanceMetrics.peakQps}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="峰值QPS"
+            value={systemPerformanceMetrics.peakQps}
+            precision={0}
+            status="warning"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="平均QPS"
-              value={systemPerformanceMetrics.avgQps}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="平均QPS"
+            value={systemPerformanceMetrics.avgQps}
+            precision={0}
+            status="good"
+          />
         </Col>
       </Row>
     </div>

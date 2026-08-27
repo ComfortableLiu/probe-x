@@ -1,18 +1,18 @@
 .container {
   padding: 24px;
-  background-color: #f5f5f5;
+  background-color: var(--px-color-bg-layout);
   min-height: 100vh;
 }
 
 .backLink {
   cursor: pointer;
-  color: #1890ff;
+  color: var(--px-color-primary);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   
   &:hover {
-    color: #40a9ff;
+    color: var(--px-color-primary-hover);
   }
 }
 
@@ -49,27 +49,27 @@
 
 .backLink {
   cursor: pointer;
-  color: #1890ff;
+  color: var(--px-color-primary);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   
   &:hover {
-    color: #40a9ff;
+    color: var(--px-color-primary-hover);
   }
 }
 
 .guideContent {
   line-height: 1.8;
-  color: #333;
+  color: var(--px-color-text-primary);
 
   h3 {
     margin-top: 24px;
     margin-bottom: 12px;
     font-size: 18px;
     font-weight: 600;
-    color: #1890ff;
-    border-bottom: 2px solid #e8e8e8;
+    color: var(--px-color-primary);
+    border-bottom: 2px solid var(--px-color-border);
     padding-bottom: 8px;
 
     &:first-child {
@@ -82,12 +82,12 @@
     margin-bottom: 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #52c41a;
+    color: var(--px-color-success);
   }
 
   p {
     margin-bottom: 16px;
-    color: #666;
+    color: var(--px-color-text-secondary);
   }
 
   ul {
@@ -96,10 +96,10 @@
 
     li {
       margin-bottom: 8px;
-      color: #666;
+      color: var(--px-color-text-secondary);
 
       strong {
-        color: #333;
+        color: var(--px-color-text-primary);
         font-weight: 600;
       }
 
@@ -116,7 +116,7 @@
 
     li {
       margin-bottom: 8px;
-      color: #666;
+      color: var(--px-color-text-secondary);
     }
   }
 }
@@ -125,8 +125,8 @@
   margin-top: 20px;
   margin-bottom: 24px;
   padding: 16px 20px;
-  background-color: #f8f9fa;
-  border-left: 4px solid #1890ff;
+  background-color: var(--px-color-bg-table-header);
+  border-left: 4px solid var(--px-color-primary);
   border-radius: 4px;
 
   h4 {
@@ -134,16 +134,16 @@
     margin-bottom: 12px;
     font-size: 16px;
     font-weight: 600;
-    color: #1890ff;
+    color: var(--px-color-primary);
   }
 
   p {
     margin-bottom: 12px;
-    color: #666;
+    color: var(--px-color-text-secondary);
     line-height: 1.6;
 
     strong {
-      color: #333;
+      color: var(--px-color-text-primary);
       font-weight: 600;
     }
   }
@@ -155,7 +155,7 @@
 
     li {
       margin-bottom: 8px;
-      color: #666;
+      color: var(--px-color-text-secondary);
       line-height: 1.6;
     }
   }

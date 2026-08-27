@@ -8,16 +8,19 @@ import {
   EventPropertyRelationEntity,
   MetaEventEntity,
   MetaPropertyEntity,
+  Role,
+  UserRoleRelation,
 } from "@probe-x/shared-utils/src/lib/backend-common"
+import { AdminGuard } from "../../guard/admin.guard"
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity]),
+    TypeOrmModule.forFeature([MetaEventEntity, MetaPropertyEntity, EventPropertyRelationEntity, UserRoleRelation, Role]),
     UserModule,
     ClickHouseModule,
   ],
   controllers: [PropertyController],
-  providers: [PropertyService],
+  providers: [PropertyService, AdminGuard],
   exports: [PropertyService],
 })
 export class PropertyModule {

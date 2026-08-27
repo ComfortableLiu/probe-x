@@ -13,11 +13,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
           transport: Transport.KAFKA,
           options: {
             client: {
-              clientId: configService.get('kafka.clientId', 'localhost:9092'),
+              clientId: configService.get('kafka.clientId', 'probe-x'),
               brokers: configService.get('kafka.brokers', ['localhost:9092']),
             },
             consumer: {
-              groupId: configService.get('kafka.groupId', 'localhost:9092'),
+              groupId: configService.get('kafka.groupId', 'probe-x-group'),
             },
             subscribe: { fromBeginning: true },
           },

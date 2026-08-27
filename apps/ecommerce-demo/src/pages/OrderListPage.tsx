@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Tabs, Tag, Button, Typography, List, Empty } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
-import { mockOrders, OrderStatus } from '../data/mockData';
-import { trackPageView, trackButtonClick } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Tabs, Tag, Button, Typography, List, Empty } from 'antd'
+import { EyeOutlined } from '@ant-design/icons'
+import { mockOrders, OrderStatus } from '../data/mockData'
+import { trackPageView, trackButtonClick } from '../utils/probeX'
 
-const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+const { Title, Text } = Typography
+const { TabPane } = Tabs
 
 const OrderListPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState(mockOrders);
-  const [activeTab, setActiveTab] = useState('all');
+  const navigate = useNavigate()
+  const [orders, setOrders] = useState(mockOrders)
+  const [activeTab, setActiveTab] = useState('all')
 
   useEffect(() => {
     trackPageView('order_list', {
       page_title: '我的订单',
-      orders_count: orders.length
-    });
-  }, [orders.length, activeTab]);
+      orders_count: orders.length,
+    })
+  }, [orders.length, activeTab])
 
   const getStatusColor = (status: OrderStatus) => {
     const statusColors = {
@@ -28,9 +28,9 @@ const OrderListPage: React.FC = () => {
       [OrderStatus.DELIVERED]: 'green',
       [OrderStatus.CANCELLED]: 'red',
       [OrderStatus.REFUNDED]: 'gray',
-    };
-    return statusColors[status] || 'default';
-  };
+    }
+    return statusColors[status] || 'default'
+  }
 
   const getStatusText = (status: OrderStatus) => {
     const statusTexts = {
@@ -40,34 +40,34 @@ const OrderListPage: React.FC = () => {
       [OrderStatus.DELIVERED]: '已送达',
       [OrderStatus.CANCELLED]: '已取消',
       [OrderStatus.REFUNDED]: '已退款',
-    };
-    return statusTexts[status] || '未知状态';
-  };
+    }
+    return statusTexts[status] || '未知状态'
+  }
 
   const handleViewOrder = (order: any) => {
     trackButtonClick('view_order', 'order_list', {
       order_id: order.id,
-      order_status: order.status
-    });
-    navigate(`/orders/${order.id}`);
-  };
+      order_status: order.status,
+    })
+    navigate(`/orders/${order.id}`)
+  }
 
   const handleTabChange = (key: string) => {
-    setActiveTab(key);
+    setActiveTab(key)
     trackButtonClick('order_tab_change', 'order_list', {
-      tab: key
-    });
-  };
+      tab: key,
+    })
+  }
 
   const filteredOrders = orders.filter(order => {
-    if (activeTab === 'all') return true;
-    return order.status === activeTab;
-  });
+    if (activeTab === 'all') return true
+    return order.status === activeTab
+  })
 
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>我的订单</Title>
-      
+
       <Tabs activeKey={activeTab} onChange={handleTabChange}>
         <TabPane tab="全部订单" key="all" />
         <TabPane tab="待支付" key={OrderStatus.PENDING} />
@@ -114,23 +114,23 @@ const OrderListPage: React.FC = () => {
                 )}
               />
 
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 marginTop: '16px',
                 paddingTop: '16px',
-                borderTop: '1px solid #f0f0f0'
+                borderTop: '1px solid #f0f0f0',
               }}>
                 <div>
                   <Text strong>商品清单:</Text>
                   <div style={{ marginTop: '8px' }}>
                     {order.items.map((item: any, index: number) => (
-                      <div key={index} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      <div key={index} style={{
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: '8px',
-                        marginBottom: '4px'
+                        marginBottom: '4px',
                       }}>
                         <img
                           src={item.product.image}
@@ -175,7 +175,7 @@ const OrderListPage: React.FC = () => {
         </Empty>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default OrderListPage;
+export default OrderListPage

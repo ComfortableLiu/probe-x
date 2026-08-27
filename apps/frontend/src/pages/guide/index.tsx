@@ -50,11 +50,6 @@ const guideMenuItems: Array<{
         path: '/guide/data-analysis/attribution',
       },
       {
-        key: 'free',
-        label: '自由分析',
-        path: '/guide/data-analysis/free',
-      },
-      {
         key: 'dashboard-config',
         label: '数据看板设置',
         path: '/guide/data-analysis/dashboard-config',

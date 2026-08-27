@@ -1,7 +1,10 @@
-import React, { memo, useEffect, useRef } from 'react'
-import { Card } from 'antd'
+import React, { memo, useMemo } from 'react'
+import { Card, theme } from 'antd'
 import * as echarts from 'echarts'
+import type { EChartsOption } from 'echarts'
 import { IHomepageTrend } from '@probe-x/shared-types/src'
+import ChartContainer from '@components/ChartContainer'
+import { hexToRgba } from '@utils/chartTheme'
 import * as styles from './styles.module.scss'
 
 interface TrendChartProps {
@@ -9,133 +12,104 @@ interface TrendChartProps {
 }
 
 function TrendChart({ trend }: TrendChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null)
-  const chartInstanceRef = useRef<echarts.ECharts | null>(null)
+  const { token } = theme.useToken()
 
-  useEffect(() => {
-    if (!chartRef.current) return
-
-    chartInstanceRef.current = echarts.init(chartRef.current)
-
-    const handleResize = () => {
-      chartInstanceRef.current?.resize()
-    }
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      chartInstanceRef.current?.dispose()
-      chartInstanceRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!chartInstanceRef.current) return
-
-    const option: echarts.EChartsOption = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'cross',
-          lineStyle: {
-            color: '#999',
-            width: 1,
-            type: 'solid',
-          },
+  const option = useMemo<EChartsOption>(() => ({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+      },
+    },
+    legend: {
+      data: ['事件量', '活跃用户'],
+      top: 4,
+      right: 16,
+    },
+    grid: {
+      left: 60,
+      right: 60,
+      bottom: 40,
+      top: 40,
+    },
+    xAxis: {
+      type: 'category',
+      data: trend.dates,
+      axisLabel: {
+        formatter: (value: string) => {
+          // 只显示月-日
+          const parts = value.split('-')
+          return parts.length >= 3 ? `${parts[1]}-${parts[2]}` : value
         },
       },
-      legend: {
-        data: ['事件量', '活跃用户'],
-        top: 4,
-        right: 16,
-      },
-      grid: {
-        left: 60,
-        right: 60,
-        bottom: 40,
-        top: 40,
-      },
-      xAxis: {
-        type: 'category',
-        data: trend.dates,
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '事件量',
+        position: 'left',
         axisLabel: {
-          formatter: (value: string) => {
-            // 只显示月-日
-            const parts = value.split('-')
-            return parts.length >= 3 ? `${parts[1]}-${parts[2]}` : value
+          formatter: (value: number) => {
+            if (value >= 10000) return `${(value / 10000).toFixed(1)}万`
+            if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+            return value.toString()
+          },
+        },
+        splitLine: {
+          lineStyle: {
+            type: 'dashed',
           },
         },
       },
-      yAxis: [
-        {
-          type: 'value',
-          name: '事件量',
-          position: 'left',
-          axisLabel: {
-            formatter: (value: number) => {
-              if (value >= 10000) return `${(value / 10000).toFixed(1)}万`
-              if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
-              return value.toString()
-            },
-          },
-          splitLine: {
-            lineStyle: {
-              type: 'dashed',
-            },
+      {
+        type: 'value',
+        name: '活跃用户',
+        position: 'right',
+        axisLabel: {
+          formatter: (value: number) => {
+            if (value >= 10000) return `${(value / 10000).toFixed(1)}万`
+            if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+            return value.toString()
           },
         },
-        {
-          type: 'value',
-          name: '活跃用户',
-          position: 'right',
-          axisLabel: {
-            formatter: (value: number) => {
-              if (value >= 10000) return `${(value / 10000).toFixed(1)}万`
-              if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
-              return value.toString()
-            },
-          },
-          splitLine: { show: false },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: '事件量',
+        type: 'line',
+        data: trend.eventCounts,
+        smooth: true,
+        yAxisIndex: 0,
+        itemStyle: {
+          color: token.colorPrimary,
         },
-      ],
-      series: [
-        {
-          name: '事件量',
-          type: 'line',
-          data: trend.eventCounts,
-          smooth: true,
-          yAxisIndex: 0,
-          itemStyle: {
-            color: '#1890ff',
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
-              { offset: 1, color: 'rgba(24, 144, 255, 0.02)' },
-            ]),
-          },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexToRgba(token.colorPrimary, 0.3) },
+            { offset: 1, color: hexToRgba(token.colorPrimary, 0.02) },
+          ]),
         },
-        {
-          name: '活跃用户',
-          type: 'line',
-          data: trend.activeUserCounts,
-          smooth: true,
-          yAxisIndex: 1,
-          itemStyle: {
-            color: '#52c41a',
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(82, 196, 26, 0.3)' },
-              { offset: 1, color: 'rgba(82, 196, 26, 0.02)' },
-            ]),
-          },
+      },
+      {
+        name: '活跃用户',
+        type: 'line',
+        data: trend.activeUserCounts,
+        smooth: true,
+        yAxisIndex: 1,
+        itemStyle: {
+          color: token.colorSuccess,
         },
-      ],
-    }
-
-    chartInstanceRef.current.setOption(option, true)
-  }, [trend])
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexToRgba(token.colorSuccess, 0.3) },
+            { offset: 1, color: hexToRgba(token.colorSuccess, 0.02) },
+          ]),
+        },
+      },
+    ],
+  }), [trend, token])
 
   return (
     <Card
@@ -143,7 +117,12 @@ function TrendChart({ trend }: TrendChartProps) {
       className={styles.trendChart}
       size="small"
     >
-      <div ref={chartRef} className={styles.chartContainer} />
+      <ChartContainer
+        className={styles.chartContainer}
+        option={option}
+        height={350}
+        empty={!trend.dates?.length}
+      />
     </Card>
   )
 }

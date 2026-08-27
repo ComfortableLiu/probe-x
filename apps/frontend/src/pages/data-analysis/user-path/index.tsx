@@ -71,10 +71,23 @@ function UserPathAnalysis() {
   }, [])
 
   const queryDownloadTask = useCallback(async (taskId: string) => {
-    const res = await dispatch.dataAnalysisUserPathModel.queryDownloadTask({ taskId })
-    if (res?.status === 'SUCCESS' && res.downloadUrl) {
-      // 下载文件
-      setDownloadUrl(res.downloadUrl)
+    try {
+      const res = await dispatch.dataAnalysisUserPathModel.queryDownloadTask({ taskId })
+      if (res?.status === 'SUCCESS' && res.downloadUrl) {
+        // 下载文件
+        setDownloadUrl(res.downloadUrl)
+        if (timer.current) {
+          clearInterval(timer.current)
+        }
+      } else if (res?.status === 'FAIL') {
+        message.error('下载任务失败，请重试')
+        if (timer.current) {
+          clearInterval(timer.current)
+        }
+      }
+    } catch (error) {
+      // 查询异常时停止轮询，避免无限重试
+      message.error('查询下载任务状态失败')
       if (timer.current) {
         clearInterval(timer.current)
       }
@@ -95,7 +108,17 @@ function UserPathAnalysis() {
     }
     const taskId = await dispatch.dataAnalysisUserPathModel.downloadData()
     if (taskId) {
+      // 最多轮询 300 次，超时停止避免无限轮询
+      let pollCount = 0
       timer.current = setInterval(() => {
+        pollCount += 1
+        if (pollCount > 300) {
+          if (timer.current) {
+            clearInterval(timer.current)
+          }
+          message.warning('下载任务超时，请重试')
+          return
+        }
         queryDownloadTask(taskId)
       }, 1000)
     }

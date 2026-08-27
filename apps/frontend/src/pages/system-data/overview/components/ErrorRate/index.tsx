@@ -1,6 +1,7 @@
 import React, { memo } from "react"
-import { Card, Col, Row, Statistic } from "antd"
+import { Col, Row } from "antd"
 import { ISystemPerformanceMetrics } from "@probe-x/shared-types/src"
+import MetricCard from "@components/MetricCard"
 import * as styles from "./styles.module.scss"
 
 interface ErrorRateProps {
@@ -12,34 +13,31 @@ function ErrorRate({ systemPerformanceMetrics }: ErrorRateProps) {
     <div>
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.warningStatus}`}>
-            <Statistic
-              title="请求错误率"
-              value={systemPerformanceMetrics.requestErrorRate}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
+          <MetricCard
+            title="请求错误率"
+            value={systemPerformanceMetrics.requestErrorRate}
+            suffix="%"
+            precision={2}
+            status="warning"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.warningStatus}`}>
-            <Statistic
-              title="系统错误率"
-              value={systemPerformanceMetrics.systemErrorRate}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
+          <MetricCard
+            title="系统错误率"
+            value={systemPerformanceMetrics.systemErrorRate}
+            suffix="%"
+            precision={2}
+            status="warning"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.warningStatus}`}>
-            <Statistic
-              title="异常捕获率"
-              value={systemPerformanceMetrics.exceptionCaptureRate}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
+          <MetricCard
+            title="异常捕获率"
+            value={systemPerformanceMetrics.exceptionCaptureRate}
+            suffix="%"
+            precision={2}
+            status="warning"
+          />
         </Col>
       </Row>
     </div>

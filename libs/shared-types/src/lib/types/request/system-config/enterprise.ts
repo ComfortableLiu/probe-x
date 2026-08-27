@@ -182,65 +182,91 @@ export enum AlertLevel {
   CRITICAL = 'critical',
 }
 
-/** 告警规则列表项 */
-export interface IAlertRuleListItem {
+/** 告警比较运算符 */
+export type AlertOperator = '>' | '<' | '>=' | '<=' | '=='
+
+/** Webhook 发送结果 */
+export type AlertWebhookStatus = 'success' | 'failed'
+
+/** 告警规则 */
+export interface IAlertRule {
   id: number
-  ruleName: string
-  ruleType: AlertRuleType
-  condition: string
-  projectId?: number
-  notificationId?: number
-  notificationName?: string
-  isEnable: boolean
-  description?: string
-  lastTriggerTime?: string
+  name: string
+  eventName: string
+  windowMinutes: number
+  checkIntervalMinutes: number
+  operator: AlertOperator
+  threshold: number
+  level: AlertLevel
+  webhookUrl: string
+  enabled: boolean
+  lastCheckedAt?: string
+  lastTriggeredAt?: string
+  createUserId?: number
   createTime?: string
   updateTime?: string
 }
 
+/** 告警历史 */
+export interface IAlertHistory {
+  id: number
+  ruleId: number
+  ruleName?: string
+  metricValue: number
+  threshold: number
+  level: AlertLevel
+  webhookStatus: AlertWebhookStatus
+  error?: string
+  createTime: string
+}
+
 /** 查询告警规则列表请求参数 */
 export interface IQueryAlertRuleListReq extends Partial<IPageQuery> {
-  ruleName?: string
-  ruleType?: AlertRuleType
-  isEnable?: boolean
+  name?: string
+  level?: AlertLevel
+  enabled?: boolean
 }
 
 /** 查询告警规则列表响应 */
-export type IQueryAlertRuleListRes = IPageResult<IAlertRuleListItem>
+export type IQueryAlertRuleListRes = IPageResult<IAlertRule>
 
 /** 创建告警规则请求参数 */
 export interface ICreateAlertRuleReq {
-  ruleName: string
-  ruleType: AlertRuleType
-  condition: string
-  projectId?: number
-  notificationId?: number
-  isEnable?: boolean
-  description?: string
+  name: string
+  eventName: string
+  windowMinutes: number
+  checkIntervalMinutes: number
+  operator: AlertOperator
+  threshold: number
+  level: AlertLevel
+  webhookUrl: string
+  enabled?: boolean
 }
 
 /** 创建告警规则响应数据 */
 export interface ICreateAlertRuleRes {
   id: number
-  ruleName: string
+  name: string
 }
 
 /** 更新告警规则请求参数 */
 export interface IUpdateAlertRuleReq {
   id: number
-  ruleName?: string
-  ruleType?: AlertRuleType
-  condition?: string
-  projectId?: number
-  notificationId?: number
-  isEnable?: boolean
-  description?: string
+  name?: string
+  eventName?: string
+  windowMinutes?: number
+  checkIntervalMinutes?: number
+  operator?: AlertOperator
+  threshold?: number
+  level?: AlertLevel
+  webhookUrl?: string
+  enabled?: boolean
 }
 
 /** 更新告警规则响应数据 */
 export interface IUpdateAlertRuleRes {
   id: number
-  ruleName: string
+  name: string
 }
 
 /** 删除告警规则请求参数 */
@@ -248,27 +274,22 @@ export interface IDeleteAlertRuleReq {
   id: number
 }
 
-/** 告警历史列表项 */
-export interface IAlertHistoryListItem {
+/** 启用/禁用告警规则请求参数 */
+export interface IToggleAlertRuleReq {
   id: number
-  alertRuleId: number
-  ruleName: string
-  alertLevel: AlertLevel
-  alertContent: string
-  notifyStatus: string
-  createTime: string
+  enabled: boolean
 }
 
 /** 查询告警历史列表请求参数 */
 export interface IQueryAlertHistoryListReq extends Partial<IPageQuery> {
-  alertLevel?: AlertLevel
-  alertRuleId?: number
+  ruleId?: number
+  level?: AlertLevel
   startTime?: string
   endTime?: string
 }
 
 /** 查询告警历史列表响应 */
-export type IQueryAlertHistoryListRes = IPageResult<IAlertHistoryListItem>
+export type IQueryAlertHistoryListRes = IPageResult<IAlertHistory>
 
 // ============================================
 // 计算节点相关类型

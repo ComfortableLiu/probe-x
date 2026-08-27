@@ -1,38 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Card, Tag, Timeline, List, Typography, Button, Row, Col } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { mockOrders, OrderStatus } from '../data/mockData';
-import { trackPageView, trackButtonClick } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { Card, Tag, Timeline, List, Typography, Button, Row, Col } from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { mockOrders, OrderStatus } from '../data/mockData'
+import { trackPageView, trackButtonClick } from '../utils/probeX'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
 const OrderDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [order, setOrder] = useState<any>(null);
+  const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [order, setOrder] = useState<any>(null)
 
   useEffect(() => {
     if (id) {
-      const foundOrder = mockOrders.find(o => o.id === id);
+      const foundOrder = mockOrders.find(o => o.id === id)
       if (foundOrder) {
-        setOrder(foundOrder);
+        setOrder(foundOrder)
         trackPageView('order_detail', {
           order_id: id,
-          order_status: foundOrder.status
-        });
+          order_status: foundOrder.status,
+        })
       } else if (location.state?.order) {
-        setOrder(location.state.order);
+        setOrder(location.state.order)
         trackPageView('order_detail', {
           order_id: id,
-          order_status: location.state.order.status
-        });
+          order_status: location.state.order.status,
+        })
       } else {
-        navigate('/orders');
+        navigate('/orders')
       }
     }
-  }, [id, location.state]);
+  }, [id, location.state])
 
   const getStatusColor = (status: OrderStatus) => {
     const statusColors = {
@@ -42,9 +42,9 @@ const OrderDetailPage: React.FC = () => {
       [OrderStatus.DELIVERED]: 'green',
       [OrderStatus.CANCELLED]: 'red',
       [OrderStatus.REFUNDED]: 'gray',
-    };
-    return statusColors[status] || 'default';
-  };
+    }
+    return statusColors[status] || 'default'
+  }
 
   const getStatusText = (status: OrderStatus) => {
     const statusTexts = {
@@ -54,9 +54,9 @@ const OrderDetailPage: React.FC = () => {
       [OrderStatus.DELIVERED]: '已送达',
       [OrderStatus.CANCELLED]: '已取消',
       [OrderStatus.REFUNDED]: '已退款',
-    };
-    return statusTexts[status] || '未知状态';
-  };
+    }
+    return statusTexts[status] || '未知状态'
+  }
 
   const getTimelineItems = (order: any) => {
     const items = [
@@ -70,7 +70,7 @@ const OrderDetailPage: React.FC = () => {
           </div>
         ),
       },
-    ];
+    ]
 
     if (order.status !== OrderStatus.PENDING) {
       items.push({
@@ -82,7 +82,7 @@ const OrderDetailPage: React.FC = () => {
             <Text type="secondary">{new Date(order.updatedAt).toLocaleString()}</Text>
           </div>
         ),
-      });
+      })
     }
 
     if (order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED) {
@@ -95,7 +95,7 @@ const OrderDetailPage: React.FC = () => {
             <Text type="secondary">预计3-5天送达</Text>
           </div>
         ),
-      });
+      })
     }
 
     if (order.status === OrderStatus.DELIVERED) {
@@ -108,14 +108,14 @@ const OrderDetailPage: React.FC = () => {
             <Text type="secondary">感谢您的购买</Text>
           </div>
         ),
-      });
+      })
     }
 
-    return items;
-  };
+    return items
+  }
 
   if (!order) {
-    return <div>加载中...</div>;
+    return <div>加载中...</div>
   }
 
   return (
@@ -215,11 +215,11 @@ const OrderDetailPage: React.FC = () => {
               <Text>运费:</Text>
               <Text>¥{order.shippingFee.toFixed(2)}</Text>
             </div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
               paddingTop: '8px',
-              borderTop: '1px solid #f0f0f0'
+              borderTop: '1px solid #f0f0f0',
             }}>
               <Text strong style={{ fontSize: '16px' }}>实付金额:</Text>
               <Text strong style={{ fontSize: '16px', color: '#f5222d' }}>
@@ -230,7 +230,7 @@ const OrderDetailPage: React.FC = () => {
         </Col>
       </Row>
     </div>
-  );
-};
+  )
+}
 
-export default OrderDetailPage;
+export default OrderDetailPage

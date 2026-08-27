@@ -60,14 +60,18 @@ export const userModel = createModel<RootModel>()({
     },
     async actionRefreshToken() {
       const refreshTokenStr = Localstorage.get<string>(KEY_REFRESH_TOKEN)
+      // 本地没有 refreshToken 时不发请求，直接清理登录态并跳转登录页
+      if (!refreshTokenStr) {
+        ssoAuth.gotoLoginPage()
+        throw new Error('登录态已失效，请重新登录')
+      }
       const { data } = await refreshToken(refreshTokenStr)
       const { userInfo, refreshToken: newRefreshToken, accessToken } = data
       Localstorage.set(KEY_ACCESS_TOKEN, accessToken)
       Localstorage.set(KEY_REFRESH_TOKEN, newRefreshToken)
       Localstorage.set(USER_INFO, userInfo)
       dispatch.userModel.updateItem({ userInfo })
-      // TODO 这里直接刷新页面也有点暴力了，后续优化成无感请求
-      window.location.reload()
+      // 不再整页刷新，由请求拦截器拿到新 token 后无感重放原请求
     },
 
     async fetchCurrentUser() {

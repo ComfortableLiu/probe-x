@@ -1,4 +1,4 @@
-import type { CancelToken, ResponseType } from 'axios'
+import type { ResponseType } from 'axios'
 
 export interface IOption {
   responseType?: ResponseType; // 返回类型
@@ -10,7 +10,7 @@ export interface IOption {
   url: string; // 接口url
   method: 'get' | 'post' | 'delete' | 'put'; // 目前就封装了这四种，多了再改
   noCatch?: boolean; // 是否捕获错误不往上抛
-  cancelToken?: CancelToken;
+  timeout?: number; // 单次请求超时时间（ms），不传则用实例默认值
   headers?: {
     [key: string]: any;
   };

@@ -50,20 +50,20 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IEventAnalysisRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.eventAnalysisService.queryEvent(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true).catch(err => console.error('记录查询日志失败:', err))
       // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -77,8 +77,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     const res = await this.eventAnalysisService.createDownloadTask(data, user)
     // 记录导出日志
@@ -95,8 +95,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download/task', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/event/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     return await this.eventAnalysisService.queryDownloadTask(data.taskId)
   }
@@ -110,20 +110,20 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ) {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.funnelAnalysisService.queryEvent(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, Array.isArray(res) ? res.length : 0, true).catch(err => console.error('记录查询日志失败:', err))
       // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -137,8 +137,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     const res = await this.funnelAnalysisService.createDownloadTask(data, user)
     // 记录导出日志
@@ -155,8 +155,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download/task', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/funnel/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     return await this.funnelAnalysisService.queryDownloadTask(data.taskId)
   }
@@ -170,20 +170,20 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ) {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.userPathAnalysisService.queryEvent(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true).catch(err => console.error('记录查询日志失败:', err))
       // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -197,8 +197,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     const res = await this.userPathAnalysisService.createDownloadTask(data, user)
     // 记录导出日志
@@ -215,8 +215,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download/task', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/user-path/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     return await this.userPathAnalysisService.queryDownloadTask(data.taskId)
   }
@@ -230,20 +230,20 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ) {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.attributionAnalysisService.queryEvent(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, JSON.stringify(res).length, true).catch(err => console.error('记录查询日志失败:', err))
       // TODO 这里可以调用Redis缓存一下，下次进来直接给就行
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -257,8 +257,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     const res = await this.attributionAnalysisService.createDownloadTask(data, user)
     // 记录导出日志
@@ -275,8 +275,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download/task', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/attribution/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     return await this.attributionAnalysisService.queryDownloadTask(data.taskId)
   }
@@ -290,19 +290,19 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IRetentionAnalysisRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.retentionAnalysisService.queryRetention(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.cohorts.length, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.cohorts.length, true).catch(err => console.error('记录查询日志失败:', err))
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -316,8 +316,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISubmitDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     const res = await this.retentionAnalysisService.createDownloadTask(data, user)
     // 记录导出日志
@@ -334,8 +334,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<IQueryDownloadTaskRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download/task', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/retention/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     return await this.retentionAnalysisService.queryDownloadTask(data.taskId)
   }
@@ -349,19 +349,19 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISegmentStats> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/create', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/create', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.userSegmentationService.createSegment(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.totalUsers, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.totalUsers, true).catch(err => console.error('记录查询日志失败:', err))
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -375,19 +375,19 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<ISegmentQueryRes> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/query', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录查询日志
     const startTime = Date.now()
     try {
       const res = await this.userSegmentationService.querySegment(data, user)
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.users.length, true)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.users.length, true).catch(err => console.error('记录查询日志失败:', err))
       return res
     } catch (error) {
       const duration = Date.now() - startTime
-      await this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message)
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
   }
@@ -401,8 +401,8 @@ export class DataAnalysisController {
     @User() user: IUser,
     @Req() req: Request,
   ): Promise<{ users: string[]; total: number }> {
-    // 记录访问日志
-    await this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/export', req.ip, req.get('User-Agent') || undefined)
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/segment/export', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
 
     // 记录导出日志
     await this.dataAnalysisRecordService.recordExport(user, 'csv', '用户分群导出', data)

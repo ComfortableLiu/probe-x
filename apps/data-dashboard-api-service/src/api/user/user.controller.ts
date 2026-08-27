@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, UnauthorizedException, UseGuards } from '@nestjs/common'
 import { UserService } from './user.service'
 import type { IPermissionRes, IUser, IUpdateUserProfileReq, IUpdateUserProfileRes, IChangePasswordReq, IChangePasswordRes } from "@probe-x/shared-types/src/index"
 import { User, ResponseData } from "@probe-x/shared-utils/src/lib/backend-common"
@@ -6,6 +6,7 @@ import { AuthService } from "@src/service/auth.service"
 import { ErrorCode } from "@probe-x/shared-utils/src"
 import { JwtAuthGuard } from "./JwtAuthGuard"
 import { LoginThrottleGuard } from "../../guard/throttle.guard"
+import { AdminGuard } from "../../guard/admin.guard"
 
 @Controller('user')
 export class UserController {
@@ -33,8 +34,15 @@ export class UserController {
     return await this.userService.getUserRoleAndPermission(user.userId)
   }
 
-  @Get('refreshToken')
-  async refreshToken(@Query('refreshToken') refreshToken: string) {
+  @Post('refreshToken')
+  async refreshToken(@Body() body: { refreshToken: string }) {
+    const refreshToken = body?.refreshToken
+    if (!refreshToken) {
+      throw new UnauthorizedException({
+        message: 'refreshToken不能为空',
+        code: ErrorCode.REFRESH_TOKEN_EXPIRED,
+      })
+    }
     const userInfo = await this.userService.validateSsoToken(refreshToken)
     if (!userInfo){
       throw new UnauthorizedException({
@@ -58,7 +66,7 @@ export class UserController {
    */
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getCurrentUser(@User() user: IUser): Promise<ResponseData<IUser>> {
+  async getCurrentUser(@User() user: IUser): Promise<ResponseData<IUser & { hasPassword: boolean }>> {
     return await this.userService.getCurrentUser(user.userId!)
   }
 
@@ -75,9 +83,10 @@ export class UserController {
   }
 
   /**
-   * 重置admin密码（仅开发环境可用）
+   * 重置admin密码（仅开发环境可用，且需要管理员权限）
    */
   @Post('admin/reset-password')
+  @UseGuards(AdminGuard)
   async resetAdminPassword() {
     return this.userService.resetAdminPassword()
   }

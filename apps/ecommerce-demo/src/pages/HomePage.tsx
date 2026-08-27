@@ -1,43 +1,43 @@
-import React, { useEffect } from 'react';
-import { Row, Col, Card, Button, Typography, Carousel } from 'antd';
-import { ShoppingCartOutlined, EyeOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { mockProducts, mockCategories } from '../data/mockData';
-import { trackPageView, trackProductClick, trackAddToCart } from '../utils/probeX';
+import React, { useEffect } from 'react'
+import { Row, Col, Card, Button, Typography, Carousel } from 'antd'
+import { ShoppingCartOutlined, EyeOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import { mockProducts, mockCategories } from '../data/mockData'
+import { trackPageView, trackProductClick, trackAddToCart } from '../utils/probeX'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
 const HomePage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   useEffect(() => {
     trackPageView('home', {
       page_title: '首页',
       featured_products_count: mockProducts.slice(0, 6).length,
-      categories_count: mockCategories.length
-    });
-  }, []);
+      categories_count: mockCategories.length,
+    })
+  }, [])
 
   const handleProductClick = (product: any) => {
-    trackProductClick(product, 'home_featured');
-    navigate(`/products/${product.id}`);
-  };
+    trackProductClick(product, 'home_featured')
+    navigate(`/products/${product.id}`)
+  }
 
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    trackAddToCart(product, 1, { source: 'home_featured' });
+    e.stopPropagation()
+    trackAddToCart(product, 1, { source: 'home_featured' })
     // 这里可以添加到购物车的逻辑
-  };
+  }
 
   const handleCategoryClick = (category: any) => {
-    navigate(`/products?category=${category.id}`);
-  };
+    navigate(`/products?category=${category.id}`)
+  }
 
   const bannerImages = [
     'https://via.placeholder.com/1200x400?text=Banner+1',
     'https://via.placeholder.com/1200x400?text=Banner+2',
-    'https://via.placeholder.com/1200x400?text=Banner+3'
-  ];
+    'https://via.placeholder.com/1200x400?text=Banner+3',
+  ]
 
   return (
     <div style={{ padding: '24px' }}>
@@ -57,7 +57,7 @@ const HomePage: React.FC = () => {
                   justifyContent: 'center',
                   color: 'white',
                   fontSize: '48px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
                 }}
               >
                 Banner {index + 1}
@@ -78,11 +78,11 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ textAlign: 'center', height: '120px' }}
-                bodyStyle={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
+                bodyStyle={{
+                  display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'center',
-                  height: '100%'
+                  height: '100%',
                 }}
                 onClick={() => handleCategoryClick(category)}
               >
@@ -114,32 +114,32 @@ const HomePage: React.FC = () => {
                       backgroundImage: `url(${product.image})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
                     }}
                     onClick={() => handleProductClick(product)}
                   />
                 }
                 actions={[
-                  <EyeOutlined 
-                    key="view" 
+                  <EyeOutlined
+                    key="view"
                     onClick={() => handleProductClick(product)}
                   />,
-                  <ShoppingCartOutlined 
-                    key="cart" 
+                  <ShoppingCartOutlined
+                    key="cart"
                     onClick={(e) => handleAddToCart(product, e)}
-                  />
+                  />,
                 ]}
               >
                 <div>
                   <Title level={5} style={{ marginBottom: '8px' }}>
                     {product.name}
                   </Title>
-                  <div className="product-description" style={{ 
-                    color: '#666', 
+                  <div className="product-description" style={{
+                    color: '#666',
                     fontSize: '14px',
                     marginBottom: '12px',
                     height: '40px',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
                   }}>
                     {product.description}
                   </div>
@@ -167,8 +167,8 @@ const HomePage: React.FC = () => {
 
       {/* 查看更多按钮 */}
       <div style={{ textAlign: 'center', marginTop: '32px' }}>
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           size="large"
           onClick={() => navigate('/products')}
         >
@@ -176,7 +176,7 @@ const HomePage: React.FC = () => {
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default HomePage;
+export default HomePage

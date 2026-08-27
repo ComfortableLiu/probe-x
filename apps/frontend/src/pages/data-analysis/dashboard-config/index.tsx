@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button, message, Popconfirm, Space, TableProps, Tag } from "antd"
 import { AddOne, Help } from "@icon-park/react"
-import { useHistoryListener } from "@/hooks"
+import { useHistoryListener, useModel } from "@/hooks"
 import { useNavigate } from "react-router-dom"
 import { AnalysisType, DashboardType, IDashboard } from "./type"
 import dayjs from "dayjs"
@@ -15,9 +15,16 @@ import ConvertToPublicPopup from "./components/convert-to-public"
 import GuidePopup from "./components/guide-popup"
 import queryString from "query-string"
 import { deleteDashboard, queryDashboardList } from "./services"
+import { IUserModel } from "@/store/models/user/type"
 
 function DashboardConfig() {
   const navigate = useNavigate()
+  const { userInfo, permissionInfo } = useModel<IUserModel>('userModel')
+
+  // 管理员（admin/超管）可管理所有个人看板
+  const isAdmin = useMemo(() => (
+    permissionInfo?.roles?.some((role) => role.roleKey === 'admin' || role.roleKey === 'super_admin') ?? false
+  ), [permissionInfo])
 
   const [dashboardList, setDashboardList] = useState<IDashboard[]>([])
   const [pagination, setPagination] = useState({
@@ -97,8 +104,6 @@ function DashboardConfig() {
       queryParams = { ...config.userPathAnalysis }
     } else if (dashboard.analysisType === AnalysisType.ATTRIBUTION && config.attributionAnalysis) {
       queryParams = { ...config.attributionAnalysis }
-    } else if (dashboard.analysisType === AnalysisType.FREE && config.freeAnalysis) {
-      queryParams = { ...config.freeAnalysis }
     }
 
     // 确保有配置参数
@@ -129,7 +134,6 @@ function DashboardConfig() {
       [AnalysisType.FUNNEL]: '/data-analysis/funnel',
       [AnalysisType.USER_PATH]: '/data-analysis/userPath',
       [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
-      [AnalysisType.FREE]: '/data-analysis/free',
     }
     const route = routeMap[dashboard.analysisType]
     if (route) {
@@ -256,12 +260,13 @@ function DashboardConfig() {
       width: 250,
       fixed: 'right',
       render: (_, record) => {
-        // 个人看板只有创建者可以编辑和删除
+        // 个人看板只有创建者（或管理员）可以编辑和删除
         // 公共看板只有管理员可以编辑和删除
         // 个人看板可以转为公共看板
-        const canEdit = record.type === DashboardType.PERSONAL // 这里应该检查当前用户是否为创建者或管理员
-        const canDelete = record.type === DashboardType.PERSONAL // 同上
-        const canConvert = record.type === DashboardType.PERSONAL // 只有个人看板可以转换
+        const isOwner = record.creatorId === userInfo?.userId
+        const canEdit = record.type === DashboardType.PERSONAL && (isOwner || isAdmin)
+        const canDelete = record.type === DashboardType.PERSONAL && (isOwner || isAdmin)
+        const canConvert = record.type === DashboardType.PERSONAL && (isOwner || isAdmin) // 只有个人看板可以转换
 
         return (
           <Space>
@@ -278,14 +283,14 @@ function DashboardConfig() {
                 okText="确定"
                 cancelText="取消"
               >
-                <a style={{ color: '#ff4d4f' }}>删除</a>
+                <a style={{ color: 'var(--px-color-error)' }}>删除</a>
               </Popconfirm>
             )}
           </Space>
         )
       },
     },
-  ], [handleEditDashboard, handleDeleteDashboard, handleConvertToPublic, getAnalysisTypeText])
+  ], [handleEditDashboard, handleDeleteDashboard, handleConvertToPublic, getAnalysisTypeText, userInfo?.userId, isAdmin])
 
   const handleRefresh = useCallback(() => {
     loadDashboardList(paginationRef.current.current, paginationRef.current.pageSize)
@@ -300,7 +305,7 @@ function DashboardConfig() {
         extra={
           <Button
             type="link"
-            icon={<Help theme="outline" size="16" fill="#000000" />}
+            icon={<Help theme="outline" size="16" fill="currentColor" />}
             onClick={() => navigate('/guide/data-analysis/dashboard-config')}
           >
             说明

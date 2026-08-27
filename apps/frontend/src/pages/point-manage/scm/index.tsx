@@ -152,7 +152,7 @@ function ScmManage() {
         ]}
       />
 
-      <Splitter style={{ border: '1px solid #eee', height: "calc(100vh - 47px - 48px)" }}>
+      <Splitter style={{ border: '1px solid var(--px-color-border-secondary)', height: "calc(100vh - 47px - 48px)" }}>
         <Splitter.Panel style={{ height: '100%' }}>
           <A
             containerHeight={containerHeight}

@@ -34,6 +34,16 @@ function wrapFieldWithBacktick(field: string): string {
 }
 
 /**
+ * 时间范围最大天数上限，防止生成过多日期列导致 SQL 过大
+ */
+const MAX_DATE_RANGE_DAYS = 366
+
+/**
+ * 单次分析的事件数量上限，防止生成的 SQL 过大
+ */
+const MAX_EVENT_COUNT = 20
+
+/**
  * 生成时间范围内的所有日期
  */
 function generateDateList(startDate: string, endDate: string): string[] {
@@ -43,6 +53,11 @@ function generateDateList(startDate: string, endDate: string): string[] {
 
   if (start > end) {
     throw new Error('开始日期不能晚于结束日期')
+  }
+
+  const rangeDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  if (rangeDays > MAX_DATE_RANGE_DAYS) {
+    throw new Error(`时间范围不能超过${MAX_DATE_RANGE_DAYS}天`)
   }
 
   const current = new Date(start)
@@ -304,6 +319,10 @@ export function generateEventAnalysisSql(params: IEventAnalysisReq): ISqlGenerat
     // 基础参数校验
     if (!params.eventInfoList || params.eventInfoList.length === 0) {
       return { sql: '', params: {}, error: '事件列表不能为空' }
+    }
+    // 事件数量上限：每个事件会按日期生成聚合列，事件过多会导致 SQL 过大
+    if (params.eventInfoList.length > MAX_EVENT_COUNT) {
+      return { sql: '', params: {}, error: `事件数量不能超过${MAX_EVENT_COUNT}个` }
     }
     if (!params.timeRange || params.timeRange.length !== 2) {
       return { sql: '', params: {}, error: '时间范围格式错误' }

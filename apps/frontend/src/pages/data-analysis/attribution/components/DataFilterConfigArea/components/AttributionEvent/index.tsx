@@ -75,7 +75,7 @@ const AttributionEvent: React.FC = () => {
           addEvent()
         }}
       >
-        <AddOne theme="filled" size="24" fill="#536DFE" style={{ display: 'flex' }} />
+        <AddOne theme="filled" size="24" fill="currentColor" style={{ display: 'flex' }} />
         添加归因事件
       </a>
     </div>

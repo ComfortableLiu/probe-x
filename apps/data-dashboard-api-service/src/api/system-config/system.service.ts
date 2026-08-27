@@ -110,17 +110,7 @@ export class SystemConfigSystemService {
     // 使用 QueryBuilder 直接更新，确保更新成功
     if (isEnable !== undefined) {
       const enableValue = isEnable ? 1 : 0
-      console.log(`[SystemService] 更新系统状态: id=${id}, isEnable=${isEnable}, enableValue=${enableValue}`)
-      
-      // 先查询当前值
-      const beforeUpdate = await this.systemRepo
-        .createQueryBuilder('system')
-        .select('system.id', 'id')
-        .addSelect('system.isEnable', 'isEnable')
-        .where('system.id = :id', { id })
-        .getRawOne()
-      console.log(`[SystemService] 更新前的值:`, beforeUpdate)
-      
+
       // 使用 QueryBuilder 更新，并检查影响的行数
       const updateResult = await this.systemRepo
         .createQueryBuilder()
@@ -128,41 +118,21 @@ export class SystemConfigSystemService {
         .set({ isEnable: enableValue })
         .where('id = :id', { id })
         .execute()
-      
-      console.log(`[SystemService] 更新结果 - 影响行数:`, updateResult.affected)
-      
+
       if (updateResult.affected === 0) {
         throw new Error(`更新系统失败：未找到 ID 为 ${id} 的系统`)
       }
-      
-      // 使用原生 SQL 验证更新是否成功（绕过 TypeORM 缓存）
-      const verifyResult = await this.systemRepo.query(
-        'SELECT `id`, `is_enable` FROM `system` WHERE `id` = ?',
-        [id]
-      )
-      console.log(`[SystemService] 验证更新后的值（原生SQL）:`, verifyResult)
-      
-      // 再次使用 QueryBuilder 查询（可能被缓存）
-      const verifyResult2 = await this.systemRepo
-        .createQueryBuilder('system')
-        .select('system.id', 'id')
-        .addSelect('system.isEnable', 'isEnable')
-        .where('system.id = :id', { id })
-        .getRawOne()
-      console.log(`[SystemService] 验证更新后的值（QueryBuilder）:`, verifyResult2)
     }
-    
+
     // 重新查询确保获取最新数据
     const freshSystem = await this.systemRepo.findOne({
       where: { id },
       relations: ['trackingNode'],
     })
-    
+
     if (!freshSystem) {
       throw new Error(`更新后无法找到系统 ID "${id}"`)
     }
-
-    console.log(`[SystemService] 查询到的系统状态: id=${freshSystem.id}, isEnable=${freshSystem.isEnable}`)
 
     return {
       code: 200,

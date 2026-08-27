@@ -17,7 +17,7 @@ export const ClickHouseProvider: Provider = {
       // 可选配置
       // tls: configService.get<boolean>('clickhouse.tls', false),
       request_timeout: configService.get<number>('clickhouse.requestTimeout', 30000),
-      max_open_connections: configService.get<number>('clickhouse.connectionTimeout', 10000),
+      max_open_connections: configService.get<number>('clickhouse.maxOpenConnections', 10),
       compression: {
         request: configService.get<boolean>('clickhouse.compression', true), // 请求压缩
         response: configService.get<boolean>('clickhouse.compression', true), // 响应压缩

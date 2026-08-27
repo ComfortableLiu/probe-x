@@ -88,14 +88,15 @@ export class MetaService {
         throw new Error('Invalid end date format. Expected YYYY-MM-DD')
       }
 
-      // 构建日期范围查询
+      // 构建日期范围查询：传了起止日期时只用 BETWEEN 条件，否则按最近 days 天查询
       let dateCondition = ''
-      let params: any = { days: days }
+      let params: any
       if (startDate && endDate) {
         dateCondition = `AND toDate(\`$service_time\`) BETWEEN {startDate:String} AND {endDate:String}`
-        params = { ...params, startDate, endDate }
+        params = { startDate, endDate }
       } else {
         dateCondition = `AND toDate(\`$service_time\`) >= today() - {days:Int32}`
+        params = { days }
       }
 
       // 查询按日期分组的数据量趋势
@@ -106,7 +107,7 @@ export class MetaService {
           SELECT toDate(\`$service_time\`) as date,
                  count(*)                  as count
           FROM event_log
-          WHERE toDate(\`$service_time\`) >= today() - {days:Int32} ${dateCondition}
+          WHERE 1 = 1 ${dateCondition}
           GROUP BY date
           ORDER BY date
       `, params)

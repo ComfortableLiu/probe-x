@@ -223,7 +223,7 @@ function DataTable() {
                   <div style={{
                     width: '100%',
                     height: 8,
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'var(--px-color-bg-layout)',
                     borderRadius: 4,
                     overflow: 'hidden',
                     marginTop: 4,
@@ -231,7 +231,7 @@ function DataTable() {
                     <div style={{
                       width: `${typeof progress === 'number' ? progress : 0}%`,
                       height: '100%',
-                      backgroundColor: progress > 50 ? '#52c41a' : progress > 20 ? '#1890ff' : '#faad14',
+                      backgroundColor: progress > 50 ? 'var(--px-color-success)' : progress > 20 ? 'var(--px-color-primary)' : 'var(--px-color-warning)',
                       transition: 'width 0.3s',
                     }} />
                   </div>

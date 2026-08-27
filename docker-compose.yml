@@ -11,10 +11,10 @@ services:
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
       MYSQL_DATABASE: ${DB_DATABASE:-probe_x}
       MYSQL_USER: ${DB_USERNAME:-probe_x}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       TZ: Asia/Shanghai
     volumes:
       - mysql_data:/var/lib/mysql
@@ -22,7 +22,7 @@ services:
     networks:
       - probe-x-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -103,7 +103,7 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:-probe_x_redis_2024}
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --appendonly yes
@@ -112,7 +112,7 @@ services:
     networks:
       - probe-x-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-probe_x_redis_2024}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -137,7 +137,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME:-probe_x}
-      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       DB_DATABASE: ${DB_DATABASE:-probe_x}
       DB_SYNCHRONIZE: "true"
       # ClickHouse 配置
@@ -154,11 +154,11 @@ services:
       # Redis 配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       # 安全配置
-      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
-      SALT: ${SALT:-your_salt_here}
-      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:?SIGNATURE_SECRET must be set in .env}
+      SALT: ${SALT:?SALT must be set in .env}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env}
     depends_on:
       mysql:
         condition: service_healthy
@@ -194,7 +194,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME:-probe_x}
-      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       DB_DATABASE: ${DB_DATABASE:-probe_x}
       DB_SYNCHRONIZE: "true"
       # ClickHouse 配置
@@ -211,11 +211,11 @@ services:
       # Redis 配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       # 安全配置
-      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
-      SALT: ${SALT:-your_salt_here}
-      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:?SIGNATURE_SECRET must be set in .env}
+      SALT: ${SALT:?SALT must be set in .env}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env}
     depends_on:
       mysql:
         condition: service_healthy
@@ -245,7 +245,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME:-probe_x}
-      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       DB_DATABASE: ${DB_DATABASE:-probe_x}
       DB_SYNCHRONIZE: "true"
       # ClickHouse 配置
@@ -262,11 +262,11 @@ services:
       # Redis 配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       # 安全配置
-      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
-      SALT: ${SALT:-your_salt_here}
-      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:?SIGNATURE_SECRET must be set in .env}
+      SALT: ${SALT:?SALT must be set in .env}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env}
     depends_on:
       mysql:
         condition: service_healthy
@@ -296,7 +296,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME:-probe_x}
-      DB_PASSWORD: ${DB_PASSWORD:-probe_x_2024}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       DB_DATABASE: ${DB_DATABASE:-probe_x}
       DB_SYNCHRONIZE: "true"
       # ClickHouse 配置
@@ -313,7 +313,7 @@ services:
       # Redis 配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-probe_x_redis_2024}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       # 服务配置
       CLIENT_HOST: http://frontend
       CLIENT_PORT: 80
@@ -329,10 +329,10 @@ services:
       # CORS 配置
       CORS_ORIGINS: http://localhost,http://localhost:80,http://frontend
       # 安全配置
-      SIGNATURE_SECRET: ${SIGNATURE_SECRET:-your_signature_secret_here}
-      SALT: ${SALT:-your_salt_here}
-      HMAC_SECRET: ${HMAC_SECRET:-your_hmac_secret_here}
-      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      SIGNATURE_SECRET: ${SIGNATURE_SECRET:?SIGNATURE_SECRET must be set in .env}
+      SALT: ${SALT:?SALT must be set in .env}
+      HMAC_SECRET: ${HMAC_SECRET:?HMAC_SECRET must be set in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-86400}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-604800}
     depends_on:

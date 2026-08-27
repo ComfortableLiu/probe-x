@@ -33,7 +33,7 @@ import { NotificationModule } from "@src/api/notification/notification.module"
 
 @Module({
   imports: [
-    envConfig(configuration),
+    envConfig(configuration, 'apps/data-dashboard-api-service'),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -54,8 +54,8 @@ import { NotificationModule } from "@src/api/notification/notification.module"
         defaultJobOptions: {
           attempts: 1, // 失败不重试（长耗时任务可按需调整）
           timeout: 1000 * 60 * 60, // 1小时超时
-          removeOnComplete: false, // 完成后保留任务（便于排查）
-          removeOnFail: false, // 失败后保留任务
+          removeOnComplete: { count: 100 }, // 完成后仅保留最近 100 条，避免 Redis 无限堆积
+          removeOnFail: { count: 100 }, // 失败后仅保留最近 100 条
         },
       }),
       inject: [RedisService], // 注入配置服务

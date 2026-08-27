@@ -4,17 +4,22 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Optional,
   UnauthorizedException,
 } from "@nestjs/common"
 import { Request } from 'express'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { Observable } from 'rxjs'
 import { IAnyObj } from "@probe-x/shared-types/src/index"
+import { RedisService } from "../modules/redis/redis.service"
 
 @Injectable()
 export class SignatureInterceptor implements NestInterceptor {
   // 签名有效时间（毫秒），5分钟
   private readonly MAX_TIME_DIFF = 5 * 60 * 1000
+
+  // nonce 防重放有效期（秒），与签名有效时间一致
+  private readonly NONCE_EXPIRE_SECONDS = 5 * 60
 
   // 签名验证白名单（不需要签名的接口）
   private readonly whiteList = [
@@ -22,22 +27,31 @@ export class SignatureInterceptor implements NestInterceptor {
     '/point/track.gif',
   ]
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> | Promise<Observable<any>> {
+  // RedisService 由全局 RedisModule 导出，未注册 RedisModule 的服务降级为不校验重放
+  constructor(@Optional() private readonly redisService?: RedisService) {
+  }
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest<Request>()
-    
+
     // 检查是否在白名单中
     if (this.whiteList.includes(request.path)) {
       return next.handle()
     }
 
     //签名字段
-    const receivedSignature = request.header('X-Signature') || request.body.signature
-    const timestamp = parseInt(request.header('X-Timestamp') || '') || request.body.timestamp
-    const nonce = request.header('X-Nonce') || request.body.nonce
+    const receivedSignature = request.header('X-Signature') || request.body?.signature
+    const timestamp = parseInt(request.header('X-Timestamp') || '') || request.body?.timestamp
+    const nonce = request.header('X-Nonce') || request.body?.nonce
 
     // 基本头信息验证
     if (!receivedSignature || !timestamp || !nonce) {
       throw new UnauthorizedException('Missing required headers')
+    }
+
+    // 来自 body 的签名字段类型不可信，必须先校验为字符串，否则 Buffer.from 行为不可控
+    if (typeof receivedSignature !== 'string') {
+      throw new BadRequestException('Invalid signature')
     }
 
     // 验证时间有效性
@@ -54,6 +68,18 @@ export class SignatureInterceptor implements NestInterceptor {
       throw new BadRequestException('Invalid signature')
     }
 
+    // nonce 防重放：签名验证通过后占位，已存在则说明是重放请求
+    if (this.redisService) {
+      const claimed = await this.redisService.setNx(
+        `signature:nonce:${nonce}`,
+        '1',
+        this.NONCE_EXPIRE_SECONDS,
+      )
+      if (!claimed) {
+        throw new BadRequestException('Duplicate request')
+      }
+    }
+
     return next.handle()
   }
 
@@ -65,8 +91,11 @@ export class SignatureInterceptor implements NestInterceptor {
    * @private 生成的签名
    */
   private generateServerSignature(request: Request, timestamp: number, nonce: string): string {
-    // 获取环境变量中的密钥
-    const secret = process.env.SIGNATURE_SECRET || ''
+    // 获取环境变量中的密钥，未配置时直接抛错，避免使用空密钥导致签名形同虚设
+    const secret = process.env.SIGNATURE_SECRET
+    if (!secret) {
+      throw new Error('SIGNATURE_SECRET 环境变量未配置，服务无法启动')
+    }
 
     const body = {
       ...request.body || {},

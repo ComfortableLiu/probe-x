@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import { GrpcStreamMethod } from '@nestjs/microservices'
-import { interval, Observable, Subject, takeWhile } from 'rxjs'
+import { Observable, Subject } from 'rxjs'
 import { tap } from 'rxjs/operators'
-import { ClickHouseService } from "@probe-x/shared-utils/src/lib/backend-common"
-import { convertObjectToAttribution } from "@probe-x/shared-utils/src"
-import { IAttribution, IAttributionInfo, IPreEventLog } from "@probe-x/shared-types/src"
+import { ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
+import { IPreEventLog } from "@probe-x/shared-types/src"
+import { computeAttribution } from "../lib/attribution-engine"
 
 // 类型定义
 export interface ComputeTask {
@@ -38,6 +38,8 @@ export class ComputeNodeService {
 
   constructor(
     private readonly clickhouseService: ClickHouseService,
+    // 可选注入：单测直接 new 出来的实例没有 RedisService，任务去重逻辑自动跳过
+    @Optional() private readonly redisService?: RedisService,
   ) {
     this.nodeId = `node-${Math.random().toString(36).slice(2, 8)}` // 节点唯一标识
   }
@@ -64,7 +66,8 @@ export class ComputeNodeService {
         SELECT *
         FROM event_log
         WHERE toDate(\`$service_time\`) = {queryDate: DateTime64}
-          AND $session_id = {sessionId: String};
+          AND \`$session_id\` = {sessionId: String}
+        ORDER BY \`$service_time\`;
     `
 
     return this.clickhouseService.query<IPreEventLog>(sql, {
@@ -75,95 +78,87 @@ export class ComputeNodeService {
 
   // 执行任务并通过 progressSubject 推送进度
   private async executeTask(task: ComputeTask, progressSubject: Subject<ProgressUpdate>) {
-    // 正在处理第几个事件
-    let progress = 0
-
-    // 拿到所有事件
-    const eventList = await this.getAllEvents(task.date, task.session_id)
-
-    // 开启一个页面数据map，记录每一个页面的归因参数，保存的当前页面的
-    const attributionDataMap = new Map<string, IAttributionInfo>()
-
-    // 明确一点，map需要存当前页面的所有归因参数，不然前置归因参数会变
-    // 场景：a->b，回退到a，a->c，这时候a的归因参数会变成c入口信息
-
-    // 从第一个事件向后扫描
-    eventList.forEach((item, index) => {
-      progress = index + 1
-      // 看一下当前事件是否是更新归因逻辑的事件，如果是的话，就需要更新当前归因数据
-      // 产生路由事件并且是前进或重定向等打开新页面的行为，就更新当前归因逻辑，但是
-      if (item.$is_attribution_event && item.$target_page_id) {
-        // 从上个页面取出来，加上一起来的数据，存到目标页面的数据中
-        // 累计的归因数据，路由事件的page_id就是下个页面的source_page_id
-        const sourceAttributionData = [...(attributionDataMap.get(item.$page_id) || [])]
-        // 事件中传的除了spm scm以外的其他参数
-        // item.$ex_attribution_params
-        // 目标页面id
-        // item.$target_page_id
-
-        // 计算当前页面的归因数据
-        const currentPageAttributionData = {
-          $spm: item.$spm,
-          $spm_a: item.$spm_a,
-          $spm_b: item.$spm_b,
-          $spm_c: item.$spm_c,
-          $spm_d: item.$spm_d,
-          $spm_a_description: item.$spm_a_description,
-          $spm_b_description: item.$spm_b_description,
-          $spm_c_description: item.$spm_c_description,
-          $spm_d_description: item.$spm_d_description,
-          $scm: item.$scm,
-          $scm_a: item.$scm_a,
-          $scm_b: item.$scm_b,
-          $scm_c: item.$scm_c,
-          $scm_d: item.$scm_d,
-          $scm_a_description: item.$scm_a_description,
-          $scm_b_description: item.$scm_b_description,
-          $scm_c_description: item.$scm_c_description,
-          $scm_d_description: item.$scm_d_description,
-          // 再加上其他归因字段
-          ...item.$ex_attribution_params,
+    try {
+      // 任务级幂等：控制中心重复下发同一 task_id 时只执行一次，
+      // SET NX EX 86400 已存在则视为已成功重放，跳过执行并直接推 completed:true 进度
+      if (this.redisService) {
+        const isNewTask = await this.redisService.setNx(`clean:task:${task.task_id}`, '1', 86400)
+        if (!isNewTask) {
+          progressSubject.next({
+            task_id: task.task_id,
+            node_id: this.nodeId,
+            target: 0,
+            progress: 0,
+            message: '任务已处理过（重复下发），直接标记完成',
+            completed: true,
+            error: '',
+            failed: false,
+          })
+          return
         }
-        sourceAttributionData.push({
-          serviceTime: item.$service_time,
-          ...currentPageAttributionData,
-        })
-        // 先存到map中，等全部计算完成后统一落库
-        attributionDataMap.set(item.$target_page_id, sourceAttributionData)
       }
-    })
 
-    // 保证任务原子性，在外面统一执行落库
-    const attributionList: IAttribution[] = []
-    attributionDataMap.forEach((value, key) => {
-      value.forEach((item, index) => {
-        attributionList.push(...convertObjectToAttribution(item, item.serviceTime, key, index))
+      // 拿到所有事件
+      const eventList = await this.getAllEvents(task.date, task.session_id)
+
+      // 任务开始即推送初始进度，保证控制中心能感知任务已被接收
+      progressSubject.next({
+        task_id: task.task_id,
+        node_id: this.nodeId,
+        target: eventList.length,
+        progress: 0,
+        message: '任务已接收，开始归因计算',
+        completed: false,
+        error: '',
+        failed: false,
       })
-    })
-    const res = await Promise.all([
-      this.clickhouseService.insert('final_event_log', eventList),
-      this.clickhouseService.insert('event_attribution', attributionList),
-    ])
 
-    // TODO 手动回滚逻辑
-
-    // 隔一段时间发送一次进度，毫秒
-    interval(500).pipe(
-      takeWhile(() => progress < eventList.length),
-    ).subscribe({
-      next: () => {
+      // 执行归因计算，扫描过程中逐条推送进度
+      const result = computeAttribution(eventList, (processed, total) => {
         progressSubject.next({
           task_id: task.task_id,
           node_id: this.nodeId,
-          target: eventList.length,
-          progress: progress,
-          message: ``,
-          completed: progress === eventList.length,
+          target: total,
+          progress: processed,
+          message: `正在处理第 ${processed}/${total} 个事件`,
+          completed: false,
           error: '',
           failed: false,
         })
-      },
-      complete: () => progressSubject.complete(),
-    })
+      })
+
+      // 保证任务原子性，统一执行落库
+      await Promise.all([
+        this.clickhouseService.insert('final_event_log', result.finalEvents),
+        this.clickhouseService.insert('event_attribution', result.attributions),
+      ])
+
+      // TODO 手动回滚逻辑
+
+      // 任务结束只发送一条 completed:true 的进度，不要 complete() 共享流，
+      // 共享 Subject 的生命周期与整个连接一致，complete 后后续任务将无法再推送进度
+      progressSubject.next({
+        task_id: task.task_id,
+        node_id: this.nodeId,
+        target: eventList.length,
+        progress: eventList.length,
+        message: '任务完成',
+        completed: true,
+        error: '',
+        failed: false,
+      })
+    } catch (e) {
+      // 任务失败时通过进度流推送失败状态，避免静默失败
+      progressSubject.next({
+        task_id: task.task_id,
+        node_id: this.nodeId,
+        target: 0,
+        progress: 0,
+        message: '',
+        completed: false,
+        error: e instanceof Error ? e.message : String(e),
+        failed: true,
+      })
+    }
   }
 }

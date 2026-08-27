@@ -17,7 +17,7 @@ export class RedisModule {
             port: configService.get<number>('redis.port') || 6379,
             password: configService.get<string>('redis.password'), // 可选，无密码则为 undefined
             db: configService.get<number>('redis.db') || 0,
-            retryStrategy: (times: number) => Math.min(times * 50, 2000), // 固定重试策略
+            // 不传 retryStrategy，使用 RedisService 内置策略（重试 10 次后停止）
           }),
           inject: [ConfigService], // 注入已有的 ConfigService
         },

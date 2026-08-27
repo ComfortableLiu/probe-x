@@ -14,6 +14,19 @@ export class SessionManager {
   private events: number = 0;
   private sessionTimeout: number = 30 * 60 * 1000; // 30分钟
   private heartbeatTimer?: number;
+  // 保存事件监听 handler 引用，destroy 时移除
+  private activityEvents: string[] = ['click', 'keydown', 'scroll', 'mousemove', 'touchstart'];
+  private activityHandler = () => this.updateLastActivity();
+  private saveDataHandler = () => this.saveSessionData();
+  private visibilityHandler = () => {
+    if (document.hidden) {
+      // 页面隐藏时保存数据
+      this.saveSessionData();
+    } else {
+      // 页面显示时更新活动时间
+      this.updateLastActivity();
+    }
+  };
 
   constructor(config: ConfigManager) {
     this.config = config;
@@ -146,14 +159,8 @@ export class SessionManager {
    * 设置用户活动监听
    */
   private setupActivityListeners(): void {
-    const events = ['click', 'keydown', 'scroll', 'mousemove', 'touchstart'];
-    
-    const updateActivity = () => {
-      this.updateLastActivity();
-    };
-    
-    events.forEach(event => {
-      document.addEventListener(event, updateActivity, { passive: true });
+    this.activityEvents.forEach(event => {
+      document.addEventListener(event, this.activityHandler, { passive: true });
     });
   }
 
@@ -175,6 +182,8 @@ export class SessionManager {
    * 启动心跳检测
    */
   private startHeartbeat(): void {
+    const interval = this.config.get('heartbeatInterval', 60000);
+    
     this.heartbeatTimer = window.setInterval(() => {
       const now = Date.now();
       
@@ -182,7 +191,7 @@ export class SessionManager {
       if (now - this.lastActivityTime > this.sessionTimeout) {
         this.expireSession();
       }
-    }, 60000); // 每分钟检查一次
+    }, interval);
   }
 
   /**
@@ -229,27 +238,15 @@ export class SessionManager {
    * 设置页面卸载监听
    */
   private setupBeforeUnload(): void {
-    const saveData = () => {
-      this.saveSessionData();
-    };
-    
-    window.addEventListener('beforeunload', saveData);
-    window.addEventListener('pagehide', saveData);
+    window.addEventListener('beforeunload', this.saveDataHandler);
+    window.addEventListener('pagehide', this.saveDataHandler);
   }
 
   /**
    * 设置页面可见性变化监听
    */
   private setupVisibilityChange(): void {
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        // 页面隐藏时保存数据
-        this.saveSessionData();
-      } else {
-        // 页面显示时更新活动时间
-        this.updateLastActivity();
-      }
-    });
+    document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   /**
@@ -458,5 +455,13 @@ export class SessionManager {
   destroy(): void {
     this.stopHeartbeat();
     this.saveSessionData();
+
+    // 移除所有事件监听
+    this.activityEvents.forEach(event => {
+      document.removeEventListener(event, this.activityHandler);
+    });
+    window.removeEventListener('beforeunload', this.saveDataHandler);
+    window.removeEventListener('pagehide', this.saveDataHandler);
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
   }
 }

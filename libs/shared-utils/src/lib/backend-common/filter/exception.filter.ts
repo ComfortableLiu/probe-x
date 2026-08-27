@@ -35,18 +35,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
           code = exceptionResponse.code as number || -1
         }
       }
-      // 记录错误日志，这里先直接log了一下
-      console.error(`[${request.method}] ${request.url}`, exception)
     }
     // 处理自定义业务异常（可以扩展这部分）
     else if (exception instanceof BusinessException) {
       // 业务异常的网络状态码可以直接为200
       status = 200
       message = exception.message
-      // 可以基于错误类型设置不同的code
-      if (exception.name === 'QueryFailedError') {
-        code = -2 // 数据库错误
-      }
+      // 直接使用业务异常携带的错误码
+      code = exception.code
     }
 
     console.error(`[${request.method}] ${request.url}`, exception)

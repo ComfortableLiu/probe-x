@@ -36,7 +36,7 @@ function PageHeader(props: IPageHeaderProps) {
         {onRefresh && (
           <Button
             type="text"
-            icon={<Refresh style={{ display: 'flex' }} theme="outline" size="16" fill="#000000" />}
+            icon={<Refresh style={{ display: 'flex' }} theme="outline" size="16" fill="currentColor" />}
             onClick={onRefresh}
             loading={loading}
             size="small"

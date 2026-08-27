@@ -47,6 +47,7 @@
     "restart:all": "yarn stop:all && yarn dev",
     "db:migrate": "echo '请在各服务中单独执行数据库迁移'",
     "db:seed": "echo '请在各服务中单独执行数据种子'",
+    "init:admin": "node scripts/init-admin-password.js",
     "status": "ps aux | grep 'nx serve' | grep -v grep || echo '没有运行中的服务'",
     "logs": "echo '请使用 yarn logs:service-name 查看特定服务日志'",
     "logs:frontend": "tail -f apps/frontend/dist/*.log 2>/dev/null || echo '前端日志文件不存在'",

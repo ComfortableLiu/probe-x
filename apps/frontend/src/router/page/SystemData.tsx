@@ -6,7 +6,7 @@ export default {
   name: '系统数据',
   key: 'system-data',
   meta: {
-    icon: <InternalData theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+    icon: <InternalData theme="outline" size="16" fill="currentColor" />,
   },
   children: [{
     path: '/system-data/overview',
@@ -28,6 +28,11 @@ export default {
     name: '计算节点',
     key: 'system-data-computing-node',
     component: lazy(() => import('@pages/system-data/computing-node/index')),
+  }, {
+    path: '/system-data/alert',
+    name: '告警管理',
+    key: 'system-data-alert',
+    component: lazy(() => import('@pages/system-data/alert/index')),
   }, {
     path: '/system-data/computing-node/:nodeId/logs',
     name: '计算节点日志',

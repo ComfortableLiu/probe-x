@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { ProjectEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/Project.entity'
 import { UserProjectRelation } from '@probe-x/shared-utils/src/lib/backend-common/entity/UserProjectRelation.entity'
 import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/User.entity'
@@ -141,17 +141,34 @@ export class ProjectService {
   }
 
   async addMembers(data: IAddProjectMemberReq): Promise<ResponseData<null>> {
-    for (const userId of data.userIds) {
-      const existing = await this.userProjectRepo.findOne({
-        where: { user: { userId }, project: { id: data.projectId } },
-      })
-      if (!existing) {
-        const relation = this.userProjectRepo.create({
-          user: { userId } as any,
-          project: { id: data.projectId } as any,
-        })
-        await this.userProjectRepo.save(relation)
-      }
+    if (!Array.isArray(data.userIds) || data.userIds.length === 0) {
+      return ResponseData.error('成员列表不能为空')
+    }
+
+    // 去重后校验用户是否存在
+    const userIds = [...new Set(data.userIds)]
+    const users = await this.userRepo.find({
+      where: { userId: In(userIds) },
+    })
+    if (users.length !== userIds.length) {
+      return ResponseData.error('部分用户不存在')
+    }
+
+    // 批量查询已存在的成员关系，避免逐个查询
+    const existingRelations = await this.userProjectRepo.find({
+      where: { user: { userId: In(userIds) }, project: { id: data.projectId } },
+      relations: ['user'],
+    })
+    const existingUserIds = new Set(existingRelations.map(r => r.user?.userId))
+
+    const newRelations = userIds
+      .filter(userId => !existingUserIds.has(userId))
+      .map(userId => this.userProjectRepo.create({
+        user: { userId } as any,
+        project: { id: data.projectId } as any,
+      }))
+    if (newRelations.length > 0) {
+      await this.userProjectRepo.save(newRelations)
     }
     return ResponseData.success(null)
   }

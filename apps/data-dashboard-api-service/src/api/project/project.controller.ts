@@ -33,7 +33,7 @@ export class ProjectController {
       projectKey,
       isEnable: isEnable === 'true' || isEnable === '1' ? true : isEnable === 'false' || isEnable === '0' ? false : undefined,
       page: page || 1,
-      pageSize: pageSize || 20,
+      pageSize: Math.min(pageSize || 20, 100), // 限制每页最多100条数据
     }
     return await this.projectService.getList(params)
   }

@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common"
 import { PropertyService } from "@src/api/property/property.service"
 import type { ICreatePropertyReq } from "@probe-x/shared-types/src"
 import { MetaPropertyBusinessType } from "@probe-x/shared-types/src"
 import type { PropertyFilterDto } from "@src/api/property/type"
+import { AdminGuard } from "../../guard/admin.guard"
 
 @Controller('property')
 export class PropertyController {
@@ -50,9 +51,10 @@ export class PropertyController {
   }
 
   /**
-   * 创建属性
+   * 创建属性（仅管理员）
    */
   @Post('create')
+  @UseGuards(AdminGuard)
   async createProperty(
     @Body() body: ICreatePropertyReq,
     @Req() req: any,

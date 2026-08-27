@@ -14,6 +14,7 @@ import type {
   IUpdateSpmNodeRes,
   IUser,
 } from "@probe-x/shared-types/src"
+import { randomInt } from 'node:crypto'
 import { TrackingNodeLevel, TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 import { BusinessException } from "@probe-x/shared-utils/src/lib/backend-common"
 import { TrackingNodeEntity } from "@probe-x/shared-utils/src/lib/backend-common/entity/TrackingNode.entity"
@@ -39,9 +40,24 @@ export class TrackingNodeService {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     let result = ''
     for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length))
+      result += characters.charAt(randomInt(0, characters.length))
     }
     return result
+  }
+
+  /**
+   * 生成不重复的节点编码，碰撞时重试
+   * @private
+   */
+  private async generateUniqueCode(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = this.generateRandomString()
+      const existing = await this.trackingNodeRepository.findOne({ where: { code } })
+      if (!existing) {
+        return code
+      }
+    }
+    throw new BusinessException('生成节点编码失败，请重试')
   }
 
   async getTrackingNodeList(
@@ -90,11 +106,11 @@ export class TrackingNodeService {
       countWhere['type'] = type
     }
     if (name) {
-      query.andWhere('trackingNode.name ILIKE :name', { name: `%${name}%` })
+      query.andWhere('trackingNode.name LIKE :name', { name: `%${name}%` })
       countWhere['name'] = name
     }
     if (code) {
-      query.andWhere('trackingNode.code ILIKE :code', { code: `%${code}%` })
+      query.andWhere('trackingNode.code LIKE :code', { code: `%${code}%` })
       countWhere['code'] = code
     }
     if (status) {
@@ -182,17 +198,17 @@ export class TrackingNodeService {
       status: item.status,
       createTime: item.createTime,
       createUserId: item.createUserId,
-      createUsername: item.createUser.username,
-      createNickname: item.createUser.nickname,
+      createUsername: item.createUser?.username,
+      createNickname: item.createUser?.nickname,
       updateTime: item.updateTime,
       updateUserId: item.updateUserId,
-      updateUsername: item.updateUser.username,
-      updateNickname: item.updateUser.nickname,
+      updateUsername: item.updateUser?.username,
+      updateNickname: item.updateUser?.nickname,
     }))
   }
 
   async createBusiness({ name, description }: ICreateBusinessSiteReq, user: IUser): Promise<ICreateBusinessSiteRes> {
-    const code = this.generateRandomString()
+    const code = await this.generateUniqueCode()
     const businessSiteInfo = await this.trackingNodeRepository.save({
       code,
       name,
@@ -242,13 +258,16 @@ export class TrackingNodeService {
       name,
       description,
     } = req
-    const businessSiteInfo = await this.trackingNodeRepository.save({
-      code,
-      name,
-      description,
-      updateUserId: user.userId,
-      updateTime: new Date(),
-    })
+    // save 会按主键 upsert，先查询确认节点存在再更新，避免误创建记录
+    const existing = await this.trackingNodeRepository.findOne({ where: { code } })
+    if (!existing) {
+      throw new BusinessException('节点不存在')
+    }
+    existing.name = name
+    existing.description = description
+    existing.updateUserId = user.userId
+    existing.updateTime = new Date()
+    const businessSiteInfo = await this.trackingNodeRepository.save(existing)
 
     // 同步更新 System（保持名称和描述一致）
     const system = await this.systemRepository.findOne({ where: { trackingNodeCode: code } })
@@ -283,7 +302,7 @@ export class TrackingNodeService {
       level,
     } = req
     const data = {
-      code: this.generateRandomString(),
+      code: await this.generateUniqueCode(),
       name,
       description,
       parentCode,
@@ -333,17 +352,17 @@ export class TrackingNodeService {
       status: item.status,
       createTime: item.createTime,
       createUserId: item.createUserId,
-      createUsername: item.createUser.username,
-      createNickname: item.createUser.nickname,
+      createUsername: item.createUser?.username,
+      createNickname: item.createUser?.nickname,
       updateTime: item.updateTime,
       updateUserId: item.updateUserId,
-      updateUsername: item.updateUser.username,
-      updateNickname: item.updateUser.nickname,
+      updateUsername: item.updateUser?.username,
+      updateNickname: item.updateUser?.nickname,
     }))
   }
 
   async createScmBusiness({ name, description }: ICreateBusinessSiteReq, user: IUser): Promise<ICreateBusinessSiteRes> {
-    const code = this.generateRandomString()
+    const code = await this.generateUniqueCode()
     const businessSiteInfo = await this.trackingNodeRepository.save({
       code,
       name,
@@ -379,13 +398,16 @@ export class TrackingNodeService {
       name,
       description,
     } = req
-    const businessSiteInfo = await this.trackingNodeRepository.save({
-      code,
-      name,
-      description,
-      updateUserId: user.userId,
-      updateTime: new Date(),
-    })
+    // save 会按主键 upsert，先查询确认节点存在再更新，避免误创建记录
+    const existing = await this.trackingNodeRepository.findOne({ where: { code } })
+    if (!existing) {
+      throw new BusinessException('节点不存在')
+    }
+    existing.name = name
+    existing.description = description
+    existing.updateUserId = user.userId
+    existing.updateTime = new Date()
+    const businessSiteInfo = await this.trackingNodeRepository.save(existing)
     return {
       type: businessSiteInfo.type,
       code: businessSiteInfo.code,
@@ -412,7 +434,7 @@ export class TrackingNodeService {
       level,
     } = req
     const data = {
-      code: this.generateRandomString(),
+      code: await this.generateUniqueCode(),
       name,
       description,
       parentCode,

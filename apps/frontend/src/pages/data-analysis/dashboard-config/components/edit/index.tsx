@@ -181,7 +181,7 @@ function DashboardEditPopup(props: IDashboardEditPopupProps) {
         </Form.Item>
         {!isEdit && (
           <Form.Item label="提示">
-            <div style={{ color: '#999', fontSize: '12px' }}>
+            <div style={{ color: 'var(--px-color-text-tertiary)', fontSize: '12px' }}>
               提示：创建看板会保存当前分析页面的配置。请先在对应的分析页面配置好参数，再创建看板。
             </div>
           </Form.Item>

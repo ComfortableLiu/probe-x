@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { Tag } from "antd"
 import PageHeader from "@components/PageHeader"
 import ComputingNodeTree, {
   ComputingNode,
@@ -57,6 +58,7 @@ const ComputingNode: React.FC = () => {
       <PageHeader
         title="计算节点"
         onRefresh={handleRefresh}
+        extra={<Tag color="warning">功能建设中，当前为演示数据</Tag>}
       />
       <ComputingNodeTree nodes={nodes} />
 

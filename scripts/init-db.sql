@@ -135,34 +135,38 @@ CREATE TABLE IF NOT EXISTS `dashboard` (
 CREATE TABLE IF NOT EXISTS `alert_rule` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(100) NOT NULL COMMENT '规则名称',
-  `project_id` BIGINT NOT NULL COMMENT '所属项目ID',
-  `metric` VARCHAR(100) NOT NULL COMMENT '监控指标',
-  `condition` VARCHAR(50) NOT NULL COMMENT '触发条件（gt/lt/eq/gte/lte）',
-  `threshold` DECIMAL(20, 4) NOT NULL COMMENT '阈值',
-  `duration` INT DEFAULT 60 COMMENT '持续时间（秒）',
-  `notification_channels` JSON COMMENT '通知渠道配置',
-  `is_enabled` BOOLEAN DEFAULT TRUE COMMENT '是否启用',
-  `created_by` INT NOT NULL COMMENT '创建者ID',
+  `event_name` VARCHAR(100) NOT NULL COMMENT '监控事件名称',
+  `window_minutes` INT NOT NULL DEFAULT 60 COMMENT '统计时间窗（分钟）',
+  `check_interval_minutes` INT NOT NULL DEFAULT 5 COMMENT '巡检间隔（分钟）',
+  `operator` VARCHAR(4) NOT NULL COMMENT '比较运算符（>/</>=/<=/==）',
+  `threshold` DOUBLE NOT NULL COMMENT '阈值',
+  `level` VARCHAR(20) NOT NULL DEFAULT 'warning' COMMENT '告警级别（info/warning/critical）',
+  `webhook_url` VARCHAR(500) NOT NULL COMMENT '告警通知 Webhook 地址',
+  `enabled` BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+  `last_checked_at` DATETIME(3) COMMENT '最后巡检时间',
+  `last_triggered_at` DATETIME(3) COMMENT '最后触发时间',
+  `create_user_id` INT COMMENT '创建者ID',
   `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-  INDEX `idx_project_id` (`project_id`),
-  FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`)
+  INDEX `idx_event_name` (`event_name`),
+  INDEX `idx_enabled` (`enabled`),
+  FOREIGN KEY (`create_user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警规则表';
 
 -- ==================== 告警历史表 ====================
 CREATE TABLE IF NOT EXISTS `alert_history` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `rule_id` BIGINT NOT NULL COMMENT '规则ID',
-  `project_id` BIGINT NOT NULL COMMENT '项目ID',
-  `metric_value` DECIMAL(20, 4) COMMENT '触发时的指标值',
-  `status` ENUM('firing', 'resolved') DEFAULT 'firing' COMMENT '状态',
-  `fired_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '触发时间',
-  `resolved_at` DATETIME(3) COMMENT '恢复时间',
+  `metric_value` DOUBLE COMMENT '触发时的指标值',
+  `threshold` DOUBLE NOT NULL COMMENT '触发时的阈值',
+  `level` VARCHAR(20) NOT NULL COMMENT '告警级别（info/warning/critical）',
+  `webhook_status` VARCHAR(20) NOT NULL COMMENT 'Webhook 发送结果（success/failed）',
+  `error` TEXT COMMENT '失败原因',
+  `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '触发时间',
   INDEX `idx_rule_id` (`rule_id`),
-  INDEX `idx_project_id` (`project_id`),
-  FOREIGN KEY (`rule_id`) REFERENCES `alert_rule` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
+  INDEX `idx_level` (`level`),
+  INDEX `idx_created_at` (`created_at`),
+  FOREIGN KEY (`rule_id`) REFERENCES `alert_rule` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警历史表';
 
 -- ==================== 通知表 ====================
@@ -235,8 +239,8 @@ INSERT IGNORE INTO `role` (`role_name`, `description`) VALUES
   ('admin', '系统管理员'),
   ('user', '普通用户');
 
--- 插入默认管理员用户（密码: admin123，实际使用时请修改）
--- 密码哈希值需要在应用层生成，这里使用占位符
+-- 插入默认管理员用户（密码哈希为占位符，无法直接登录）
+-- 请使用初始化脚本设置密码：yarn init:admin（默认初始密码 admin123，详见 README「管理员账号初始化」）
 INSERT IGNORE INTO `user` (`username`, `email`, `password_hash`, `nickname`, `is_active`) VALUES
   ('admin', 'admin@probe-x.com', '$2b$10$placeholder_hash_here', '系统管理员', TRUE);
 

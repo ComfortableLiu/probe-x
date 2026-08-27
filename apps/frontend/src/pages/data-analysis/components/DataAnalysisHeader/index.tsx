@@ -29,7 +29,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
   const renderUpdateTime = useMemo(() => {
     if (!updateTime) return null
     return (
-      <div>更新时间：{dayjs(updateTime).format('YYYY-MM-DD HH:mm:ss')}</div>
+      <div className={styles.updateTime}>更新时间：{dayjs(updateTime).format("YYYY-MM-DD HH:mm:ss")}</div>
     )
   }, [updateTime])
 
@@ -41,7 +41,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
         type="link"
         onClick={() => download()}
       >
-        <Download theme="filled" size="16" fill="#333" />
+        <Download theme="filled" size="16" fill="currentColor" />
         下载
       </Button>
     )
@@ -55,7 +55,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
         type="link"
         onClick={() => onSaveAsDashboard()}
       >
-        <Save theme="filled" size="16" fill="#333" />
+        <Save theme="filled" size="16" fill="currentColor" />
         保存为看板
       </Button>
     )
@@ -70,7 +70,7 @@ function DataAnalysisHeader(props: IDataAnalysisHeaderProps) {
         onClick={() => navigate(guidePath)}
         title="查看页面说明"
       >
-        <Help theme="outline" size="16" fill="#333" />
+        <Help theme="outline" size="16" fill="currentColor" />
         说明
       </Button>
     )

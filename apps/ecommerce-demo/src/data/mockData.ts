@@ -1,7 +1,7 @@
-import { Product, Category, User, Order, OrderStatus, PaymentStatus } from '../types';
+import { Product, Category, User, Order, OrderStatus, PaymentStatus } from '../types'
 
 // 重新导出类型
-export { OrderStatus, PaymentStatus };
+export { OrderStatus, PaymentStatus }
 
 // 模拟商品数据
 export const mockProducts: Product[] = [
@@ -15,7 +15,7 @@ export const mockProducts: Product[] = [
     images: [
       'https://via.placeholder.com/300x300?text=iPhone+15+Pro+1',
       'https://via.placeholder.com/300x300?text=iPhone+15+Pro+2',
-      'https://via.placeholder.com/300x300?text=iPhone+15+Pro+3'
+      'https://via.placeholder.com/300x300?text=iPhone+15+Pro+3',
     ],
     category: '手机数码',
     brand: 'Apple',
@@ -28,10 +28,10 @@ export const mockProducts: Product[] = [
       '屏幕尺寸': '6.1英寸',
       '存储容量': '128GB',
       '颜色': '钛金属原色',
-      '网络': '5G'
+      '网络': '5G',
     },
     createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
+    updatedAt: '2024-01-15T10:00:00Z',
   },
   {
     id: '2',
@@ -42,7 +42,7 @@ export const mockProducts: Product[] = [
     image: 'https://via.placeholder.com/300x300?text=MacBook+Pro',
     images: [
       'https://via.placeholder.com/300x300?text=MacBook+Pro+1',
-      'https://via.placeholder.com/300x300?text=MacBook+Pro+2'
+      'https://via.placeholder.com/300x300?text=MacBook+Pro+2',
     ],
     category: '电脑办公',
     brand: 'Apple',
@@ -55,10 +55,10 @@ export const mockProducts: Product[] = [
       '处理器': 'M3 Pro',
       '内存': '18GB',
       '存储': '512GB SSD',
-      '屏幕': '14.2英寸 Liquid Retina XDR'
+      '屏幕': '14.2英寸 Liquid Retina XDR',
     },
     createdAt: '2024-01-10T10:00:00Z',
-    updatedAt: '2024-01-10T10:00:00Z'
+    updatedAt: '2024-01-10T10:00:00Z',
   },
   {
     id: '3',
@@ -69,7 +69,7 @@ export const mockProducts: Product[] = [
     image: 'https://via.placeholder.com/300x300?text=AirPods+Pro',
     images: [
       'https://via.placeholder.com/300x300?text=AirPods+Pro+1',
-      'https://via.placeholder.com/300x300?text=AirPods+Pro+2'
+      'https://via.placeholder.com/300x300?text=AirPods+Pro+2',
     ],
     category: '手机数码',
     brand: 'Apple',
@@ -82,10 +82,10 @@ export const mockProducts: Product[] = [
       '芯片': 'H2',
       '降噪': '主动降噪',
       '续航': '6小时',
-      '充电盒': '30小时总续航'
+      '充电盒': '30小时总续航',
     },
     createdAt: '2024-01-05T10:00:00Z',
-    updatedAt: '2024-01-05T10:00:00Z'
+    updatedAt: '2024-01-05T10:00:00Z',
   },
   {
     id: '4',
@@ -96,7 +96,7 @@ export const mockProducts: Product[] = [
     image: 'https://via.placeholder.com/300x300?text=iPad+Air',
     images: [
       'https://via.placeholder.com/300x300?text=iPad+Air+1',
-      'https://via.placeholder.com/300x300?text=iPad+Air+2'
+      'https://via.placeholder.com/300x300?text=iPad+Air+2',
     ],
     category: '平板电脑',
     brand: 'Apple',
@@ -109,10 +109,10 @@ export const mockProducts: Product[] = [
       '处理器': 'M1',
       '屏幕': '10.9英寸 Liquid Retina',
       '存储': '64GB',
-      '颜色': '深空灰色'
+      '颜色': '深空灰色',
     },
     createdAt: '2024-01-08T10:00:00Z',
-    updatedAt: '2024-01-08T10:00:00Z'
+    updatedAt: '2024-01-08T10:00:00Z',
   },
   {
     id: '5',
@@ -123,7 +123,7 @@ export const mockProducts: Product[] = [
     image: 'https://via.placeholder.com/300x300?text=Apple+Watch',
     images: [
       'https://via.placeholder.com/300x300?text=Apple+Watch+1',
-      'https://via.placeholder.com/300x300?text=Apple+Watch+2'
+      'https://via.placeholder.com/300x300?text=Apple+Watch+2',
     ],
     category: '智能穿戴',
     brand: 'Apple',
@@ -136,10 +136,10 @@ export const mockProducts: Product[] = [
       '芯片': 'S9',
       '屏幕': '45mm',
       '材质': '铝金属',
-      '表带': '运动型表带'
+      '表带': '运动型表带',
     },
     createdAt: '2024-01-12T10:00:00Z',
-    updatedAt: '2024-01-12T10:00:00Z'
+    updatedAt: '2024-01-12T10:00:00Z',
   },
   {
     id: '6',
@@ -150,7 +150,7 @@ export const mockProducts: Product[] = [
     image: 'https://via.placeholder.com/300x300?text=Galaxy+S24',
     images: [
       'https://via.placeholder.com/300x300?text=Galaxy+S24+1',
-      'https://via.placeholder.com/300x300?text=Galaxy+S24+2'
+      'https://via.placeholder.com/300x300?text=Galaxy+S24+2',
     ],
     category: '手机数码',
     brand: 'Samsung',
@@ -163,12 +163,12 @@ export const mockProducts: Product[] = [
       '屏幕': '6.8英寸 Dynamic AMOLED 2X',
       '处理器': 'Snapdragon 8 Gen 3',
       '存储': '256GB',
-      '摄像头': '200MP主摄'
+      '摄像头': '200MP主摄',
     },
     createdAt: '2024-01-20T10:00:00Z',
-    updatedAt: '2024-01-20T10:00:00Z'
-  }
-];
+    updatedAt: '2024-01-20T10:00:00Z',
+  },
+]
 
 // 模拟分类数据
 export const mockCategories: Category[] = [
@@ -177,37 +177,37 @@ export const mockCategories: Category[] = [
     name: '手机数码',
     icon: '📱',
     description: '智能手机、平板电脑、智能穿戴设备',
-    sort: 1
+    sort: 1,
   },
   {
     id: '2',
     name: '电脑办公',
     icon: '💻',
     description: '笔记本电脑、台式机、办公设备',
-    sort: 2
+    sort: 2,
   },
   {
     id: '3',
     name: '平板电脑',
     icon: '📱',
     description: 'iPad、Android平板、二合一设备',
-    sort: 3
+    sort: 3,
   },
   {
     id: '4',
     name: '智能穿戴',
     icon: '⌚',
     description: '智能手表、智能手环、健康监测设备',
-    sort: 4
+    sort: 4,
   },
   {
     id: '5',
     name: '数码配件',
     icon: '🔌',
     description: '充电器、数据线、保护壳、耳机',
-    sort: 5
-  }
-];
+    sort: 5,
+  },
+]
 
 // 模拟用户数据
 export const mockUser: User = {
@@ -228,7 +228,7 @@ export const mockUser: User = {
       district: '朝阳区',
       address: '三里屯街道工体北路8号',
       postalCode: '100027',
-      isDefault: true
+      isDefault: true,
     },
     {
       id: '2',
@@ -239,12 +239,12 @@ export const mockUser: User = {
       district: '浦东新区',
       address: '陆家嘴环路1000号',
       postalCode: '200120',
-      isDefault: false
-    }
+      isDefault: false,
+    },
   ],
   createdAt: '2023-01-01T10:00:00Z',
-  lastLoginAt: '2024-01-25T10:00:00Z'
-};
+  lastLoginAt: '2024-01-25T10:00:00Z',
+}
 
 // 模拟订单数据
 export const mockOrders: Order[] = [
@@ -258,8 +258,8 @@ export const mockOrders: Order[] = [
         product: mockProducts[0],
         quantity: 1,
         price: 7999,
-        totalPrice: 7999
-      }
+        totalPrice: 7999,
+      },
     ],
     totalAmount: 7999,
     discountAmount: 0,
@@ -270,7 +270,7 @@ export const mockOrders: Order[] = [
     shippingAddress: mockUser.address[0],
     paymentMethod: '支付宝',
     createdAt: '2024-01-20T10:00:00Z',
-    updatedAt: '2024-01-22T15:30:00Z'
+    updatedAt: '2024-01-22T15:30:00Z',
   },
   {
     id: '2',
@@ -282,15 +282,15 @@ export const mockOrders: Order[] = [
         product: mockProducts[1],
         quantity: 1,
         price: 15999,
-        totalPrice: 15999
+        totalPrice: 15999,
       },
       {
         id: '3',
         product: mockProducts[2],
         quantity: 1,
         price: 1899,
-        totalPrice: 1899
-      }
+        totalPrice: 1899,
+      },
     ],
     totalAmount: 17898,
     discountAmount: 1000,
@@ -301,6 +301,6 @@ export const mockOrders: Order[] = [
     shippingAddress: mockUser.address[0],
     paymentMethod: '微信支付',
     createdAt: '2024-01-18T14:20:00Z',
-    updatedAt: '2024-01-24T09:15:00Z'
-  }
-];
+    updatedAt: '2024-01-24T09:15:00Z',
+  },
+]

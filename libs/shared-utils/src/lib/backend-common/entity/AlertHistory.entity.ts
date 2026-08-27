@@ -2,10 +2,10 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 
 /**
  * 告警历史表实体
- * 记录每次告警触发的历史
+ * 记录每次告警触发及 Webhook 通知结果
  */
 @Entity('alert_history', {
-  comment: '告警历史表：记录每次告警触发的历史',
+  comment: '告警历史表：记录每次告警触发及 Webhook 通知结果',
 })
 export class AlertHistoryEntity {
   /** 历史唯一ID（自增） */
@@ -16,48 +16,55 @@ export class AlertHistoryEntity {
   /** 告警规则ID */
   @Column({
     type: 'bigint',
-    name: 'alert_rule_id',
+    name: 'rule_id',
     comment: '告警规则ID',
   })
   @Index()
-  alertRuleId?: number
+  ruleId?: number
 
-  /** 规则名称（冗余，避免关联查询） */
+  /** 触发时的指标值（时间窗内事件次数） */
   @Column({
-    type: 'varchar',
-    length: 100,
-    name: 'rule_name',
-    comment: '规则名称（冗余）',
+    type: 'double',
+    name: 'metric_value',
+    comment: '触发时的指标值',
   })
-  ruleName?: string
+  metricValue?: number
 
-  /** 告警级别（warning/critical） */
+  /** 触发时的阈值 */
+  @Column({
+    type: 'double',
+    name: 'threshold',
+    comment: '触发时的阈值',
+  })
+  threshold?: number
+
+  /** 告警级别（info/warning/critical） */
   @Column({
     type: 'varchar',
     length: 20,
-    name: 'alert_level',
-    comment: '告警级别（warning/critical）',
+    name: 'level',
+    comment: '告警级别（info/warning/critical）',
   })
   @Index()
-  alertLevel?: string
+  level?: string
 
-  /** 告警内容 */
-  @Column({
-    type: 'text',
-    name: 'alert_content',
-    comment: '告警内容',
-  })
-  alertContent?: string
-
-  /** 通知状态（pending/sent/failed） */
+  /** Webhook 发送结果（success/failed） */
   @Column({
     type: 'varchar',
     length: 20,
-    name: 'notify_status',
-    default: 'pending',
-    comment: '通知状态（pending/sent/failed）',
+    name: 'webhook_status',
+    comment: 'Webhook 发送结果（success/failed）',
   })
-  notifyStatus?: string
+  webhookStatus?: string
+
+  /** 失败原因 */
+  @Column({
+    type: 'text',
+    name: 'error',
+    nullable: true,
+    comment: '失败原因',
+  })
+  error?: string
 
   /** 触发时间（自动填充） */
   @CreateDateColumn({

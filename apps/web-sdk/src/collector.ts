@@ -255,15 +255,28 @@ export class EventCollector {
    */
   private getSessionId(): string {
     const sessionKey = this.config.getStorageKey('session_id');
-    return localStorage.getItem(sessionKey) || uuidv4();
+    
+    try {
+      return localStorage.getItem(sessionKey) || uuidv4();
+    } catch {
+      // localStorage 不可用（隐私模式/SSR），回退到内存
+      return uuidv4();
+    }
   }
 
   /**
    * 获取会话开始时间
    */
   private getSessionStartTime(): string {
-    const sessionTimeKey = this.config.getStorageKey('session_time');
-    return localStorage.getItem(sessionTimeKey) || Date.now().toString();
+    // 与 SessionManager 写入的 key 保持一致（session_start_time 为会话开始时间，session_time 是最后活动时间）
+    const sessionStartKey = this.config.getStorageKey('session_start_time');
+    
+    try {
+      return localStorage.getItem(sessionStartKey) || Date.now().toString();
+    } catch {
+      // localStorage 不可用
+      return Date.now().toString();
+    }
   }
 
   /**
@@ -271,17 +284,30 @@ export class EventCollector {
    */
   private getSessionPageViews(): number {
     const key = this.config.getStorageKey('session_page_views');
-    const count = parseInt(localStorage.getItem(key) || '0');
-    return count;
+    
+    try {
+      const count = parseInt(localStorage.getItem(key) || '0');
+      return count;
+    } catch {
+      // localStorage 不可用
+      return 0;
+    }
   }
 
   /**
    * 获取会话事件数
    */
   private getSessionEventCount(): number {
-    const key = this.config.getStorageKey('session_event_count');
-    const count = parseInt(localStorage.getItem(key) || '0');
-    return count + 1; // 包含当前事件
+    // 与 SessionManager 写入的 key 保持一致（session_events）
+    const key = this.config.getStorageKey('session_events');
+    
+    try {
+      const count = parseInt(localStorage.getItem(key) || '0');
+      return count + 1; // 包含当前事件
+    } catch {
+      // localStorage 不可用
+      return 1; // 仅包含当前事件
+    }
   }
 
   /**

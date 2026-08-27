@@ -1,5 +1,6 @@
 .sider {
   background-color: var(--px-sidebar-bg);
+  border-right: 1px solid var(--px-color-border-secondary);
   display: flex;
   flex-direction: column;
   height: 100vh;

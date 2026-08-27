@@ -1,49 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Button, Typography, List, Tag, Avatar } from 'antd';
-import { EditOutlined, HomeOutlined, ShoppingCartOutlined, HeartOutlined, StarOutlined } from '@ant-design/icons';
-import { mockUser } from '../data/mockData';
-import { trackPageView, trackButtonClick } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Row, Col, Button, Typography, List, Tag, Avatar } from 'antd'
+import { EditOutlined, HomeOutlined, ShoppingCartOutlined, HeartOutlined, StarOutlined } from '@ant-design/icons'
+import { mockUser } from '../data/mockData'
+import { trackPageView, trackButtonClick } from '../utils/probeX'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
 const UserProfilePage: React.FC = () => {
-  const navigate = useNavigate();
-  const [user] = useState(mockUser);
-  const [editing, setEditing] = useState(false);
+  const navigate = useNavigate()
+  const [user] = useState(mockUser)
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     trackPageView('user_profile', {
       page_title: '个人中心',
-      user_id: user.id
-    });
-  }, [user.id]);
+      user_id: user.id,
+    })
+  }, [user.id])
 
   const handleEditProfile = () => {
-    setEditing(true);
-    trackButtonClick('edit_profile', 'user_profile');
-  };
+    setEditing(true)
+    trackButtonClick('edit_profile', 'user_profile')
+  }
 
   const handleSaveProfile = (values: any) => {
-    console.log('保存用户资料:', values);
-    setEditing(false);
-    trackButtonClick('save_profile', 'user_profile');
-  };
+    console.log('保存用户资料:', values)
+    setEditing(false)
+    trackButtonClick('save_profile', 'user_profile')
+  }
 
   const handleCancelEdit = () => {
-    setEditing(false);
-    trackButtonClick('cancel_edit', 'user_profile');
-  };
+    setEditing(false)
+    trackButtonClick('cancel_edit', 'user_profile')
+  }
 
   const handleEditAddress = (addressId: string) => {
-    trackButtonClick('edit_address', 'user_profile', { addressId });
+    trackButtonClick('edit_address', 'user_profile', { addressId })
     // 这里可以打开编辑地址的模态框
-  };
+  }
 
   const handleDeleteAddress = (addressId: string) => {
-    trackButtonClick('delete_address', 'user_profile', { addressId });
+    trackButtonClick('delete_address', 'user_profile', { addressId })
     // 这里可以删除地址
-  };
+  }
 
   return (
     <div style={{ padding: '24px' }}>
@@ -60,7 +60,7 @@ const UserProfilePage: React.FC = () => {
               <br />
               <Text type="secondary">{user.phone}</Text>
             </div>
-            
+
             <div style={{ marginTop: '24px' }}>
               <Button
                 type="primary"
@@ -129,6 +129,7 @@ const UserProfilePage: React.FC = () => {
                 <List.Item
                   actions={[
                     <Button
+                      key="edit"
                       type="link"
                       icon={<EditOutlined />}
                       onClick={() => handleEditAddress(address.id)}
@@ -136,12 +137,13 @@ const UserProfilePage: React.FC = () => {
                       编辑
                     </Button>,
                     <Button
+                      key="delete"
                       type="link"
                       danger
                       onClick={() => handleDeleteAddress(address.id)}
                     >
                       删除
-                    </Button>
+                    </Button>,
                   ]}
                 >
                   <List.Item.Meta
@@ -173,14 +175,14 @@ const UserProfilePage: React.FC = () => {
           <Col span={24}>
             <Card title="编辑资料">
               <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target as HTMLFormElement);
+                e.preventDefault()
+                const formData = new FormData(e.target as HTMLFormElement)
                 const values = {
                   username: formData.get('username'),
                   email: formData.get('email'),
                   phone: formData.get('phone'),
-                };
-                handleSaveProfile(values);
+                }
+                handleSaveProfile(values)
               }}>
                 <div style={{ marginBottom: '16px' }}>
                   <label>用户名:</label>
@@ -223,7 +225,7 @@ const UserProfilePage: React.FC = () => {
         </Row>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default UserProfilePage;
+export default UserProfilePage

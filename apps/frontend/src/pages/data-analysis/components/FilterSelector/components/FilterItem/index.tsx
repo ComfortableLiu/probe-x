@@ -373,11 +373,11 @@ function FilterItem(props: IFilterItemProps) {
 
       <div className={styles.operate}>
         <a href="#" className={styles.operateBtn} onClick={() => onCopy?.()}>
-          <CopyOne className={styles.icon} theme="outline" size="14" fill="#333" />
+          <CopyOne className={styles.icon} theme="outline" size="14" fill="currentColor" />
           复制
         </a>
         <a href="#" className={styles.operateBtn} onClick={() => onRemove?.()}>
-          <Delete className={styles.icon} theme="outline" size="14" fill="#333" />
+          <Delete className={styles.icon} theme="outline" size="14" fill="currentColor" />
           移除
         </a>
       </div>

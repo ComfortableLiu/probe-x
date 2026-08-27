@@ -3,7 +3,6 @@
  * 埋点数据收集SDK
  */
 
-import { v4 as uuidv4 } from 'uuid'
 import { ConfigManager } from './config'
 import { EventCollector } from './collector'
 import { DataSender } from './sender'
@@ -25,9 +24,50 @@ class ProbeX {
   private utils: Utils
 
   private isInitialized: boolean = false
-  private sessionId: string
-  private deviceId: string
   private startTime: number
+  private visibilityHiddenTime: number = 0
+
+  // 转发自动埋点事件到发送器（auto-tracker 通过 CustomEvent 抛出事件）
+  private handleAutoTrackEvent = (e: Event) => {
+    const detail = (e as CustomEvent).detail
+    if (detail) {
+      this.sender.send(detail)
+    }
+  }
+
+  // 页面卸载处理（仅监听 pagehide，避免 beforeunload + pagehide 双触发导致事件重复）
+  private handlePageUnload = () => {
+    // 发送页面停留时间
+    const stayTime = Date.now() - this.startTime
+    this.track('page_stay', {
+      stay_time: stayTime,
+      page_url: window.location.href,
+      page_path: window.location.pathname,
+    })
+
+    // 使用同步发送（优先使用 sendBeacon，适合页面卸载场景）
+    this.sender.flushSync()
+  }
+
+  // 页面可见性变化处理
+  private handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.visibilityHiddenTime = Date.now()
+      this.track('page_hide', {
+        page_url: window.location.href,
+        page_path: window.location.pathname,
+      })
+    } else {
+      if (this.visibilityHiddenTime > 0) {
+        const hiddenDuration = Date.now() - this.visibilityHiddenTime
+        this.track('page_show', {
+          hidden_duration: hiddenDuration,
+          page_url: window.location.href,
+        })
+        this.visibilityHiddenTime = 0
+      }
+    }
+  }
 
   constructor(options: ProbeXConfig = {}) {
     this.config = new ConfigManager(options)
@@ -39,8 +79,6 @@ class ProbeX {
     this.performanceMonitor = new PerformanceMonitor(this.config)
     this.utils = new Utils()
 
-    this.sessionId = this.generateSessionId()
-    this.deviceId = this.getOrCreateDeviceId()
     this.startTime = Date.now()
 
     this.init()
@@ -75,6 +113,9 @@ class ProbeX {
         referrer: document.referrer,
         session_start: true,
       })
+
+      // 注册默认监听器，把自动埋点事件转发给 DataSender
+      window.addEventListener('probe-x-event', this.handleAutoTrackEvent)
 
       // 启动自动埋点
       if (this.config.get('autoTrack')) {
@@ -189,92 +230,17 @@ class ProbeX {
   }
 
   /**
-   * 生成会话ID
-   */
-  private generateSessionId(): string {
-    const now = Date.now()
-    const sessionKey = 'probe_x_session_id'
-    const sessionExpiry = 30 * 60 * 1000 // 30分钟
-
-    try {
-      let sessionId = localStorage.getItem(sessionKey)
-      const sessionTime = localStorage.getItem(sessionKey + '_time')
-
-      if (!sessionId || !sessionTime || (now - parseInt(sessionTime)) > sessionExpiry) {
-        sessionId = uuidv4()
-        localStorage.setItem(sessionKey, sessionId)
-        localStorage.setItem(sessionKey + '_time', now.toString())
-      }
-
-      return sessionId
-    } catch {
-      // localStorage 不可用（隐私模式/SSR），回退到内存
-      return uuidv4()
-    }
-  }
-
-  /**
-   * 获取或创建设备ID
-   */
-  private getOrCreateDeviceId(): string {
-    const deviceKey = 'probe_x_device_id'
-
-    try {
-      let deviceId = localStorage.getItem(deviceKey)
-      if (!deviceId) {
-        deviceId = uuidv4()
-        localStorage.setItem(deviceKey, deviceId)
-      }
-      return deviceId
-    } catch {
-      // localStorage 不可用，回退到内存
-      return uuidv4()
-    }
-  }
-
-  /**
-   * 设置页面卸载监听
+   * 设置页面卸载监听（仅监听 pagehide，beforeunload 与 pagehide 双挂会导致事件重复）
    */
   private setupBeforeUnload(): void {
-    const handleBeforeUnload = () => {
-      // 发送页面停留时间
-      const stayTime = Date.now() - this.startTime
-      this.track('page_stay', {
-        stay_time: stayTime,
-        page_url: window.location.href,
-        page_path: window.location.pathname,
-      })
-
-      // 使用同步发送（优先使用 sendBeacon，适合页面卸载场景）
-      this.sender.flushSync()
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    window.addEventListener('pagehide', handleBeforeUnload)
+    window.addEventListener('pagehide', this.handlePageUnload)
   }
 
   /**
    * 设置页面可见性变化监听
    */
   private setupVisibilityChange(): void {
-    let hiddenTime = 0
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        hiddenTime = Date.now()
-      } else {
-        if (hiddenTime > 0) {
-          const hiddenDuration = Date.now() - hiddenTime
-          this.track('page_show', {
-            hidden_duration: hiddenDuration,
-            page_url: window.location.href,
-          })
-          hiddenTime = 0
-        }
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
   /**
@@ -330,6 +296,10 @@ class ProbeX {
    * 销毁SDK
    */
   destroy(): void {
+    window.removeEventListener('probe-x-event', this.handleAutoTrackEvent)
+    window.removeEventListener('pagehide', this.handlePageUnload)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+
     if (this.autoTracker) {
       this.autoTracker.stop()
     }

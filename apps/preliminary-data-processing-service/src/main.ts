@@ -7,6 +7,9 @@ import { MicroserviceOptions, Transport } from "@nestjs/microservices"
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
+  // 启用优雅关机钩子，保证进程退出前正确释放资源（如 Kafka 连接）
+  app.enableShutdownHooks()
+
   // 从应用实例中获取 ConfigService
   const configService = app.get(ConfigService)
 
@@ -29,6 +32,12 @@ async function bootstrap() {
       consumer: {
         // 为消费组提供更合理的默认名称
         groupId: configService.get('kafka.groupId', 'preliminary-data-processing-consumer'),
+      },
+      run: {
+        // 接 configuration.ts 的消费配置（原先未被使用的死配置）
+        // 默认关闭自动提交，eachMessage 处理成功后由消费者手动 commitOffsets
+        autoCommit: configService.get('kafka.consumerEnableAutoCommit', false),
+        autoCommitInterval: configService.get('kafka.consumerAutoCommitInterval', 5000),
       },
     },
   })

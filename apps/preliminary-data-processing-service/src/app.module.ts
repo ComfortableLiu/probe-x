@@ -5,7 +5,7 @@ import { KafkaConsumerModule } from "@src/module/kafka-consumer/kafka-consumer.m
 
 @Module({
   imports: [
-    envConfig(configuration),
+    envConfig(configuration, 'apps/preliminary-data-processing-service'),
     KafkaConsumerModule,
     RedisModule.forRoot(),
     MysqlModule.forRoot(),

@@ -1,23 +1,20 @@
-import React, { memo, useEffect, useMemo, useRef } from "react"
-import * as echarts from "echarts"
-import { useModel, useQuery } from "@/hooks"
-import { IDataAnalysisEventState, IQuery } from "@pages/data-analysis/event/type"
-import { Empty } from "antd"
+import React, { memo, useMemo } from "react"
+import { useModel } from "@/hooks"
+import { IDataAnalysisEventState } from "@pages/data-analysis/event/type"
 import dayjs from "dayjs"
+import type { EChartsOption, SeriesOption } from "echarts"
+import ChartContainer from "@components/ChartContainer"
 
 function DataChat() {
 
-  const chartRef = useRef<echarts.ECharts | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-
-  const {
-    timeRange,
-    eventInfoList = [],
-  } = useQuery<IQuery>()
-
+  // 使用查询参数快照渲染，避免修改筛选配置后图表实时跟随变化（需点击「查询」才更新）
   const {
     data,
+    querySnapshot,
   } = useModel<IDataAnalysisEventState>('dataAnalysisEventModel')
+
+  const timeRange = querySnapshot?.timeRange
+  const eventInfoList = useMemo(() => querySnapshot?.eventInfoList || [], [querySnapshot])
 
   // 日期列表
   const dateList = useMemo(() => {
@@ -30,7 +27,7 @@ function DataChat() {
   }, [timeRange])
 
   // 将 API 数据转换为 ECharts option
-  const chartOption = useMemo<echarts.EChartsOption | null>(() => {
+  const chartOption = useMemo<EChartsOption | null>(() => {
     if (!data?.length || !eventInfoList?.length || !dateList.length) return null
 
     // 生成事件别名映射（与 SQL 生成规则一致）
@@ -40,7 +37,7 @@ function DataChat() {
     }))
 
     // 按事件分组，聚合所有维度行的指标值
-    const seriesList: echarts.SeriesOption[] = eventAliases.map(({ alias, name }) => {
+    const seriesList: SeriesOption[] = eventAliases.map(({ alias, name }) => {
       const seriesData = dateList.map((date) => {
         const metricKey = `${alias}_${date.replace(/-/g, '_')}`
         // 对所有维度行的同一事件-日期指标求和
@@ -70,13 +67,6 @@ function DataChat() {
         data: eventAliases.map(e => e.name),
         top: 0,
       },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: 40,
-        containLabel: true,
-      },
       toolbox: {
         show: true,
         feature: {
@@ -93,57 +83,22 @@ function DataChat() {
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
-          lineStyle: {
-            color: '#999',
-            width: 1,
-            type: 'solid',
-          },
-          label: {
-            show: true,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            color: '#fff',
-            fontSize: 11,
-          },
         },
       },
     }
   }, [data, eventInfoList, dateList])
-
-  // 初始化 ECharts 实例
-  useEffect(() => {
-    if (containerRef.current) {
-      chartRef.current = echarts.init(containerRef.current)
-    }
-    const handleResize = () => {
-      chartRef.current?.resize()
-    }
-    window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      chartRef.current?.dispose()
-      chartRef.current = null
-    }
-  }, [])
-
-  // 数据变化时更新图表（含懒初始化）
-  useEffect(() => {
-    if (!chartOption) return
-    if (!chartRef.current && containerRef.current) {
-      chartRef.current = echarts.init(containerRef.current)
-    }
-    if (chartRef.current) {
-      chartRef.current.setOption(chartOption, true)
-      chartRef.current.resize()
-    }
-  }, [chartOption])
 
   const hasData = !!data?.length
 
   return (
     <div>
       <h3>图形展示</h3>
-      {!hasData && <Empty description="暂无数据，请先查询" style={{ padding: '60px 0' }} />}
-      <div ref={containerRef} style={{ width: '100%', height: 500, display: hasData ? 'block' : 'none' }} />
+      <ChartContainer
+        option={chartOption}
+        height={500}
+        empty={!hasData}
+        emptyText="暂无数据，请先查询"
+      />
     </div>
   )
 }

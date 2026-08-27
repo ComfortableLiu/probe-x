@@ -9,6 +9,23 @@ export class ConfigManager {
 
   constructor(options: ProbeXConfig = {}) {
     this.config = {
+      ...this.getDefaultConfig(),
+      // 合并用户配置
+      ...options,
+    };
+
+    // 构造时校验配置，问题配置尽早暴露
+    const validation = this.validate();
+    if (!validation.isValid) {
+      console.warn('ProbeX config validation warnings:', validation.errors);
+    }
+  }
+
+  /**
+   * 获取默认配置
+   */
+  private getDefaultConfig(): ProbeXConfig {
+    return {
       // 基础配置
       apiUrl: 'http://localhost:3000/point/report',
       appId: '',
@@ -69,9 +86,6 @@ export class ConfigManager {
       
       // 插件配置
       plugins: [],
-      
-      // 合并用户配置
-      ...options,
     };
   }
 
@@ -136,10 +150,10 @@ export class ConfigManager {
   }
 
   /**
-   * 重置配置
+   * 重置配置（恢复默认值）
    */
   reset(): void {
-    this.config = {} as ProbeXConfig;
+    this.config = this.getDefaultConfig();
   }
 
   /**

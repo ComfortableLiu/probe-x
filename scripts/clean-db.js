@@ -1,15 +1,34 @@
 /**
  * 清空 Probe-X 数据库，只保留角色权限和超管用户
+ *
+ * 数据库连接信息通过环境变量提供（缺省时直接报错退出）：
+ *   DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_DATABASE(默认 probe_x)
+ *
+ * 执行 TRUNCATE 前必须显式设置 CONFIRM_CLEAN=YES 确认
  */
 const mysql = require('mysql2/promise');
 
+const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE = 'probe_x' } = process.env;
+
+function checkConfig() {
+  const missing = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD'].filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`错误: 缺少环境变量 ${missing.join(', ')}，请先设置数据库连接信息`);
+    process.exit(1);
+  }
+}
+
 async function main() {
+  checkConfig();
+
+  console.log(`目标数据库: ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}`);
+
   const conn = await mysql.createConnection({
-    host: '123.56.201.124',
-    port: 6100,
-    user: 'root',
-    password: '12341234',
-    database: 'probe_x',
+    host: DB_HOST,
+    port: Number(DB_PORT),
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_DATABASE,
   });
 
   console.log('Connected to MySQL');
@@ -36,6 +55,14 @@ async function main() {
 
   console.log('\n=== 要清空的表 ===');
   console.log(clearTables.join(', '));
+
+  // 安全检查：执行 TRUNCATE 前需要显式确认
+  if (process.env.CONFIRM_CLEAN !== 'YES') {
+    console.error(`\n⚠️  即将清空 ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_DATABASE} 中的 ${clearTables.length} 张表`);
+    console.error('如确认执行，请设置环境变量 CONFIRM_CLEAN=YES 后重试');
+    await conn.end();
+    process.exit(1);
+  }
 
   // 禁用外键检查
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');

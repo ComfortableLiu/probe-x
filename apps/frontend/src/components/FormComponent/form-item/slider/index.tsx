@@ -27,6 +27,9 @@ function FormSlider(props: IFormSliderProps) {
       value={value}
       onChange={(val) => {
         onChange && onChange(val)
+      }}
+      // 拖动结束后再触发提交，避免拖动过程中频繁提交
+      onChangeComplete={() => {
         submit && submit()
       }}
       disabled={disabled}

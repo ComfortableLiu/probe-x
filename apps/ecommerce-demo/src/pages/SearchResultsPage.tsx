@@ -1,170 +1,170 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Row, Col, Card, Input, Select, Button, Pagination, Spin, Empty, Tag, Space, Rate, Typography, Breadcrumb } from 'antd';
-import { SearchOutlined, FilterOutlined, EyeOutlined, HeartOutlined, ShoppingCartOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons';
-import { mockProducts, mockCategories } from '../data/mockData';
-import { trackPageView, trackSearch, trackProductClick, trackAddToCart, trackButtonClick } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Row, Col, Card, Input, Select, Button, Pagination, Spin, Empty, Tag, Space, Rate, Typography, Breadcrumb } from 'antd'
+import { SearchOutlined, FilterOutlined, EyeOutlined, HeartOutlined, ShoppingCartOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons'
+import { mockProducts, mockCategories } from '../data/mockData'
+import { trackPageView, trackSearch, trackProductClick, trackAddToCart, trackButtonClick } from '../utils/probeX'
 
-const { Search } = Input;
-const { Option } = Select;
-const { Title, Text } = Typography;
+const { Search } = Input
+const { Option } = Select
+const { Title, Text } = Typography
 
 const SearchResultsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
   // 状态管理
-  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('');
-  const [sortBy, setSortBy] = useState('default');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedBrand, setSelectedBrand] = useState('')
+  const [sortBy, setSortBy] = useState('default')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
 
   // 获取所有品牌
-  const brands = Array.from(new Set(mockProducts.map(product => product.brand)));
+  const brands = Array.from(new Set(mockProducts.map(product => product.brand)))
 
   // 过滤和排序商品
   const filteredProducts = React.useMemo(() => {
-    let filtered = mockProducts;
+    let filtered = mockProducts
 
     // 关键词搜索
     if (searchKeyword) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchKeyword.toLowerCase())
-      );
+        product.description.toLowerCase().includes(searchKeyword.toLowerCase()),
+      )
     }
 
     // 分类筛选
     if (selectedCategory) {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => product.category === selectedCategory)
     }
 
     // 品牌筛选
     if (selectedBrand) {
-      filtered = filtered.filter(product => product.brand === selectedBrand);
+      filtered = filtered.filter(product => product.brand === selectedBrand)
     }
 
     // 排序
     if (sortBy !== 'default') {
       filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-        
+        let aValue, bValue
+
         switch (sortBy) {
           case 'price':
-            aValue = a.price;
-            bValue = b.price;
-            break;
+            aValue = a.price
+            bValue = b.price
+            break
           case 'rating':
-            aValue = a.rating;
-            bValue = b.rating;
-            break;
+            aValue = a.rating
+            bValue = b.rating
+            break
           case 'sales':
-            aValue = a.sales;
-            bValue = b.sales;
-            break;
+            aValue = a.sales
+            bValue = b.sales
+            break
           case 'createdAt':
-            aValue = new Date(a.createdAt).getTime();
-            bValue = new Date(b.createdAt).getTime();
-            break;
+            aValue = new Date(a.createdAt).getTime()
+            bValue = new Date(b.createdAt).getTime()
+            break
           default:
-            return 0;
+            return 0
         }
 
         if (sortOrder === 'asc') {
-          return aValue - bValue;
+          return aValue - bValue
         } else {
-          return bValue - aValue;
+          return bValue - aValue
         }
-      });
+      })
     }
 
-    return filtered;
-  }, [searchKeyword, selectedCategory, selectedBrand, sortBy, sortOrder]);
+    return filtered
+  }, [searchKeyword, selectedCategory, selectedBrand, sortBy, sortOrder])
 
   // 分页
   const currentProducts = filteredProducts.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+    currentPage * pageSize,
+  )
 
   useEffect(() => {
     trackPageView('search_results', {
       page_title: '搜索结果',
       search_keyword: searchKeyword,
       results_count: filteredProducts.length,
-      current_page: currentPage
-    });
-  }, [searchKeyword, filteredProducts.length, currentPage]);
+      current_page: currentPage,
+    })
+  }, [searchKeyword, filteredProducts.length, currentPage])
 
   const handleSearch = (value: string) => {
-    setSearchKeyword(value);
+    setSearchKeyword(value)
     trackSearch(value, filteredProducts.length, {
-      page: 'search_results'
-    });
-  };
+      page: 'search_results',
+    })
+  }
 
   const handleProductClick = (product: any) => {
-    trackProductClick(product, 'search_results_card');
-    navigate(`/products/${product.id}`);
-  };
+    trackProductClick(product, 'search_results_card')
+    navigate(`/products/${product.id}`)
+  }
 
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation()
     trackButtonClick('add_to_cart', 'search_results', {
       product_id: product.id,
       product_name: product.name,
-      product_price: product.price
-    });
-  };
+      product_price: product.price,
+    })
+  }
 
   const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
+    setSelectedCategory(value)
     trackButtonClick('category_filter', 'search_results', {
-      category: value
-    });
-  };
+      category: value,
+    })
+  }
 
   const handleBrandChange = (value: string) => {
-    setSelectedBrand(value);
+    setSelectedBrand(value)
     trackButtonClick('brand_filter', 'search_results', {
-      brand: value
-    });
-  };
+      brand: value,
+    })
+  }
 
   const handleSortChange = (value: string) => {
-    setSortBy(value);
+    setSortBy(value)
     trackButtonClick('sort_change', 'search_results', {
       sort_by: value,
-      sort_order: sortOrder
-    });
-  };
+      sort_order: sortOrder,
+    })
+  }
 
   const handleSortOrderChange = () => {
-    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-    setSortOrder(newOrder);
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc'
+    setSortOrder(newOrder)
     trackButtonClick('sort_order_change', 'search_results', {
       sort_by: sortBy,
-      sort_order: newOrder
-    });
-  };
+      sort_order: newOrder,
+    })
+  }
 
   const handlePageChange = (page: number, size: number) => {
-    setCurrentPage(page);
-    setPageSize(size);
+    setCurrentPage(page)
+    setPageSize(size)
     trackButtonClick('pagination', 'search_results', {
       page: page,
       page_size: size,
-      total_products: filteredProducts.length
-    });
-  };
+      total_products: filteredProducts.length,
+    })
+  }
 
   const breadcrumbItems = [
     { title: '首页', href: '/' },
-    { title: '搜索结果' }
-  ];
+    { title: '搜索结果' },
+  ]
 
   return (
     <div style={{ padding: '24px' }}>
@@ -175,7 +175,7 @@ const SearchResultsPage: React.FC = () => {
         搜索结果
         {searchKeyword && (
           <Text type="secondary" style={{ fontSize: '16px', marginLeft: '12px' }}>
-            关键词: "{searchKeyword}"
+            关键词: &quot;{searchKeyword}&quot;
           </Text>
         )}
       </Title>
@@ -274,12 +274,12 @@ const SearchResultsPage: React.FC = () => {
             <Button
               icon={<FilterOutlined />}
               onClick={() => {
-                setSearchKeyword('');
-                setSelectedCategory('');
-                setSelectedBrand('');
-                setSortBy('default');
-                setSortOrder('asc');
-                trackButtonClick('clear_filters', 'search_results');
+                setSearchKeyword('')
+                setSelectedCategory('')
+                setSelectedBrand('')
+                setSortBy('default')
+                setSortOrder('asc')
+                trackButtonClick('clear_filters', 'search_results')
               }}
             >
               清除筛选
@@ -304,33 +304,33 @@ const SearchResultsPage: React.FC = () => {
                         backgroundImage: `url(${product.image})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                       onClick={() => handleProductClick(product)}
                     />
                   }
                   actions={[
-                    <EyeOutlined 
-                      key="view" 
+                    <EyeOutlined
+                      key="view"
                       onClick={() => handleProductClick(product)}
                     />,
                     <HeartOutlined key="favorite" />,
-                    <ShoppingCartOutlined 
-                      key="cart" 
+                    <ShoppingCartOutlined
+                      key="cart"
                       onClick={(e) => handleAddToCart(product, e)}
-                    />
+                    />,
                   ]}
                 >
                   <div>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
                       {product.name}
                     </div>
-                    <div className="product-description" style={{ 
-                      color: '#666', 
+                    <div className="product-description" style={{
+                      color: '#666',
                       fontSize: '14px',
                       marginBottom: '12px',
                       height: '40px',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
                     }}>
                       {product.description}
                     </div>
@@ -388,18 +388,18 @@ const SearchResultsPage: React.FC = () => {
           style={{ padding: '60px 0' }}
         >
           <Button type="primary" onClick={() => {
-            setSearchKeyword('');
-            setSelectedCategory('');
-            setSelectedBrand('');
-            setSortBy('default');
-            setSortOrder('asc');
+            setSearchKeyword('')
+            setSelectedCategory('')
+            setSelectedBrand('')
+            setSortBy('default')
+            setSortOrder('asc')
           }}>
             查看所有商品
           </Button>
         </Empty>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default SearchResultsPage;
+export default SearchResultsPage

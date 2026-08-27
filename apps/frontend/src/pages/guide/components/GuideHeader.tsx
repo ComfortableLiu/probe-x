@@ -23,7 +23,6 @@ const guideMenuItems: Array<{
       { key: 'event', label: '事件分析', path: '/guide/data-analysis/event' },
       { key: 'user-path', label: '用户路径分析', path: '/guide/data-analysis/user-path' },
       { key: 'attribution', label: '归因分析', path: '/guide/data-analysis/attribution' },
-      { key: 'free', label: '自由分析', path: '/guide/data-analysis/free' },
       { key: 'dashboard-config', label: '数据看板设置', path: '/guide/data-analysis/dashboard-config' },
     ],
   },

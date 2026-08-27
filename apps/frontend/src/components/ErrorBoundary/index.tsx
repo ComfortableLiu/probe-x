@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
           textAlign: 'center',
         }}>
           <h2 style={{ marginBottom: 16 }}>页面出现错误</h2>
-          <p style={{ color: '#666', marginBottom: 24, maxWidth: 600 }}>
+          <p style={{ color: 'var(--px-color-text-secondary)', marginBottom: 24, maxWidth: 600 }}>
             {this.state.error?.message || '未知错误'}
           </p>
           <button
@@ -54,8 +54,8 @@ export class ErrorBoundary extends Component<Props, State> {
               fontSize: 14,
               cursor: 'pointer',
               borderRadius: 4,
-              border: '1px solid #d9d9d9',
-              background: '#fff',
+              border: '1px solid var(--px-color-border)',
+              background: 'var(--px-color-bg-container)',
             }}
           >
             重试

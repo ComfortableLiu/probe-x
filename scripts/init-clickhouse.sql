@@ -9,8 +9,13 @@ USE probe_x;
 
 -- ==================== 原始事件日志表 ====================
 -- 存储从埋点接收服务写入的原始事件数据
+-- 去重说明：ORDER BY 排序键 ($service_time, $session_id, $event_name) 与去重键 $event_id 不兼容
+-- （SDK 重试会产生新的 $service_time，无法用 ReplacingMergeTree 按排序键合并去重），
+-- 因此保持 MergeTree，端到端幂等依赖消费端 preliminary-data-processing-service 的
+-- Redis SET NX 去重（dedup:event:{$event_id}），本表仅持久化 $event_id 便于排查
 CREATE TABLE IF NOT EXISTS event_log (
     -- 事件基础信息
+    `$event_id` String DEFAULT '' COMMENT '事件唯一标识（SDK 生成的 uuid，端到端幂等去重键）',
     `$event_name` String COMMENT '事件名称（如 page_view, click, route_change）',
     `$log_time` DateTime64(3) COMMENT '客户端日志时间',
     `$service_time` DateTime64(3) COMMENT '服务端接收时间',
@@ -96,8 +101,11 @@ SETTINGS index_granularity = 8192;
 
 -- ==================== 清洗后事件日志表 ====================
 -- 存储经过 final-data-cleaning-service 处理后的事件数据
+-- 去重说明：任务重复下发的幂等由 final-data-cleaning-service 的 Redis SET NX
+-- （clean:task:{task_id}）保证，本表保持 MergeTree
 CREATE TABLE IF NOT EXISTS final_event_log (
     -- 事件基础信息
+    `$event_id` String DEFAULT '' COMMENT '事件唯一标识（继承自 event_log，端到端幂等去重键）',
     `$event_name` String COMMENT '事件名称',
     `$log_time` DateTime64(3) COMMENT '客户端日志时间',
     `$service_time` DateTime64(3) COMMENT '服务端接收时间',

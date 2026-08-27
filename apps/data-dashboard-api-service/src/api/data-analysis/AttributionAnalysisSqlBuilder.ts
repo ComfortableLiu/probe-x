@@ -230,23 +230,6 @@ function buildRegexFilter(
 }
 
 /**
- * 获取基础指标计算逻辑（非聚合表达式，用于归因权重计算）
- * 返回的是单行数据的指标值，不是聚合结果
- */
-function getBaseMetricLogic(metrics: Metrics): string {
-  switch (metrics) {
-    case Metrics.COUNT:
-      return '1'
-    case Metrics.USERS:
-      return `if(isNotNull(${wrapFieldWithBacktick('$uid')}), 1, 0)`
-    case Metrics.SESSIONS:
-      return `if(isNotNull(${wrapFieldWithBacktick('$session_id')}), 1, 0)`
-    default:
-      throw new Error(`不支持的指标类型：${metrics}`)
-  }
-}
-
-/**
  * 获取指标聚合函数（用于最终结果聚合）
  * @param metrics 指标类型
  * @param isUserCount 是否用于用户数统计（特殊处理）
@@ -316,53 +299,36 @@ function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params:
   return conditions.length > 0 ? conditions.join(' AND ') : ''
 }
 
-/** 构建归因权重逻辑 */
+/** 构建归因权重逻辑（基于 conv_rows CTE 预计算的窗口函数列，避免在聚合参数中使用相关子查询） */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
-  const serviceTimeField = `f.${wrapFieldWithBacktick('$service_time')}`
-  const sourcePageIdField = wrapFieldWithBacktick('source_page_id')
-  const attributionIndexField = wrapFieldWithBacktick('attribution_index')
-  const eventTimeField = wrapFieldWithBacktick('event_time')
-
-  // 计算触摸点总数：统计同一source_page_id和event_time下的所有归因项数量
-  // 注意：必须同时匹配source_page_id和event_time（分区对齐），确保归因数据正确关联
-  // 性能优化：使用窗口函数替代子查询（在CTE中预计算）
-  const touchpointCount = `(SELECT COALESCE(COUNT(*), 0) FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField}))`
-  // 计算最后触摸点索引：获取同一source_page_id和event_time下的最大attribution_index
-  const lastTouchpointIndex = `(SELECT COALESCE(MAX(ea.${attributionIndexField}), 0) FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField}))`
-
+  // 可用列：idx（attribution_index）、tp_count（该转化的归因行数）、last_idx（最大归因序号）
+  // 注意：event_attribution 的 event_time 与转化事件的 $service_time 一致（见表结构注释），
+  // 时间衰减公式中 dateDiff(event_time, 转化时间) 恒为 0，衰减项恒为 1，退化为 1/tp_count
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
-      return `CASE WHEN a.${attributionIndexField} = 0 THEN 1 ELSE 0 END`
+      return `if(idx = 0, 1, 0)`
     case AttributionModelEnum.LAST_TOUCH:
-      return `CASE WHEN a.${attributionIndexField} = ${lastTouchpointIndex} THEN 1 ELSE 0 END`
+      return `if(idx = last_idx, 1, 0)`
     case AttributionModelEnum.LINEAR:
-      return `1 / COALESCE(${touchpointCount}, 1)`
+      return `1 / tp_count`
     case AttributionModelEnum.POSITION:
       // 位置归因模型：第一个和最后一个触摸点各占40%，中间点均分剩余20%
-      return `CASE 
-        WHEN ${touchpointCount} = 1 THEN 1.0
-        WHEN ${touchpointCount} = 2 THEN 0.5
-        WHEN a.${attributionIndexField} = 0 OR a.${attributionIndexField} = ${lastTouchpointIndex} THEN 0.4
-        ELSE COALESCE(0.2 / NULLIF(${touchpointCount} - 2, 0), 1)
-      END`
+      return `multiIf(tp_count = 1, 1.0, tp_count = 2, 0.5, idx = 0 OR idx = last_idx, 0.4, 0.2 / (tp_count - 2))`
     case AttributionModelEnum.TIME_DECAY:
-      // 时间衰减归因模型：使用指数衰减函数，距离转化时间越近权重越大
-      // 注意：dateDiff函数单位参数必须用字符串字面量（单引号包裹）
-      // 子查询需要匹配同一source_page_id和event_time的归因数据（分区对齐）
-      return `EXP(-0.1 * dateDiff('second', a.${eventTimeField}, ${serviceTimeField})) / 
-              COALESCE((SELECT SUM(EXP(-0.1 * dateDiff('second', ea.${eventTimeField}, ${serviceTimeField}))) 
-               FROM \`probe_x\`.\`event_attribution\` ea WHERE ea.${sourcePageIdField} = a.${sourcePageIdField} AND toDate(ea.${eventTimeField}) = toDate(a.${eventTimeField})), 1)`
+      // 见上方注释：当前数据模型下衰减项恒为 1，等价于线性均分
+      return `1 / tp_count`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
 }
 
-/** 构建动态排序子句 */
+/** 构建动态排序子句（prefix 用于多表 JOIN 时限定字段来源，避免歧义） */
 function buildDynamicOrderByClause(
   attributionEvents: { eventInfo: IEventAnalysisInfo }[],
   attributionEventDimension: string[],
   params: Record<string, any>,
   indexRef: { value: number },
+  prefix = '',
 ): string {
   const eventNames = attributionEvents
     .map(item => item.eventInfo?.eventName)
@@ -378,7 +344,7 @@ function buildDynamicOrderByClause(
     })
     const defaultPriority = eventNames.length + 1
     eventPriorityCase = `
-      CASE ${wrapFieldWithBacktick('$event_name')}
+      CASE ${prefix}${wrapFieldWithBacktick('$event_name')}
         ${caseWhenParts.join('\n      ')}
         ELSE ${defaultPriority}
       END ASC
@@ -386,7 +352,7 @@ function buildDynamicOrderByClause(
   }
 
   const dimensionOrderBy = attributionEventDimension
-    .map(dim => `${wrapFieldWithBacktick(dim)} ASC`)
+    .map(dim => `${prefix}${wrapFieldWithBacktick(dim)} ASC`)
     .join(', ')
 
   const orderByParts: string[] = []
@@ -461,23 +427,17 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     // 6. 维度处理
     const allDimensions = [...new Set([...attributionEventDimension])].filter(Boolean)
     const dimensionFields = allDimensions.map(field => wrapFieldWithBacktick(field))
-    const groupByFields = dimensionFields.length > 0 ? dimensionFields.join(', ') : ''
-    const groupByClause = groupByFields
-      ? `GROUP BY ${groupByFields}, ${wrapFieldWithBacktick('$event_name')}`
-      : `GROUP BY ${wrapFieldWithBacktick('$event_name')}`
 
     // 7. 核心归因计算逻辑
+    // 注意：event_attribution 是 KV 子表（每个转化事件有多行 attr_key/attr_value），
+    // 且 source_page_id 是页面 id 而非转化事件唯一标识，直接 JOIN 主表会发生行扇出导致贡献度超过 100%。
+    // 因此：
+    // 1. conv_rows/conv_attr 先按转化事件（source_page_id + event_time）聚合，将每个转化的权重归一化（总和为 1），
+    //    权重计算使用窗口函数列（ClickHouse 不支持聚合参数中的相关子查询）
+    // 2. linked 按（触点事件, 维度, 转化）去重——同一个转化对同一触点事件只计一次，与触点事件实例数无关
+    // 3. 触点事件的总次数/用户数在 event_stats 中单独统计（与转化关联解耦）
     const weightLogic = buildAttributionWeightLogic(attributionModel)
-    const baseMetricLogic = getBaseMetricLogic(targetEventInfo.metrics)
     const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics)
-    const attributionCountAggFunc = getMetricAggregationFunc(Metrics.COUNT)
-    const attributionUserAggFunc = getMetricAggregationFunc(Metrics.COUNT, true)
-
-    // 归因指标计算：使用权重逻辑乘以基础指标逻辑
-    const attributionValueExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS attribution_value`
-    const conversionMetricExpr = `SUM(${weightLogic} * ${baseMetricLogic}) AS conversion_metric`
-    // 转化率：归因指标值 / 总指标值 * 100
-    const conversionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / NULLIF(SUM(${baseMetricLogic}), 0)) * 100, 2) AS conversion_rate`
 
     // 总转化量计算
     const totalConversionSubQuery = `
@@ -488,49 +448,100 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
        ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''})
     `.trim()
 
-    const contributionRateExpr = `ROUND((SUM(${weightLogic} * ${baseMetricLogic}) / ${totalConversionSubQuery}) * 100, 2) AS contribution_rate`
-    const contributionProgressExpr = `LEAST(${contributionRateExpr.replace(' AS contribution_rate', '')}, 100) AS contribution_progress`
+    // 没有关联到转化的触点事件，LEFT JOIN 后 conversion_metric 可能为 NULL（取决于 join_use_nulls），统一兜底为 0
+    const cMetric = 'ifNull(c.conversion_metric, 0)'
+    const contributionRateExpr = `ROUND((${cMetric} / ${totalConversionSubQuery}) * 100, 2)`
+    const contributionProgressExpr = `LEAST(${contributionRateExpr}, 100) AS contribution_progress`
 
-    // 归因事件基础指标
-    const attributionEventNameExpr = `${wrapFieldWithBacktick('$event_name')} AS attribution_event_name`
-    const attributionCountExpr = `${attributionCountAggFunc} AS total_count`
-    const attributionUserExpr = `${attributionUserAggFunc} AS user_count`
+    // 维度字段选择（各 CTE 中保留原始字段名，便于 GROUP BY/ORDER BY 复用）
+    const dimensionSelect = dimensionFields.length > 0
+      ? dimensionFields.map(field => `f.${field} AS ${field}`).join(', ') + ','
+      : ''
+    const dimensionGroupBy = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
+    // event_stats 与 conv_agg 按事件名+维度对齐
+    const dimensionJoinOn = dimensionFields.length > 0
+      ? dimensionFields.map(field => ` AND e.${field} = c.${field}`).join('')
+      : ''
+    const dimensionOuterSelect = dimensionFields.length > 0
+      ? dimensionFields.map(field => `e.${field}`).join(', ') + ','
+      : ''
 
-    // 维度字段选择
-    const dimensionSelect = dimensionFields.length > 0 ? `${dimensionFields.join(', ')},` : ''
-
-    // 构建最终SELECT子句
-    const selectClause = `
-      ${attributionEventNameExpr},
-      ${dimensionSelect}
-      ${attributionCountExpr},
-      ${attributionUserExpr},
-      ${attributionValueExpr},
-      ${conversionMetricExpr},
-      ${conversionRateExpr},
-      ${contributionRateExpr},
-      ${contributionProgressExpr}
-    `.trim()
-
-    // 8. 表关联：主表与归因表LEFT JOIN
-    // 关联条件：source_page_id匹配 + event_time分区对齐（确保归因数据正确关联）
+    // 8. 主表与动态排序子句（外层查询有 e/c 两个表，字段需带 e. 前缀避免歧义）
     const mainTable = '`probe_x`.`final_event_log` f'
-    const attrTable = '`probe_x`.`event_attribution` a'
-    const joinClause = `LEFT JOIN ${attrTable} 
-      ON f.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('source_page_id')} 
-      AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(a.${wrapFieldWithBacktick('event_time')})`
+    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams, indexRef, 'e.')
 
-    // 9. 动态排序子句
-    const orderByClause = buildDynamicOrderByClause(attributionEvent, attributionEventDimension, sqlParams, indexRef)
+    // 触点事件去重键：优先 $event_id（端到端幂等键）；存量历史数据补列前该值为空串，
+    // 直接用它去重会把所有老数据塌缩成一条，因此空串时回退（页面+时间+用户）复合键
+    const tidExpr = `if(f.${wrapFieldWithBacktick('$event_id')} != '', f.${wrapFieldWithBacktick('$event_id')}, concat(f.${wrapFieldWithBacktick('$page_id')}, '|', toString(f.${wrapFieldWithBacktick('$service_time')}), '|', toString(f.${wrapFieldWithBacktick('$uid')})))`
 
-    // 10. 拼接最终SQL
-    // 优化建议：可以使用CTE+窗口函数优化归因权重计算中的子查询，但需要重构整个查询结构
-    const sql = `SELECT ${selectClause}
-                 FROM ${mainTable}
-                 ${joinClause}
-                 ${whereClause}
-                 ${groupByClause}
-                 ${orderByClause}`.trim()
+    // 9. 拼接最终SQL
+    // conv_rows 通过（source_page_id + 精确时间戳）JOIN 主表，把归因行限定到「目标转化事件」——
+    // 归因表里混有多种转化事件的归因数据，不过滤会导致分子包含非目标转化，贡献度超过 100%
+    const sql = `WITH conv_rows AS (
+      SELECT
+        a.${wrapFieldWithBacktick('source_page_id')} AS spid,
+        a.${wrapFieldWithBacktick('event_time')} AS et,
+        a.${wrapFieldWithBacktick('attribution_index')} AS idx,
+        COUNT(*) OVER (PARTITION BY a.${wrapFieldWithBacktick('source_page_id')}, a.${wrapFieldWithBacktick('event_time')}) AS tp_count,
+        MAX(a.${wrapFieldWithBacktick('attribution_index')}) OVER (PARTITION BY a.${wrapFieldWithBacktick('source_page_id')}, a.${wrapFieldWithBacktick('event_time')}) AS last_idx
+      FROM \`probe_x\`.\`event_attribution\` a
+      JOIN \`probe_x\`.\`final_event_log\` c
+        ON c.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('source_page_id')}
+        AND c.${wrapFieldWithBacktick('$service_time')} = a.${wrapFieldWithBacktick('event_time')}
+      WHERE ${timeFilter}
+      ${conversionEventFilter ? `AND ${conversionEventFilter}` : ''}
+      ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''}
+    ),
+    conv_attr AS (
+      SELECT spid, et, SUM(${weightLogic}) AS w
+      FROM conv_rows
+      GROUP BY spid, et
+    ),
+    linked AS (
+      SELECT DISTINCT
+        f.${wrapFieldWithBacktick('$event_name')} AS ${wrapFieldWithBacktick('$event_name')},
+        ${dimensionSelect}
+        ca.spid AS spid,
+        ca.et AS et,
+        ca.w AS w
+      FROM ${mainTable}
+      JOIN conv_attr ca
+        ON f.${wrapFieldWithBacktick('$source_page_id')} = ca.spid
+        AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(ca.et)
+      ${whereClause}
+    ),
+    conv_agg AS (
+      SELECT
+        ${wrapFieldWithBacktick('$event_name')},
+        ${dimensionGroupBy}
+        SUM(w) AS conversion_metric
+      FROM linked
+      GROUP BY ${dimensionGroupBy} ${wrapFieldWithBacktick('$event_name')}
+    ),
+    event_stats AS (
+      SELECT
+        f.${wrapFieldWithBacktick('$event_name')} AS ${wrapFieldWithBacktick('$event_name')},
+        ${dimensionSelect}
+        uniqExact(${tidExpr}) AS total_count,
+        uniqExact(f.${wrapFieldWithBacktick('$uid')}) AS user_count
+      FROM ${mainTable}
+      ${whereClause}
+      GROUP BY ${dimensionGroupBy} ${wrapFieldWithBacktick('$event_name')}
+    )
+    SELECT
+      e.${wrapFieldWithBacktick('$event_name')} AS attribution_event_name,
+      ${dimensionOuterSelect}
+      e.total_count AS total_count,
+      e.user_count AS user_count,
+      ${cMetric} AS attribution_value,
+      ${cMetric} AS conversion_metric,
+      ROUND((${cMetric} / NULLIF(e.total_count, 0)) * 100, 2) AS conversion_rate,
+      ${contributionRateExpr} AS contribution_rate,
+      ${contributionProgressExpr}
+    FROM event_stats e
+    LEFT JOIN conv_agg c
+      ON e.${wrapFieldWithBacktick('$event_name')} = c.${wrapFieldWithBacktick('$event_name')}${dimensionJoinOn}
+    ${orderByClause}`.trim()
 
     return {
       sql,

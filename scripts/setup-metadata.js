@@ -12,6 +12,24 @@ const mysql = require('mysql2/promise');
 
 const API = 'http://localhost:8101/api';
 
+const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE = 'probe_x' } = process.env;
+
+// 数据库连接信息从环境变量读取，缺省时直接报错退出
+async function createDbConnection() {
+  const missing = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD'].filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`  ❌ 缺少环境变量 ${missing.join(', ')}，请先设置数据库连接信息`);
+    process.exit(1);
+  }
+  return mysql.createConnection({
+    host: DB_HOST,
+    port: Number(DB_PORT),
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_DATABASE,
+  });
+}
+
 async function request(method, path, body = null, token = '') {
   const opts = {
     method,
@@ -28,19 +46,19 @@ async function request(method, path, body = null, token = '') {
 }
 
 async function login() {
-  const conn = await mysql.createConnection({
-    host: '123.56.201.124', port: 6100,
-    user: 'root', password: '12341234', database: 'probe_x',
-  });
-  await conn.query("UPDATE user SET password_hash = '' WHERE username = 'admin'");
-  await conn.end();
+  // 通过正常登录 API 获取 token，管理员凭据与前端加密所需的 SALT/HMAC_SECRET 均从环境变量读取
+  const { ADMIN_USERNAME, ADMIN_PASSWORD, SALT, HMAC_SECRET } = process.env;
+  const missing = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'SALT', 'HMAC_SECRET'].filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`  ❌ 缺少环境变量: ${missing.join(', ')}`);
+    return null;
+  }
 
-  const SALT = '123412341234';
-  const HMAC_SECRET = '123412341234';
+  // 与前端登录一致：先计算前端哈希 hmacSHA(password + SALT, 'sha512', HMAC_SECRET)
   const frontHash = crypto.createHmac('sha512', HMAC_SECRET)
-    .update('admin123' + SALT).digest('hex');
+    .update(ADMIN_PASSWORD + SALT).digest('hex');
 
-  const res = await request('POST', '/user/login', { username: 'admin', password: frontHash });
+  const res = await request('POST', '/user/login', { username: ADMIN_USERNAME, password: frontHash });
   if (res.code === 200 && res.data) {
     const token = res.data.accessToken;
     console.log(`  ✅ Token: ${token?.substring(0, 30)}...`);
@@ -53,10 +71,7 @@ async function login() {
 async function cleanOldData(token) {
   console.log('\n🧹 清理旧数据...');
   // 清空 tracking_node, system, project, meta_event, meta_property
-  const conn = await mysql.createConnection({
-    host: '123.56.201.124', port: 6100,
-    user: 'root', password: '12341234', database: 'probe_x',
-  });
+  const conn = await createDbConnection();
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
   for (const table of ['tracking_node', 'system', 'project', 'meta_event', 'meta_property', 'event_property_relation', 'user_project_relation']) {
     await conn.query(`TRUNCATE TABLE \`${table}\``);
@@ -263,7 +278,7 @@ async function main() {
 
   // 验证
   console.log('\n📋 数据验证:');
-  const conn = await mysql.createConnection({ host: '123.56.201.124', port: 6100, user: 'root', password: '12341234', database: 'probe_x' });
+  const conn = await createDbConnection();
   for (const table of ['project', 'tracking_node', 'meta_event', 'meta_property']) {
     const [rows] = await conn.query(`SELECT COUNT(*) as cnt FROM \`${table}\``);
     console.log(`  ${table}: ${rows[0].cnt} rows`);

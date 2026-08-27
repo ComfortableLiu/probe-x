@@ -22,7 +22,7 @@ export class AuditLogInterceptor implements NestInterceptor {
 
     // 跳过审计日志自身的查询和认证相关路由
     const path = request.url || request.path || ''
-    if (path.includes('/audit-log') || path.includes('/auth/login') || path.includes('/auth/register')) {
+    if (path.includes('/audit-log') || path.includes('/api/user/login') || path.includes('/auth/register')) {
       return next.handle()
     }
 
@@ -71,11 +71,13 @@ export class AuditLogInterceptor implements NestInterceptor {
 
   /**
    * 脱敏处理：对敏感字段值替换为 ***
+   * 键名包含 password/secret/token 等敏感词即脱敏（不区分大小写、子串匹配），
+   * 覆盖 oldPassword/newPassword/accessToken 等变体
    */
   private redactSensitive(json: string): string {
     // 对 JSON 中的敏感字段值进行替换
     return json.replace(
-      /("(?:password|secret|token|config|smtp|authorization)":\s*")((?:[^"\\]|\\.)*)(?=")/gi,
+      /("[^"]*(?:password|secret|token|config|smtp|authorization)[^"]*":\s*")((?:[^"\\]|\\.)*)(?=")/gi,
       '$1***',
     )
   }

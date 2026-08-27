@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react"
-import { Anchor, Col, Row, Spin, Button } from "antd"
+import { Anchor, Col, Row, Spin, Button, theme } from "antd"
 import { Help } from "@icon-park/react"
 import { useNavigate } from "react-router-dom"
 import PageHeader from "@components/PageHeader"
@@ -30,6 +30,7 @@ function Overview() {
 
   const dispatch = useDispatch<Dispatch>()
   const navigate = useNavigate()
+  const { token } = theme.useToken()
 
   useEffect(() => {
     dispatch.systemDataOverviewModel.fetchSystemDataOverview()
@@ -109,44 +110,44 @@ function Overview() {
         extra={
           <Button
             type="link"
-            icon={<Help theme="outline" size="16" fill="#000000" />}
+            icon={<Help theme="outline" size="16" fill={token.colorText} />}
             onClick={() => navigate('/guide/system-data/overview')}
           >
             说明
           </Button>
         }
       />
-      <Spin spinning={loading}>
-        <Row>
-          <Col span={20} className={styles.content}>
-            {/* 系统数据概览 */}
-            {content.map(item => (
-              <div
-                id={item.key}
-                key={item.key}
-                className={styles.section}
-              >
-                <h3 className={styles.sectionTitle}>{item.title}</h3>
+      <Row>
+        <Col span={20} className={styles.content}>
+          {/* 系统数据概览，每个模块区块独立 loading */}
+          {content.map(item => (
+            <div
+              id={item.key}
+              key={item.key}
+              className={styles.section}
+            >
+              <h3 className={styles.sectionTitle}>{item.title}</h3>
+              <Spin spinning={loading}>
                 {item.element}
-              </div>
-            ))}
-          </Col>
-          <Col span={4}>
-            <div style={{ position: 'sticky', top: 24 }}>
-              <Anchor
-                replace
-                offsetTop={24}
-                getContainer={() => document.querySelector('main')}
-                items={content.map(item => ({
-                  key: item.key,
-                  href: `#${item.key}`,
-                  title: item.title,
-                }))}
-              />
+              </Spin>
             </div>
-          </Col>
-        </Row>
-      </Spin>
+          ))}
+        </Col>
+        <Col span={4}>
+          <div style={{ position: 'sticky', top: 24 }}>
+            <Anchor
+              replace
+              offsetTop={24}
+              getContainer={() => document.querySelector('main')}
+              items={content.map(item => ({
+                key: item.key,
+                href: `#${item.key}`,
+                title: item.title,
+              }))}
+            />
+          </div>
+        </Col>
+      </Row>
     </div>
   )
 }

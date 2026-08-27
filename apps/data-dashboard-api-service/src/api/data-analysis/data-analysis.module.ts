@@ -12,7 +12,6 @@ import { UserPathAnalysisService } from "./user-path-analysis.service"
 import { AttributionAnalysisService } from "./attribution-analysis.service"
 import { RetentionAnalysisService } from "./retention-analysis.service"
 import { UserSegmentationService } from "./user-segmentation.service"
-import { FreeAnalysisService } from "./free-analysis.service"
 import { DataAnalysisRecordService } from "./record.service"
 import {
   DataAnalysisAccessStatsEntity,
@@ -35,8 +34,8 @@ import {
     MinIOModule,
   ],
   controllers: [DataAnalysisController],
-  providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, RetentionAnalysisService, UserSegmentationService, FreeAnalysisService, QueryDownloadQueueProcessor, DataAnalysisRecordService],
-  exports: [DataAnalysisRecordService, EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, RetentionAnalysisService, UserSegmentationService, FreeAnalysisService],
+  providers: [EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, RetentionAnalysisService, UserSegmentationService, QueryDownloadQueueProcessor, DataAnalysisRecordService],
+  exports: [DataAnalysisRecordService, EventAnalysisService, FunnelAnalysisService, UserPathAnalysisService, AttributionAnalysisService, RetentionAnalysisService, UserSegmentationService],
 })
 export class DataAnalysisModule {
 }

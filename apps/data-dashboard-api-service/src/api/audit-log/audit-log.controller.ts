@@ -1,8 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Controller, Get, Query, UseGuards } from '@nestjs/common'
 import { AuditLogService } from './audit-log.service'
 import { IQueryAuditLogListReq, IQueryAuditLogListRes } from '@probe-x/shared-types/src'
+import { AdminGuard } from '../../guard/admin.guard'
 
 @Controller('audit-log')
+@UseGuards(AdminGuard)
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
@@ -23,7 +25,7 @@ export class AuditLogController {
       startTime,
       endTime,
       page: page || 1,
-      pageSize: pageSize || 20,
+      pageSize: Math.min(pageSize || 20, 100), // 限制每页最多100条数据
     }
     return await this.auditLogService.getList(params)
   }

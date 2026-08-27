@@ -40,12 +40,15 @@ export class RedisService implements OnModuleDestroy {
     })
 
     // 监听连接状态
-    // 使用 'ready' 事件代替 'connect'，因为 'ready' 只在客户端完全准备好时触发一次
-    // 而 'connect' 会在每次重连时都触发，导致无限循环输出
-    this.client.once('ready', () => {
+    // 使用 'ready' 事件代替 'connect'，因为 'ready' 只在客户端完全准备好时触发
+    // 注意要用 on 而不是 once，否则断线重连后 isConnected 无法恢复为 true
+    this.client.on('ready', () => {
+      // 重复日志用连接状态抑制：只有从断开状态恢复时才打印
+      if (!this.isConnected) {
+        console.log(`✅ Redis 连接成功 (${options.host}:${options.port})`)
+      }
       this.isConnected = true
       this.reconnectCount = 0
-      console.log(`✅ Redis 连接成功 (${options.host}:${options.port})`)
     })
 
     // 监听连接事件（用于跟踪重连）
@@ -110,6 +113,14 @@ export class RedisService implements OnModuleDestroy {
     return this.client.del(key)
   }
 
+  // 仅当 key 不存在时写入并设置过期时间（用于 nonce 防重放等场景）
+  // 返回 true 表示写入成功，false 表示 key 已存在
+  async setNx(key: string, value: any, expireSeconds: number): Promise<boolean> {
+    const strValue = typeof value === 'string' ? value : JSON.stringify(value)
+    const result = await this.client.set(key, strValue, 'EX', expireSeconds, 'NX')
+    return result === 'OK'
+  }
+
   /**
    * 根据模式删除匹配的键（使用 SCAN 命令，避免阻塞）
    * @param pattern 匹配模式，例如 'dashboard:list:*'
@@ -118,7 +129,7 @@ export class RedisService implements OnModuleDestroy {
   async delByPattern(pattern: string): Promise<number> {
     let deletedCount = 0
     let cursor = '0'
-    
+
     do {
       // 使用 SCAN 命令遍历匹配的键
       const [nextCursor, keys] = await this.client.scan(
@@ -128,16 +139,16 @@ export class RedisService implements OnModuleDestroy {
         'COUNT',
         100, // 每次扫描100个键
       )
-      
+
       cursor = nextCursor
-      
+
       // 如果有匹配的键，批量删除
       if (keys.length > 0) {
         const deleted = await this.client.del(...keys)
         deletedCount += deleted
       }
     } while (cursor !== '0') // 当 cursor 为 '0' 时表示扫描完成
-    
+
     return deletedCount
   }
 

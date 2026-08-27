@@ -8,12 +8,12 @@ import type { ThemeConfig } from 'antd'
  */
 const theme: ThemeConfig = {
   token: {
-    // ─── Brand ───────────────────────────────
-    colorPrimary: '#3F51B5',
-    colorInfo: '#3F51B5',
-    colorSuccess: '#52c41a',
-    colorWarning: '#faad14',
-    colorError: '#ff4d4f',
+    // ─── Brand（亮色调） ───────────────────────
+    colorPrimary: '#3D7BFF',
+    colorInfo: '#3D7BFF',
+    colorSuccess: '#22C55E',
+    colorWarning: '#F59E0B',
+    colorError: '#F4514C',
 
     // ─── Typography ──────────────────────────
     fontSize: 14,
@@ -42,9 +42,9 @@ const theme: ThemeConfig = {
     marginXXS: 4,
 
     // ─── Border Radius ───────────────────────
-    borderRadius: 6,
-    borderRadiusSM: 4,
-    borderRadiusLG: 8,
+    borderRadius: 8,
+    borderRadiusSM: 6,
+    borderRadiusLG: 12,
 
     // ─── Shadows ─────────────────────────────
     boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)',
@@ -67,20 +67,22 @@ const theme: ThemeConfig = {
   // ─── Component Overrides ─────────────────────
   components: {
     Layout: {
-      siderBg: '#001529',
+      siderBg: '#ffffff',
       headerBg: '#ffffff',
-      bodyBg: '#f0f2f5',
+      bodyBg: '#F5F7FB',
     },
     Menu: {
-      darkItemBg: '#001529',
-      darkSubMenuItemBg: '#000c17',
-      darkItemSelectedBg: '#1890ff20',
+      itemBg: '#ffffff',
+      subMenuItemBg: '#ffffff',
+      itemSelectedBg: '#EAF1FF',
+      itemSelectedColor: '#3D7BFF',
+      itemHoverBg: '#F5F7FB',
     },
     Table: {
-      headerBg: '#fafafa',
+      headerBg: '#F8FAFD',
       headerColor: 'rgba(0,0,0,0.88)',
       headerSplitColor: '#f0f0f0',
-      rowHoverBg: '#fafafa',
+      rowHoverBg: '#F8FAFD',
       borderColor: '#f0f0f0',
     },
     Card: {
@@ -90,11 +92,11 @@ const theme: ThemeConfig = {
       fontWeight: 500,
     },
     Input: {
-      hoverBorderColor: '#3F51B5',
-      activeBorderColor: '#3F51B5',
+      hoverBorderColor: '#3D7BFF',
+      activeBorderColor: '#3D7BFF',
     },
     Select: {
-      optionSelectedBg: '#3F51B510',
+      optionSelectedBg: '#EAF1FF',
     },
   },
 }

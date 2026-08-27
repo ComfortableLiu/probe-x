@@ -10,7 +10,7 @@ const homepageRoutes: IRouteItem = {
   alias: ['/home', '/homepage', '/index'],
   component: lazy(() => import('@pages/homepage/index')),
   meta: {
-    icon: <Home theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+    icon: <Home theme="outline" size="16" fill="currentColor" />,
   },
 }
 

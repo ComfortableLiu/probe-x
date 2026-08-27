@@ -1,63 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Button, InputNumber, Tag, Space, Rate, Tabs, Image } from 'antd';
-import { ShoppingCartOutlined, HeartOutlined } from '@ant-design/icons';
-import { mockProducts } from '../data/mockData';
-import { trackPageView, trackProductView, trackAddToCart, trackButtonClick } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Row, Col, Card, Button, InputNumber, Tag, Space, Rate, Tabs, Image } from 'antd'
+import { ShoppingCartOutlined, HeartOutlined } from '@ant-design/icons'
+import { mockProducts } from '../data/mockData'
+import { trackPageView, trackProductView, trackAddToCart, trackButtonClick } from '../utils/probeX'
 
-const { TabPane } = Tabs;
+const { TabPane } = Tabs
 
 const ProductDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [product, setProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [product, setProduct] = useState<any>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   useEffect(() => {
     if (id) {
-      const foundProduct = mockProducts.find(p => p.id === id);
+      const foundProduct = mockProducts.find(p => p.id === id)
       if (foundProduct) {
-        setProduct(foundProduct);
+        setProduct(foundProduct)
         trackPageView('product_detail', {
           product_id: id,
           product_name: foundProduct.name,
-          product_price: foundProduct.price
-        });
-        trackProductView(foundProduct, { source: 'product_detail' });
+          product_price: foundProduct.price,
+        })
+        trackProductView(foundProduct, { source: 'product_detail' })
       } else {
-        navigate('/products');
+        navigate('/products')
       }
     }
-  }, [id, navigate]);
+  }, [id, navigate])
 
   const handleAddToCart = () => {
     if (product) {
-      trackAddToCart(product, quantity, { source: 'product_detail' });
+      trackAddToCart(product, quantity, { source: 'product_detail' })
       // 这里可以添加到购物车的逻辑
     }
-  };
+  }
 
   const handleBuyNow = () => {
     if (product) {
       trackButtonClick('buy_now', 'product_detail', {
         product_id: product.id,
-        quantity: quantity
-      });
+        quantity: quantity,
+      })
       // 这里可以跳转到结算页面
     }
-  };
+  }
 
   const handleImageChange = (index: number) => {
-    setSelectedImageIndex(index);
+    setSelectedImageIndex(index)
     trackButtonClick('product_image_change', 'product_detail', {
       product_id: product?.id,
-      image_index: index
-    });
-  };
+      image_index: index,
+    })
+  }
 
   if (!product) {
-    return <div>加载中...</div>;
+    return <div>加载中...</div>
   }
 
   return (
@@ -84,7 +84,7 @@ const ProductDetailPage: React.FC = () => {
                       objectFit: 'cover',
                       cursor: 'pointer',
                       border: selectedImageIndex === index ? '2px solid #1890ff' : '1px solid #d9d9d9',
-                      borderRadius: '4px'
+                      borderRadius: '4px',
                     }}
                     onClick={() => handleImageChange(index)}
                   />
@@ -98,7 +98,7 @@ const ProductDetailPage: React.FC = () => {
         <Col xs={24} md={12}>
           <Card>
             <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>{product.name}</h1>
-            
+
             <div style={{ marginBottom: '16px' }}>
               <Rate disabled defaultValue={product.rating} style={{ fontSize: '16px' }} />
               <span style={{ marginLeft: '8px', color: '#666' }}>
@@ -208,7 +208,7 @@ const ProductDetailPage: React.FC = () => {
         </Col>
       </Row>
     </div>
-  );
-};
+  )
+}
 
-export default ProductDetailPage;
+export default ProductDetailPage

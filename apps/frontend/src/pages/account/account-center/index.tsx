@@ -25,6 +25,19 @@ function AccountCenter() {
   const [passwordForm] = Form.useForm()
   const [isEditing, setIsEditing] = useState(false)
   const [activeKey, setActiveKey] = useState<string | string[]>([])
+  // 当前用户是否已设置过密码（未设置时修改密码可不填旧密码）
+  const [hasPassword, setHasPassword] = useState<boolean>(true)
+
+  useEffect(() => {
+    dispatch.userModel.fetchCurrentUser()
+      .then((res) => {
+        setHasPassword(res?.hasPassword ?? true)
+      })
+      .catch(() => {
+        // 拉取失败时按已设置密码处理，要求填写旧密码
+        setHasPassword(true)
+      })
+  }, [dispatch])
 
   useEffect(() => {
     if (userInfo) {
@@ -232,7 +245,7 @@ function AccountCenter() {
                   onFinish={handleChangePassword}
                   className={styles.passwordForm}
                 >
-                  {userInfo?.username === 'admin' && (
+                  {!hasPassword && (
                     <Form.Item
                       name="oldPassword"
                       label="旧密码（首次设置密码可不填）"
@@ -241,7 +254,7 @@ function AccountCenter() {
                       <Input.Password placeholder="请输入旧密码（首次设置可不填）" />
                     </Form.Item>
                   )}
-                  {userInfo?.username !== 'admin' && (
+                  {hasPassword && (
                     <Form.Item
                       name="oldPassword"
                       label="旧密码"

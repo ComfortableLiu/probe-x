@@ -72,11 +72,26 @@ const config: Configuration = {
     ],
   },
   externalsType: 'commonjs',
-  externals: {
-    typeorm: 'commonjs typeorm',
-    'reflect-metadata': 'commonjs reflect-metadata',
-    mysql2: 'commonjs mysql2',
-  },
+  externals: [
+    // NestJS 核心可选依赖
+    '@nestjs/websockets/socket-module',
+    '@nestjs/microservices',
+    // 消息队列可选依赖
+    'mqtt',
+    'nats',
+    'amqp-connection-manager',
+    'amqplib',
+    'kafkajs',
+    'ioredis',
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
+    // 已有配置
+    {
+      typeorm: 'commonjs typeorm',
+      'reflect-metadata': 'commonjs reflect-metadata',
+      mysql2: 'commonjs mysql2',
+    },
+  ],
   plugins: [
     new CopyRspackPlugin({
       patterns: [

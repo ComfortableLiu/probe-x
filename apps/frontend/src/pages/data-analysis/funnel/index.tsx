@@ -20,12 +20,14 @@ function FunnelAnalysis() {
 
   const {
     updateTime,
+    querySnapshot,
   } = useModel<IDataAnalysisFunnelState>('dataAnalysisFunnelModel')
 
   const {
     timeRange,
     windowPeriod,
     funnelType,
+    funnelInfoList,
     dashboardId,
   } = useQuery<IQuery & { dashboardId?: number }>()
 
@@ -34,6 +36,9 @@ function FunnelAnalysis() {
   } = useRouter()
 
   const timer = useRef<NodeJS.Timeout>(null)
+
+  // 标记本次挂载是否已通过快照恢复参数，避免与默认值填充逻辑冲突
+  const restoredRef = useRef(false)
 
   const loading = useLoading()
 
@@ -53,8 +58,22 @@ function FunnelAnalysis() {
     }
   }, [])
 
+  // 从其他页面返回且 URL 无查询参数时，恢复上一次查询的筛选项（结果数据在 model 中，由快照渲染）
+  useEffect(() => {
+    if (!funnelInfoList?.length && !dashboardId && querySnapshot) {
+      restoredRef.current = true
+      refresh({ ...querySnapshot }, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (!timeRange || !windowPeriod || !funnelType) {
+      // 快照恢复时会带回这些参数，这里跳过一次默认值填充
+      if (restoredRef.current) {
+        restoredRef.current = false
+        return
+      }
       refresh({
         timeRange: timeRange || [dayjs().subtract(7, 'day').format('YYYY-MM-DD'), dayjs().format('YYYY-MM-DD')],
         windowPeriod: windowPeriod || { unit: 'd', value: 7 },
@@ -68,10 +87,23 @@ function FunnelAnalysis() {
   }, [dispatch.dataAnalysisEventModel])
 
   const queryDownloadTask = useCallback(async (taskId: string) => {
-    const res = await dispatch.dataAnalysisFunnelModel.queryDownloadTask({ taskId })
-    if (res?.status === 'SUCCESS' && res.downloadUrl) {
-      // 下载文件
-      setDownloadUrl(res.downloadUrl)
+    try {
+      const res = await dispatch.dataAnalysisFunnelModel.queryDownloadTask({ taskId })
+      if (res?.status === 'SUCCESS' && res.downloadUrl) {
+        // 下载文件
+        setDownloadUrl(res.downloadUrl)
+        if (timer.current) {
+          clearInterval(timer.current)
+        }
+      } else if (res?.status === 'FAIL') {
+        message.error('下载任务失败，请重试')
+        if (timer.current) {
+          clearInterval(timer.current)
+        }
+      }
+    } catch (error) {
+      // 查询异常时停止轮询，避免无限重试
+      message.error('查询下载任务状态失败')
       if (timer.current) {
         clearInterval(timer.current)
       }
@@ -92,7 +124,17 @@ function FunnelAnalysis() {
     }
     const taskId = await dispatch.dataAnalysisFunnelModel.downloadData()
     if (taskId) {
+      // 最多轮询 300 次，超时停止避免无限轮询
+      let pollCount = 0
       timer.current = setInterval(() => {
+        pollCount += 1
+        if (pollCount > 300) {
+          if (timer.current) {
+            clearInterval(timer.current)
+          }
+          message.warning('下载任务超时，请重试')
+          return
+        }
         queryDownloadTask(taskId)
       }, 1000)
     }

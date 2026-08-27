@@ -6,7 +6,7 @@ export default {
   name: '系统设置',
   key: 'system-config',
   meta: {
-    icon: <SettingOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+    icon: <SettingOne theme="outline" size="16" fill="currentColor" />,
   },
   children: [{
     name: '用户管理',
@@ -71,10 +71,5 @@ export default {
     key: 'system-config-audit-log',
     path: '/system-config/audit-log',
     component: lazy(() => import('@pages/system-config/audit-log')),
-  }, {
-    name: '告警管理',
-    key: 'system-config-alert',
-    path: '/system-config/alert',
-    component: lazy(() => import('@pages/system-config/alert')),
   }],
 } as IRouteItem

@@ -121,7 +121,7 @@ function DataFilterConfigArea() {
             size="large"
             onClick={() => refresh({})}
           >
-            <Refresh style={{ display: 'flex' }} theme="outline" size="14" fill="#000000" />
+            <Refresh style={{ display: 'flex' }} theme="outline" size="14" fill="currentColor" />
             重置
           </Button>
         </Space>

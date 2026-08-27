@@ -1,45 +1,45 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Input, Button, Badge, Avatar, Dropdown } from 'antd';
-import { 
-  SearchOutlined, 
-  ShoppingCartOutlined, 
+import React, { useState } from 'react'
+import { Layout, Menu, Input, Button, Badge, Avatar, Dropdown } from 'antd'
+import {
+  SearchOutlined,
+  ShoppingCartOutlined,
   UserOutlined,
   HomeOutlined,
   AppstoreOutlined,
   HeartOutlined,
-  BellOutlined
-} from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { trackButtonClick, trackSearch } from '../utils/probeX';
+  BellOutlined,
+} from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import { trackButtonClick, trackSearch } from '../utils/probeX'
 
-const { Header: AntHeader } = Layout;
-const { Search } = Input;
+const { Header: AntHeader } = Layout
+const { Search } = Input
 
 const Header: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchValue, setSearchValue] = useState('');
+  const navigate = useNavigate()
+  const [searchValue, setSearchValue] = useState('')
 
   const handleSearch = (value: string) => {
     if (value.trim()) {
-      trackSearch(value, 0, { page: 'header' });
-      navigate(`/search?keyword=${encodeURIComponent(value)}`);
+      trackSearch(value, 0, { page: 'header' })
+      navigate(`/search?keyword=${encodeURIComponent(value)}`)
     }
-  };
+  }
 
   const handleMenuClick = (key: string) => {
-    trackButtonClick('navigation', 'header', { menu_item: key });
-    navigate(`/${key}`);
-  };
+    trackButtonClick('navigation', 'header', { menu_item: key })
+    navigate(`/${key}`)
+  }
 
   const handleCartClick = () => {
-    trackButtonClick('cart', 'header');
-    navigate('/cart');
-  };
+    trackButtonClick('cart', 'header')
+    navigate('/cart')
+  }
 
   const handleProfileClick = () => {
-    trackButtonClick('profile', 'header');
-    navigate('/profile');
-  };
+    trackButtonClick('profile', 'header')
+    navigate('/profile')
+  }
 
   const menuItems = [
     {
@@ -52,7 +52,7 @@ const Header: React.FC = () => {
       icon: <AppstoreOutlined />,
       label: '商品',
     },
-  ];
+  ]
 
   const userMenuItems = [
     {
@@ -77,31 +77,31 @@ const Header: React.FC = () => {
       key: 'logout',
       label: '退出登录',
     },
-  ];
+  ]
 
   return (
-    <AntHeader style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
+    <AntHeader style={{
+      display: 'flex',
+      alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 24px',
       background: '#fff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       position: 'sticky',
       top: 0,
-      zIndex: 1000
+      zIndex: 1000,
     }}>
       {/* Logo */}
-      <div 
-        style={{ 
-          fontSize: '24px', 
-          fontWeight: 'bold', 
+      <div
+        style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
           color: '#1890ff',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
         onClick={() => {
-          trackButtonClick('logo', 'header');
-          navigate('/');
+          trackButtonClick('logo', 'header')
+          navigate('/')
         }}
       >
         🛒 电商Demo
@@ -113,11 +113,11 @@ const Header: React.FC = () => {
         selectedKeys={[]}
         items={menuItems}
         onClick={({ key }) => handleMenuClick(key)}
-        style={{ 
-          flex: 1, 
+        style={{
+          flex: 1,
           justifyContent: 'center',
           border: 'none',
-          background: 'transparent'
+          background: 'transparent',
         }}
       />
 
@@ -137,18 +137,18 @@ const Header: React.FC = () => {
       {/* 右侧操作区 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {/* 通知 */}
-        <Button 
-          type="text" 
-          icon={<BellOutlined />} 
+        <Button
+          type="text"
+          icon={<BellOutlined />}
           size="large"
           onClick={() => trackButtonClick('notification', 'header')}
         />
 
         {/* 购物车 */}
         <Badge count={3} size="small">
-          <Button 
-            type="text" 
-            icon={<ShoppingCartOutlined />} 
+          <Button
+            type="text"
+            icon={<ShoppingCartOutlined />}
             size="large"
             onClick={handleCartClick}
           />
@@ -160,17 +160,17 @@ const Header: React.FC = () => {
             items: userMenuItems,
             onClick: ({ key }) => {
               if (key === 'logout') {
-                trackButtonClick('logout', 'header');
+                trackButtonClick('logout', 'header')
                 // 处理退出登录
               } else {
-                handleMenuClick(key);
+                handleMenuClick(key)
               }
             },
           }}
           placement="bottomRight"
         >
-          <Avatar 
-            size="large" 
+          <Avatar
+            size="large"
             icon={<UserOutlined />}
             style={{ cursor: 'pointer' }}
             onClick={handleProfileClick}
@@ -178,7 +178,7 @@ const Header: React.FC = () => {
         </Dropdown>
       </div>
     </AntHeader>
-  );
-};
+  )
+}
 
-export default Header;
+export default Header

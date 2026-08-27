@@ -29,9 +29,7 @@ function extractEntities(): any[] {
 
 const allEntities = extractEntities()
 
-@Module({
-  exports: [TypeOrmModule],
-})
+@Module({})
 export class MysqlModule {
   static forRoot(additionalEntities?: any[]): DynamicModule {
     return {
@@ -56,7 +54,6 @@ export class MysqlModule {
           inject: [ConfigService],
         }),
       ],
-      exports: [],
     }
   }
 }

@@ -34,6 +34,9 @@ RUN yarn build:lib
 # 构建指定服务
 RUN yarn build:${SERVICE_NAME}
 
+# 确保 proto 目录存在（仅 final-data-cleaning-service 有真实 proto 文件，其余服务为空目录）
+RUN mkdir -p /app/apps/${SERVICE_NAME}/proto
+
 # ==================== 运行阶段 ====================
 FROM node:20-alpine AS runner
 
@@ -52,9 +55,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
-# 复制 proto 文件（final-data-cleaning-service 需要）
+# 复制 proto 文件（final-data-cleaning-service 需要，其余服务为空目录）
 ARG SERVICE_NAME
-COPY --from=builder --chown=nodejs:nodejs /app/apps/${SERVICE_NAME}/proto ./proto 2>/dev/null || true
+COPY --from=builder --chown=nodejs:nodejs /app/apps/${SERVICE_NAME}/proto ./proto
 
 # 切换到非 root 用户
 USER nodejs

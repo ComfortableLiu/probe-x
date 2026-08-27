@@ -26,7 +26,9 @@ function DimensionSelector(props: IDimensionSelectorProps) {
   } = useRouter()
 
   const dimensionInfo = useMemo<string[]>(() => {
-    return props.dimension || query[props?.queryKey] || query.dimension || []
+    const list = props.dimension || query[props?.queryKey] || query.dimension || []
+    // 默认带一个「总体」维度（空值），无需用户手动添加
+    return list.length ? list : ['']
   }, [props.dimension, props?.queryKey, query])
 
   /**
@@ -76,7 +78,7 @@ function DimensionSelector(props: IDimensionSelectorProps) {
         href="#"
         onClick={() => changeDimension(dimensionInfo.length, '')}
       >
-        <Plus theme="outline" size="16" fill="#3F51B5" style={{ display: 'flex' }} />
+        <Plus theme="outline" size="16" fill="currentColor" style={{ display: 'flex' }} />
         增加维度
       </a>
     </div>

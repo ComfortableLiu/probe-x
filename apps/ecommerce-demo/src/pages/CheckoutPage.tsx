@@ -1,63 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, Form, Input, Select, Button, Typography, Divider, List, message, Row, Col } from 'antd';
-import { mockUser } from '../data/mockData';
-import { trackPageView, trackButtonClick, trackPurchase } from '../utils/probeX';
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Card, Form, Input, Select, Button, Typography, Divider, List, message, Row, Col } from 'antd'
+import { mockUser } from '../data/mockData'
+import { trackPageView, trackButtonClick, trackPurchase } from '../utils/probeX'
 
-const { Title, Text } = Typography;
-const { TextArea } = Input;
+const { Title, Text } = Typography
+const { TextArea } = Input
 
 const CheckoutPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  
-  const [orderItems, setOrderItems] = useState<any[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState('alipay');
-  const [shippingAddress, setShippingAddress] = useState(mockUser.address[0]);
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [form] = Form.useForm()
+  const [loading, setLoading] = useState(false)
+
+  const [orderItems, setOrderItems] = useState<any[]>([])
+  const [paymentMethod, setPaymentMethod] = useState('alipay')
+  const [shippingAddress, setShippingAddress] = useState(mockUser.address[0])
 
   useEffect(() => {
     if (location.state?.items) {
-      setOrderItems(location.state.items);
+      setOrderItems(location.state.items)
       trackPageView('checkout', {
         page_title: '结算页面',
         items_count: location.state.items.length,
-        total_amount: calculateTotalAmount(location.state.items)
-      });
+        total_amount: calculateTotalAmount(location.state.items),
+      })
     } else {
-      navigate('/cart');
+      navigate('/cart')
     }
-  }, [location.state]);
+  }, [location.state])
 
   const calculateTotalAmount = (items: any[]) => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+    return items.reduce((total, item) => total + (item.price * item.quantity), 0)
+  }
 
   const handlePaymentMethodChange = (value: string) => {
-    setPaymentMethod(value);
+    setPaymentMethod(value)
     trackButtonClick('payment_method_change', 'checkout', {
-      payment_method: value
-    });
-  };
+      payment_method: value,
+    })
+  }
 
   const handleAddressChange = (value: string) => {
-    const address = mockUser.address.find(addr => addr.id === value);
+    const address = mockUser.address.find(addr => addr.id === value)
     if (address) {
-      setShippingAddress(address);
+      setShippingAddress(address)
       trackButtonClick('address_change', 'checkout', {
-        address_id: value
-      });
+        address_id: value,
+      })
     }
-  };
+  }
 
   const handleSubmit = async (values: any) => {
-    setLoading(true);
-    
+    setLoading(true)
+
     try {
       // 模拟提交订单
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
       const order = {
         id: Date.now().toString(),
         orderNumber: `ORD${Date.now()}`,
@@ -65,28 +65,28 @@ const CheckoutPage: React.FC = () => {
         totalAmount: calculateTotalAmount(orderItems),
         paymentMethod,
         shippingAddress,
-        ...values
-      };
-      
-      trackPurchase(order, { source: 'checkout' });
-      
-      message.success('订单提交成功！');
-      navigate('/orders', { state: { order } });
+        ...values,
+      }
+
+      trackPurchase(order, { source: 'checkout' })
+
+      message.success('订单提交成功！')
+      navigate('/orders', { state: { order } })
     } catch (error) {
-      message.error('订单提交失败，请重试');
+      message.error('订单提交失败，请重试')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   if (orderItems.length === 0) {
-    return <div>加载中...</div>;
+    return <div>加载中...</div>
   }
 
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>确认订单</Title>
-      
+
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
           <Form
@@ -160,28 +160,28 @@ const CheckoutPage: React.FC = () => {
                 </List.Item>
               )}
             />
-            
+
             <Divider />
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <Text>商品总价:</Text>
               <Text>¥{calculateTotalAmount(orderItems).toFixed(2)}</Text>
             </div>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <Text>运费:</Text>
               <Text>¥0.00</Text>
             </div>
-            
+
             <Divider />
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
               <Text strong style={{ fontSize: '18px' }}>应付总额:</Text>
               <Text strong style={{ fontSize: '18px', color: '#f5222d' }}>
                 ¥{calculateTotalAmount(orderItems).toFixed(2)}
               </Text>
             </div>
-            
+
             <Button
               type="primary"
               size="large"
@@ -195,7 +195,7 @@ const CheckoutPage: React.FC = () => {
         </Col>
       </Row>
     </div>
-  );
-};
+  )
+}
 
-export default CheckoutPage;
+export default CheckoutPage

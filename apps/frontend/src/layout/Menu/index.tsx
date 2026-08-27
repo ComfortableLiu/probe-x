@@ -113,7 +113,6 @@ const MenuView = () => {
         className={styles.menu}
         inlineCollapsed={collapsed}
         mode="inline"
-        theme="dark"
         selectedKeys={selectedKeys ? [selectedKeys] : []}
         openKeys={openKeys}
         onOpenChange={setOpenKeys}
@@ -124,14 +123,13 @@ const MenuView = () => {
           className={styles.menu}
           inlineCollapsed={collapsed}
           mode="vertical"
-          theme="dark"
           items={[{
             key: 'account',
-            icon: <Me theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+            icon: <Me theme="outline" size="16" fill="currentColor" />,
             label: <span className={classnames({ collapsed })}>{userInfo?.nickname || userInfo?.username || '未知'}</span>,
             children: [{
               key: 'account-center',
-              icon: <User theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+              icon: <User theme="outline" size="16" fill="currentColor" />,
               label: (
                 <Link to="/account">
                   <span className={classnames({ collapsed })}>个人中心</span>
@@ -139,7 +137,7 @@ const MenuView = () => {
               ),
             }, {
               key: 'guide',
-              icon: <Help theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+              icon: <Help theme="outline" size="16" fill="currentColor" />,
               label: (
                 <Link to="/guide">
                   <span className={classnames({ collapsed })}>系统说明</span>
@@ -147,13 +145,13 @@ const MenuView = () => {
               ),
             }, {
               key: 'logout',
-              icon: <Logout theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+              icon: <Logout theme="outline" size="16" fill="currentColor" />,
               label: <span className={classnames({ collapsed })}>退出登录</span>,
               onClick: () => ssoAuth.gotoLoginPage(),
             }],
           }, {
             key: 'collapse',
-            icon: <MenuUnfoldOne theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+            icon: <MenuUnfoldOne theme="outline" size="16" fill="currentColor" />,
             label: <span className={classnames({ collapsed })}>收起</span>,
             onClick: () => switchCollapsed(),
           }]}

@@ -1,0 +1,32 @@
+.metricCard {
+  border-radius: var(--px-radius-base);
+  border: 1px solid var(--px-color-border-secondary);
+  box-shadow: var(--px-shadow-sm);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: var(--px-shadow-base);
+  }
+}
+
+.goodStatus {
+  border-left: 4px solid var(--px-color-success);
+}
+
+.warningStatus {
+  border-left: 4px solid var(--px-color-warning);
+}
+
+.criticalStatus {
+  border-left: 4px solid var(--px-color-error);
+}
+
+.icon {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.extra {
+  font-size: 12px;
+  margin-top: 8px;
+}

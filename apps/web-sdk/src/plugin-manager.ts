@@ -102,6 +102,13 @@ export class PluginManager {
   }
 
   /**
+   * 获取配置（供插件读取 SDK 级配置，如 maskSensitiveData）
+   */
+  getConfig<T = any>(key: string, defaultValue?: T): T {
+    return this.config.get(key, defaultValue);
+  }
+
+  /**
    * 注册事件钩子
    */
   addHook<K extends keyof EventHooks>(event: K, handler: EventHooks[K]): void {
@@ -289,6 +296,18 @@ export class HeatmapPlugin implements Plugin {
   private isTracking: boolean = false;
   private heatmapData: any[] = [];
   private config: any;
+  // heatmapData 只保留最近 N 条，避免内存无限增长
+  private static readonly MAX_HEATMAP_DATA = 5000;
+  // 保存事件监听 handler 引用，stopTracking 时移除
+  private boundHandleClick = (event: Event) => this.handleClick(event as MouseEvent);
+  private boundHandleScroll = () => this.handleScroll();
+  private mouseMoveCount = 0;
+  private boundHandleMouseMove = (event: Event) => {
+    this.mouseMoveCount++;
+    if (this.mouseMoveCount % 10 === 0) { // 每10次记录一次
+      this.handleMouseMove(event as MouseEvent);
+    }
+  };
 
   install(pluginManager: PluginManager, options: any = {}): void {
     this.config = options;
@@ -308,19 +327,13 @@ export class HeatmapPlugin implements Plugin {
     this.isTracking = true;
 
     // 跟踪点击
-    document.addEventListener('click', this.handleClick.bind(this), true);
+    document.addEventListener('click', this.boundHandleClick, true);
     
     // 跟踪鼠标移动（采样）
-    let mouseMoveCount = 0;
-    document.addEventListener('mousemove', (event) => {
-      mouseMoveCount++;
-      if (mouseMoveCount % 10 === 0) { // 每10次记录一次
-        this.handleMouseMove(event);
-      }
-    }, true);
+    document.addEventListener('mousemove', this.boundHandleMouseMove, true);
 
     // 跟踪滚动
-    window.addEventListener('scroll', this.handleScroll.bind(this), true);
+    window.addEventListener('scroll', this.boundHandleScroll, true);
   }
 
   /**
@@ -328,7 +341,19 @@ export class HeatmapPlugin implements Plugin {
    */
   private stopTracking(): void {
     this.isTracking = false;
-    // 事件监听器会在插件卸载时自动清理
+    document.removeEventListener('click', this.boundHandleClick, true);
+    document.removeEventListener('mousemove', this.boundHandleMouseMove, true);
+    window.removeEventListener('scroll', this.boundHandleScroll, true);
+  }
+
+  /**
+   * 追加热力图数据（保留最近 MAX_HEATMAP_DATA 条）
+   */
+  private pushData(data: any): void {
+    this.heatmapData.push(data);
+    if (this.heatmapData.length > HeatmapPlugin.MAX_HEATMAP_DATA) {
+      this.heatmapData.splice(0, this.heatmapData.length - HeatmapPlugin.MAX_HEATMAP_DATA);
+    }
   }
 
   /**
@@ -349,7 +374,7 @@ export class HeatmapPlugin implements Plugin {
       },
     };
 
-    this.heatmapData.push(data);
+    this.pushData(data);
     this.sendHeatmapData(data);
   }
 
@@ -366,7 +391,7 @@ export class HeatmapPlugin implements Plugin {
       timestamp: Date.now(),
     };
 
-    this.heatmapData.push(data);
+    this.pushData(data);
   }
 
   /**
@@ -380,7 +405,7 @@ export class HeatmapPlugin implements Plugin {
       timestamp: Date.now(),
     };
 
-    this.heatmapData.push(data);
+    this.pushData(data);
   }
 
   /**
@@ -429,9 +454,16 @@ export class SessionReplayPlugin implements Plugin {
   private replayData: any[] = [];
   private mutationObserver?: MutationObserver;
   private config: any;
+  private pluginManager?: PluginManager;
+  // replayData 只保留最近 N 条，避免内存无限增长
+  private static readonly MAX_REPLAY_DATA = 5000;
+  // 保存事件监听 handler 引用，stopRecording 时移除
+  private boundRecordEvent = (event: Event) => this.recordEvent(event);
+  private domReadyHandler?: () => void;
 
   install(pluginManager: PluginManager, options: any = {}): void {
     this.config = options;
+    this.pluginManager = pluginManager;
     this.startRecording();
   }
 
@@ -457,19 +489,31 @@ export class SessionReplayPlugin implements Plugin {
       });
     });
 
-    this.mutationObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeOldValue: true,
-      characterData: true,
-      characterDataOldValue: true,
-    });
+    const startObserving = () => {
+      // 插件可能已被卸载，仅在录制中才 observe
+      if (!this.isRecording) return;
+      this.mutationObserver?.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeOldValue: true,
+        characterData: true,
+        characterDataOldValue: true,
+      });
+    };
+
+    // document.body 可能尚未就绪（如在 <head> 中加载 SDK），延迟到 DOMContentLoaded 再 observe
+    if (document.body) {
+      startObserving();
+    } else {
+      this.domReadyHandler = startObserving;
+      document.addEventListener('DOMContentLoaded', this.domReadyHandler);
+    }
 
     // 监听用户交互
-    document.addEventListener('click', this.recordEvent.bind(this), true);
-    document.addEventListener('input', this.recordEvent.bind(this), true);
-    document.addEventListener('scroll', this.recordEvent.bind(this), true);
+    document.addEventListener('click', this.boundRecordEvent, true);
+    document.addEventListener('input', this.boundRecordEvent, true);
+    document.addEventListener('scroll', this.boundRecordEvent, true);
   }
 
   /**
@@ -480,6 +524,27 @@ export class SessionReplayPlugin implements Plugin {
     
     if (this.mutationObserver) {
       this.mutationObserver.disconnect();
+    }
+
+    // 移除延迟 observe 的监听（body 未就绪场景）
+    if (this.domReadyHandler) {
+      document.removeEventListener('DOMContentLoaded', this.domReadyHandler);
+      this.domReadyHandler = undefined;
+    }
+
+    // 移除用户交互监听
+    document.removeEventListener('click', this.boundRecordEvent, true);
+    document.removeEventListener('input', this.boundRecordEvent, true);
+    document.removeEventListener('scroll', this.boundRecordEvent, true);
+  }
+
+  /**
+   * 追加重放数据（保留最近 MAX_REPLAY_DATA 条）
+   */
+  private pushData(data: any): void {
+    this.replayData.push(data);
+    if (this.replayData.length > SessionReplayPlugin.MAX_REPLAY_DATA) {
+      this.replayData.splice(0, this.replayData.length - SessionReplayPlugin.MAX_REPLAY_DATA);
     }
   }
 
@@ -500,7 +565,7 @@ export class SessionReplayPlugin implements Plugin {
       },
     };
 
-    this.replayData.push(snapshot);
+    this.pushData(snapshot);
   }
 
   /**
@@ -522,7 +587,7 @@ export class SessionReplayPlugin implements Plugin {
       },
     };
 
-    this.replayData.push(data);
+    this.pushData(data);
   }
 
   /**
@@ -537,11 +602,41 @@ export class SessionReplayPlugin implements Plugin {
         target: this.getElementPath(event.target as Element),
         clientX: (event as MouseEvent).clientX,
         clientY: (event as MouseEvent).clientY,
-        value: (event.target as HTMLInputElement)?.value,
+        value: this.maskInputValue(event.target as HTMLInputElement),
       },
     };
 
-    this.replayData.push(data);
+    this.pushData(data);
+  }
+
+  /**
+   * 脱敏输入框的值：密码框一律打码，其余按 maskSensitiveData 配置脱敏
+   */
+  private maskInputValue(element: HTMLInputElement): string | undefined {
+    const value = element?.value;
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    // 密码框无论配置如何一律打码
+    if (element.type === 'password') {
+      return '***';
+    }
+
+    const maskSensitiveData = this.pluginManager
+      ? this.pluginManager.getConfig('maskSensitiveData', true)
+      : true;
+    if (!maskSensitiveData) {
+      return value;
+    }
+
+    const sensitiveNames = ['password', 'pwd', 'token', 'secret', 'credit', 'card', 'ssn', 'phone', 'email', 'tel'];
+    const identifier = `${element.name || ''} ${element.id || ''}`.toLowerCase();
+    if (sensitiveNames.some(name => identifier.includes(name))) {
+      return '***';
+    }
+
+    return value;
   }
 
   /**

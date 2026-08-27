@@ -16,7 +16,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config"
 
 @Module({
   imports: [
-    envConfig(configuration),
+    envConfig(configuration, 'apps/receiving-point-service'),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

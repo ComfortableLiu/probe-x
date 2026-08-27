@@ -23,8 +23,8 @@ export function queryPermissionInfo() {
 export function refreshToken(refreshToken: string) {
   return request<ILoginRes>({
     url: '/user/refreshToken',
-    method: 'get',
-    params: {
+    method: 'post',
+    data: {
       refreshToken,
     },
   })
@@ -34,7 +34,7 @@ export function refreshToken(refreshToken: string) {
  * 获取当前用户信息
  */
 export function getCurrentUser() {
-  return request<{ data: IUser }>({
+  return request<IUser & { hasPassword?: boolean }>({
     url: '/user/profile',
     method: 'get',
   })

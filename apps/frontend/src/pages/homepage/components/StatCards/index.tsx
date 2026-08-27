@@ -1,5 +1,5 @@
-import React, { memo } from 'react'
-import { Card, Col, Row, Statistic } from 'antd'
+import React, { memo } from "react"
+import { theme } from "antd"
 import {
   RiseOutlined,
   FallOutlined,
@@ -9,9 +9,10 @@ import {
   RetweetOutlined,
   BarChartOutlined,
   DatabaseOutlined,
-} from '@ant-design/icons'
-import { IHomepageOverview } from '@probe-x/shared-types/src'
-import * as styles from './styles.module.scss'
+} from "@ant-design/icons"
+import { IHomepageOverview } from "@probe-x/shared-types/src"
+import MetricCard from "@components/MetricCard"
+import * as styles from "./styles.module.scss"
 
 interface StatCardsProps {
   overview: IHomepageOverview
@@ -22,23 +23,20 @@ interface IStatItem {
   value: number
   precision?: number
   suffix?: string
-  prefix?: React.ReactNode
-  extra?: React.ReactNode
   icon?: React.ReactNode
+  extra?: React.ReactNode
 }
 
 function StatCards({ overview }: StatCardsProps) {
+  const { token } = theme.useToken()
+  // 图标颜色在主题色板中轮换，避免硬编码彩虹色
+  const iconColors = [token.colorPrimary, token.colorSuccess, token.colorWarning, token.colorError]
+
   // 计算环比百分比
   const eventChangePercent = overview.eventTrendChange
   const userChangePercent = overview.yesterdayActiveUserCount > 0
     ? Math.round(((overview.activeUserCount - overview.yesterdayActiveUserCount) / overview.yesterdayActiveUserCount) * 10000) / 100
     : 0
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
 
   const renderTrend = (value: number) => {
     if (value > 0) {
@@ -51,55 +49,55 @@ function StatCards({ overview }: StatCardsProps) {
 
   const cards: IStatItem[] = [
     {
-      title: '今日事件总数',
+      title: "今日事件总数",
       value: overview.todayEventCount,
-      icon: <BarChartOutlined style={{ color: '#1890ff' }} />,
+      icon: <BarChartOutlined style={{ color: iconColors[0] }} />,
       extra: renderTrend(eventChangePercent),
     },
     {
-      title: '今日活跃用户',
+      title: "今日活跃用户",
       value: overview.activeUserCount,
-      icon: <UserOutlined style={{ color: '#52c41a' }} />,
+      icon: <UserOutlined style={{ color: iconColors[1] }} />,
       extra: renderTrend(userChangePercent),
     },
     {
-      title: '今日新增用户',
+      title: "今日新增用户",
       value: overview.newUserCount,
-      icon: <UserAddOutlined style={{ color: '#722ed1' }} />,
+      icon: <UserAddOutlined style={{ color: iconColors[2] }} />,
       extra: <span className={styles.trendNeutral}>首次访问</span>,
     },
     {
-      title: '漏斗转化率',
+      title: "漏斗转化率",
       value: overview.funnelConversionRate,
       precision: 2,
-      suffix: '%',
-      icon: <FunnelPlotOutlined style={{ color: '#fa8c16' }} />,
+      suffix: "%",
+      icon: <FunnelPlotOutlined style={{ color: iconColors[3] }} />,
       extra: <span className={styles.trendNeutral}>近7日均值</span>,
     },
     {
-      title: '7日事件趋势',
+      title: "7日事件趋势",
       value: overview.weekEventCount,
-      icon: <RiseOutlined style={{ color: '#13c2c2' }} />,
+      icon: <RiseOutlined style={{ color: iconColors[0] }} />,
       extra: renderTrend(eventChangePercent),
     },
     {
-      title: '用户留存率',
+      title: "用户留存率",
       value: overview.userRetentionRate,
       precision: 2,
-      suffix: '%',
-      icon: <RetweetOutlined style={{ color: '#eb2f96' }} />,
+      suffix: "%",
+      icon: <RetweetOutlined style={{ color: iconColors[1] }} />,
       extra: <span className={styles.trendNeutral}>7日留存</span>,
     },
     {
-      title: '昨日事件对比',
+      title: "昨日事件对比",
       value: overview.yesterdayEventCount,
-      icon: <DatabaseOutlined style={{ color: '#595959' }} />,
+      icon: <DatabaseOutlined style={{ color: iconColors[2] }} />,
       extra: renderTrend(eventChangePercent),
     },
     {
-      title: '总事件数',
+      title: "总事件数",
       value: overview.totalEventCount,
-      icon: <BarChartOutlined style={{ color: '#2f54eb' }} />,
+      icon: <BarChartOutlined style={{ color: iconColors[3] }} />,
       extra: <span className={styles.trendNeutral}>历史累计</span>,
     },
   ]
@@ -107,19 +105,17 @@ function StatCards({ overview }: StatCardsProps) {
   return (
     <div className={styles.statCards}>
       {cards.map((card, index) => (
-        <Card key={index} className={styles.statCard} size="small">
-          <div className={styles.statIcon}>{card.icon}</div>
-          <Statistic
-            title={card.title}
-            value={card.value}
-            precision={card.precision}
-            suffix={card.suffix}
-            valueStyle={{ fontSize: 28, fontWeight: 700 }}
-          />
-          {card.extra && (
-            <div className={styles.statExtra}>{card.extra}</div>
-          )}
-        </Card>
+        <MetricCard
+          key={index}
+          size="small"
+          title={card.title}
+          value={card.value}
+          precision={card.precision}
+          suffix={card.suffix}
+          icon={card.icon}
+          valueStyle={{ fontSize: 28, fontWeight: 700 }}
+          extra={card.extra}
+        />
       ))}
     </div>
   )

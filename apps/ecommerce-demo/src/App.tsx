@@ -1,26 +1,26 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import { Layout } from 'antd';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import DevTools from './components/DevTools';
-import HomePage from './pages/HomePage';
-import ProductListPage from './pages/ProductListPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import OrderListPage from './pages/OrderListPage';
-import OrderDetailPage from './pages/OrderDetailPage';
-import UserProfilePage from './pages/UserProfilePage';
-import SearchResultsPage from './pages/SearchResultsPage';
-import { initProbeX } from './utils/probeX';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { ConfigProvider } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import { Layout } from 'antd'
+import Header from './components/Header'
+import Footer from './components/Footer'
+import DevTools from './components/DevTools'
+import HomePage from './pages/HomePage'
+import ProductListPage from './pages/ProductListPage'
+import ProductDetailPage from './pages/ProductDetailPage'
+import CartPage from './pages/CartPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrderListPage from './pages/OrderListPage'
+import OrderDetailPage from './pages/OrderDetailPage'
+import UserProfilePage from './pages/UserProfilePage'
+import SearchResultsPage from './pages/SearchResultsPage'
+import { initProbeX } from './utils/probeX'
 
-const { Content } = Layout;
+const { Content } = Layout
 
 // 初始化Probe-X SDK
-initProbeX();
+initProbeX()
 
 const App: React.FC = () => {
   return (
@@ -48,7 +48,7 @@ const App: React.FC = () => {
         <DevTools />
       </div>
     </ConfigProvider>
-  );
-};
+  )
+}
 
-export default App;
+export default App

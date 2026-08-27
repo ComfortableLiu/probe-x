@@ -42,7 +42,7 @@ export class UserService {
 
   /**
    * 重置admin密码（仅开发环境可用）
-   * 清空passwordHash，使下次登录时走自动设密码逻辑
+   * 清空passwordHash，重置后需通过初始化脚本重新设置密码
    */
   async resetAdminPassword(): Promise<ResponseData<{ message: string }>> {
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development'
@@ -58,7 +58,7 @@ export class UserService {
     admin.passwordHash = ''
     await this.userRepository.save(admin)
 
-    return ResponseData.success({ message: 'admin密码已重置，请重新登录时设置新密码' })
+    return ResponseData.success({ message: 'admin密码已重置，请通过初始化脚本设置新密码' })
   }
 
   /**
@@ -76,25 +76,9 @@ export class UserService {
       return ResponseData.error("用户名或密码错误")
     }
 
-    // 如果是admin账号且密码为空，直接将用户输入的密码作为新密码存储，然后自动登录成功
+    // admin账号密码为空时不允许直接登录接管账号，需先通过初始化脚本设置密码
     if (username === 'admin' && (!user.passwordHash || user.passwordHash.trim() === '')) {
-      // 前端传来的password已经是加密后的哈希值，我们只需要再进行后端加密即可
-      // 后端加密：hmacSHA(前端结果 + SALT, 'sha512', HMAC_SECRET)
-      const passwordHash = this.hashPassword(password)
-      user.passwordHash = passwordHash
-      await this.userRepository.save(user)
-      
-      // 直接返回登录成功，不需要验证密码
-      const accessToken = this.authService.generateAccessToken(user.userId, user.username)
-      const refreshToken = this.authService.generateRefreshToken(user.userId, user.username)
-      return {
-        accessToken,
-        refreshToken,
-        userInfo: {
-          ...user,
-          passwordHash: '*******',
-        },
-      }
+      return ResponseData.error("admin密码未初始化，请管理员先通过初始化脚本设置密码后再登录")
     }
 
     // 检查用户是否存在且密码正确
@@ -163,7 +147,7 @@ export class UserService {
   async getAllRoleAndPermission(): Promise<IPermissionRes> {
     const roles = await this.roleRepo.find()
     const permissions = await this.permissionRepo.find()
-    
+
     return {
       roles: roles.map(role => ({
         id: role.id!,
@@ -187,6 +171,11 @@ export class UserService {
     try {
       // 验证JWT token
       const decoded = await this.jwtService.verifyAsync(token, { secret })
+
+      // 只允许 refresh token 换取新 token，防止 access token 被无限续期
+      if (decoded.tokenType !== 'refresh') {
+        return null
+      }
 
       // 根据username查找用户
       const user = await this.userRepository.findOne({
@@ -244,7 +233,7 @@ export class UserService {
   /**
    * 获取当前用户信息
    */
-  async getCurrentUser(userId: number): Promise<ResponseData<IUser>> {
+  async getCurrentUser(userId: number): Promise<ResponseData<IUser & { hasPassword: boolean }>> {
     const user = await this.userRepository.findOne({
       where: { userId },
     })
@@ -253,9 +242,12 @@ export class UserService {
       return ResponseData.error('用户不存在')
     }
 
-    const result: IUser = {
+    // hasPassword 根据 password_hash 是否为空计算，绝不返回 password_hash 本体
+    const hasPassword = !!(user.passwordHash && user.passwordHash.trim() !== '')
+    const result: IUser & { hasPassword: boolean } = {
       ...user,
       passwordHash: '*******',
+      hasPassword,
     }
     return ResponseData.success(result)
   }

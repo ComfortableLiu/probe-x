@@ -6,6 +6,8 @@ export interface IEventLog extends IEventBase {
 
 // 数据库公共属性字段
 export interface IEventBase {
+  // 事件唯一标识（SDK 生成的 uuid），端到端幂等去重键
+  $event_id: string
   // 事件名称
   $event_name: string
   // IP地址

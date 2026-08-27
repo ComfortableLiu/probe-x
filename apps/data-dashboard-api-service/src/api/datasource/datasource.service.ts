@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { ConfigService } from '@nestjs/config'
 import { DataSourceEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/DataSource.entity'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common/entity/response.entity'
 import {
@@ -19,7 +21,56 @@ export class DataSourceService {
   constructor(
     @InjectRepository(DataSourceEntity)
     private dataSourceRepo: Repository<DataSourceEntity>,
+    private configService: ConfigService,
   ) {}
+
+  /**
+   * 加密数据源密码（AES-256-GCM）
+   * 存储格式：enc:v1:<iv>:<authTag>:<cipher>（均为 hex）
+   * 加密开关关闭（DATASOURCE_ENCRYPT_ENABLED=false）时直接返回明文
+   */
+  private encryptPassword(plain: string): string {
+    if (!plain || !this.isEncryptEnabled()) return plain
+    const iv = randomBytes(12)
+    const cipher = createCipheriv('aes-256-gcm', this.getEncryptKey(), iv)
+    const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
+    const authTag = cipher.getAuthTag()
+    return `enc:v1:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`
+  }
+
+  /**
+   * 解密数据源密码
+   * 非密文格式、未配置密钥或解密失败时按原值返回，兼容加密上线前的旧数据和开关关闭的场景
+   */
+  private decryptPassword(value: string): string {
+    if (!value || !value.startsWith('enc:v1:')) return value
+    const secret = this.configService.get<string>('datasource.encryptSecret') || ''
+    if (!secret) return value
+    try {
+      const [, , ivHex, authTagHex, cipherHex] = value.split(':')
+      const decipher = createDecipheriv('aes-256-gcm', this.getEncryptKey(), Buffer.from(ivHex, 'hex'))
+      decipher.setAuthTag(Buffer.from(authTagHex, 'hex'))
+      return Buffer.concat([decipher.update(Buffer.from(cipherHex, 'hex')), decipher.final()]).toString('utf8')
+    } catch {
+      return value
+    }
+  }
+
+  /**
+   * 数据源密码加密开关（DATASOURCE_ENCRYPT_ENABLED，默认 true）
+   */
+  private isEncryptEnabled(): boolean {
+    return this.configService.get<boolean>('datasource.encryptEnabled') !== false
+  }
+
+  /**
+   * 由环境变量 DATASOURCE_ENCRYPT_SECRET 派生 32 字节密钥
+   * （加密开启但未配置时服务启动即报错，见 configuration.ts）
+   */
+  private getEncryptKey(): Buffer {
+    const secret = this.configService.get<string>('datasource.encryptSecret') || ''
+    return createHash('sha256').update(secret).digest()
+  }
 
   async getList(params: IQueryDataSourceListReq): Promise<IQueryDataSourceListRes> {
     const { datasourceName, datasourceType, page = 1, pageSize = 20 } = {
@@ -75,7 +126,8 @@ export class DataSourceService {
       port: data.port,
       database: data.database,
       username: data.username,
-      password: data.password,
+      // 密码入库（加密开关开启时 AES-256-GCM 加密，关闭时明文）
+      password: this.encryptPassword(data.password),
       description: data.description,
       status: 'unchecked',
     })
@@ -102,7 +154,8 @@ export class DataSourceService {
     if (data.port) entity.port = data.port
     if (data.database) entity.database = data.database
     if (data.username !== undefined) entity.username = data.username
-    if (data.password !== undefined) entity.password = data.password
+    // 密码更新时入库（加密开关开启时 AES-256-GCM 加密，关闭时明文）
+    if (data.password !== undefined) entity.password = this.encryptPassword(data.password)
     if (data.description !== undefined) entity.description = data.description
 
     const saved = await this.dataSourceRepo.save(entity)
@@ -125,6 +178,9 @@ export class DataSourceService {
     }
 
     // TODO: 实际连接测试逻辑，当前返回模拟结果
+    // 读取时解密密码（解密失败按明文返回，兼容旧数据），供实际连接测试使用
+    const decryptedPassword = this.decryptPassword(entity.password)
+    void decryptedPassword
     const startTime = Date.now()
     entity.status = 'normal'
     entity.lastCheckTime = new Date()

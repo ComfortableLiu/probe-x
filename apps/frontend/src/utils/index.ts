@@ -1,26 +1,37 @@
 import { message } from "antd"
 
 export class LoadingToast {
-  static loading = false
-  static closeFun: Function | null = null
+  static closeFunMap: Map<number, Function> = new Map()
+  static nextId = 0
 
+  // 按请求维度管理 loading，返回 id 用于关闭，避免并发请求互相覆盖
   static createLoading(msg?: string) {
     message.config({
       rtl: false,
     })
 
-    LoadingToast.loading = true
-    LoadingToast.closeFun = message.loading(msg || '请稍后...', 0)
+    const id = ++LoadingToast.nextId
+    LoadingToast.closeFunMap.set(id, message.loading(msg || '请稍后...', 0))
+    return id
   }
 
-  static destory() {
-    LoadingToast.loading = false
-    setTimeout(() => {
-      if (LoadingToast.closeFun) {
-        LoadingToast.closeFun()
-        LoadingToast.closeFun = null
-      }
-    }, 50)
+  static destory(id?: number) {
+    if (id === undefined) {
+      // 未指定 id 时关闭全部 loading
+      const closeFuns = [...LoadingToast.closeFunMap.values()]
+      LoadingToast.closeFunMap.clear()
+      setTimeout(() => {
+        closeFuns.forEach((closeFun) => closeFun())
+      }, 50)
+      return
+    }
+    const closeFun = LoadingToast.closeFunMap.get(id)
+    LoadingToast.closeFunMap.delete(id)
+    if (closeFun) {
+      setTimeout(() => {
+        closeFun()
+      }, 50)
+    }
   }
 }
 

@@ -136,7 +136,7 @@ function Notification() {
           <a onClick={() => handleEdit(record)}>编辑</a>
           <a onClick={() => handleTestSend(record)}>测试发送</a>
           <Popconfirm title="确定要删除该通知配置吗？" onConfirm={() => handleDelete(record)} okText="确定" cancelText="取消">
-            <a style={{ color: '#ff4d4f' }}>删除</a>
+            <a style={{ color: 'var(--px-color-error)' }}>删除</a>
           </Popconfirm>
         </Space>
       ),

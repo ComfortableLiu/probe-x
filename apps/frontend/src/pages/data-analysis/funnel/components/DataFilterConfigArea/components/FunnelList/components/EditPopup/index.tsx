@@ -59,6 +59,7 @@ function EditPopup(props: IEditPopupProps) {
         <EventItem
           showFilter
           singleMode
+          showMetric={false}
           key={index}
           eventInfo={info?.eventInfo}
           index={index}

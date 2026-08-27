@@ -7,11 +7,13 @@ import { ConfigManager } from './config';
 
 export class PerformanceMonitor {
   private config: ConfigManager;
-  private performanceObserver?: PerformanceObserver;
+  private performanceObservers: PerformanceObserver[] = [];
   private webVitals: Partial<WebVitals> = {};
   private isMonitoring: boolean = false;
   private resourceTimings: PerformanceResourceTiming[] = [];
   private navigationTiming?: PerformanceNavigationTiming;
+  // resourceTimings 只保留最近 N 条，避免长会话内存无限增长
+  private static readonly MAX_RESOURCE_TIMINGS = 500;
 
   constructor(config: ConfigManager) {
     this.config = config;
@@ -66,6 +68,7 @@ export class PerformanceMonitor {
         });
 
         observer.observe({ entryTypes: ['navigation'] });
+        this.performanceObservers.push(observer);
       } catch (error) {
         console.warn('Navigation timing monitoring not supported:', error);
       }
@@ -117,6 +120,7 @@ export class PerformanceMonitor {
       });
 
       observer.observe({ entryTypes: [entryType] });
+      this.performanceObservers.push(observer);
     } catch (error) {
       console.warn(`${entryType} monitoring not supported:`, error);
     }
@@ -131,6 +135,11 @@ export class PerformanceMonitor {
         const observer = new PerformanceObserver((list) => {
           const entries = list.getEntries() as PerformanceResourceTiming[];
           this.resourceTimings.push(...entries);
+
+          // 只保留最近 MAX_RESOURCE_TIMINGS 条
+          if (this.resourceTimings.length > PerformanceMonitor.MAX_RESOURCE_TIMINGS) {
+            this.resourceTimings.splice(0, this.resourceTimings.length - PerformanceMonitor.MAX_RESOURCE_TIMINGS);
+          }
           
           // 分析资源加载性能
           entries.forEach((entry) => {
@@ -139,6 +148,7 @@ export class PerformanceMonitor {
         });
 
         observer.observe({ entryTypes: ['resource'] });
+        this.performanceObservers.push(observer);
       } catch (error) {
         console.warn('Resource timing monitoring not supported:', error);
       }
@@ -159,6 +169,7 @@ export class PerformanceMonitor {
         });
 
         observer.observe({ entryTypes: ['longtask'] });
+        this.performanceObservers.push(observer);
       } catch (error) {
         console.warn('Long task monitoring not supported:', error);
       }
@@ -530,9 +541,10 @@ export class PerformanceMonitor {
    * 销毁性能监控器
    */
   destroy(): void {
-    if (this.performanceObserver) {
-      this.performanceObserver.disconnect();
-    }
+    this.performanceObservers.forEach((observer) => {
+      observer.disconnect();
+    });
+    this.performanceObservers = [];
     
     this.isMonitoring = false;
     this.webVitals = {};

@@ -1,6 +1,7 @@
 import React, { memo } from "react"
-import { Card, Col, Row, Statistic } from "antd"
+import { Col, Row, theme } from "antd"
 import { IEventCollectionMetrics, ISystemDataMetaOverview } from "@probe-x/shared-types/src"
+import MetricCard from "@components/MetricCard"
 import * as styles from "./styles.module.scss"
 
 interface MetaEventProps {
@@ -9,6 +10,8 @@ interface MetaEventProps {
 }
 
 function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
+  const { token } = theme.useToken()
+
   // 防御性编程：确保 metaOverview 不为 null
   const safeMetaOverview = metaOverview || {
     originalDataTotal: '0',
@@ -30,73 +33,62 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
     <div>
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="元事件数量"
-              value={safeMetaOverview.originalDataTotal}
-              precision={0}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
+          <MetricCard
+            title="元事件数量"
+            value={safeMetaOverview.originalDataTotal}
+            precision={0}
+            valueStyle={{ color: token.colorSuccess }}
+            status="good"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="清洗后数据量"
-              value={safeMetaOverview.finalCleanedData}
-              precision={0}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
+          <MetricCard
+            title="清洗后数据量"
+            value={safeMetaOverview.finalCleanedData}
+            precision={0}
+            valueStyle={{ color: token.colorPrimary }}
+            status="good"
+          />
         </Col>
         <Col span={8}>
-          <Card className={`${styles.metricCard} ${styles.goodStatus}`}>
-            <Statistic
-              title="数据清洗率"
-              value={safeMetaOverview.finalCleaningSuccessRate || '-'}
-              suffix="%"
-              precision={2}
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
+          <MetricCard
+            title="数据清洗率"
+            value={safeMetaOverview.finalCleaningSuccessRate || '-'}
+            suffix="%"
+            precision={2}
+            valueStyle={{ color: token.colorWarning }}
+            status="good"
+          />
         </Col>
       </Row>
       <Row gutter={16} style={{ marginTop: 16 }} className={styles.metricGroup}>
         <Col span={6}>
-          <Card className={`${styles.metricCard} ${styles.metricCard}`}>
-            <Statistic
-              title="今日新增"
-              value={safeEventCollectionMetrics.todayCollection}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="今日新增"
+            value={safeEventCollectionMetrics.todayCollection}
+            precision={0}
+          />
         </Col>
         <Col span={6}>
-          <Card className={`${styles.metricCard} ${styles.metricCard}`}>
-            <Statistic
-              title="本周新增"
-              value={safeEventCollectionMetrics.weekCollection}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="本周新增"
+            value={safeEventCollectionMetrics.weekCollection}
+            precision={0}
+          />
         </Col>
         <Col span={6}>
-          <Card className={`${styles.metricCard} ${styles.metricCard}`}>
-            <Statistic
-              title="本月新增"
-              value={safeEventCollectionMetrics.monthCollection}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="本月新增"
+            value={safeEventCollectionMetrics.monthCollection}
+            precision={0}
+          />
         </Col>
         <Col span={6}>
-          <Card className={`${styles.metricCard} ${styles.metricCard}`}>
-            <Statistic
-              title="累计总量"
-              value={safeEventCollectionMetrics.totalAmount}
-              precision={0}
-            />
-          </Card>
+          <MetricCard
+            title="累计总量"
+            value={safeEventCollectionMetrics.totalAmount}
+            precision={0}
+          />
         </Col>
       </Row>
     </div>

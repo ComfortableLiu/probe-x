@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { DataSource, EntityManager, In, Repository } from 'typeorm'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common/entity/response.entity'
 import { Role } from '@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity'
 import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/User.entity'
@@ -30,6 +30,7 @@ export class SystemConfigUserService {
     @InjectRepository(Role)
     private roleRepo: Repository<Role>,
     private configService: ConfigService,
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -123,8 +124,9 @@ export class SystemConfigUserService {
       }
     }
 
-    // 加密密码（使用简单的哈希，实际应该使用 bcrypt）
-    const passwordHash = this.hashPassword(password)
+    // 加密密码：先模拟前端加密，再进行后端加密（与 changePassword/resetPassword 及登录校验保持一致）
+    const frontendEncrypted = this.hashPassword(password)
+    const passwordHash = this.hashPassword(frontendEncrypted)
 
     // 创建用户
     const user = this.userRepository.create({
@@ -188,12 +190,24 @@ export class SystemConfigUserService {
 
     // 更新角色
     if (roleIds !== undefined) {
-      // 删除旧的角色关联
-      await this.userRoleRepo.delete({ userId })
-      // 添加新的角色关联
+      // 验证角色是否存在（与 assignRoles 的校验保持一致）
       if (roleIds.length > 0) {
-        await this.assignRolesToUser(userId, roleIds)
+        const roles = await this.roleRepo.find({
+          where: { id: In(roleIds) },
+        })
+        if (roles.length !== roleIds.length) {
+          return ResponseData.error('部分角色不存在')
+        }
       }
+      // 先删后插需在同一事务中，避免中途失败导致角色关联丢失
+      await this.dataSource.transaction(async (manager) => {
+        // 删除旧的角色关联
+        await manager.delete(UserRoleRelation, { userId })
+        // 添加新的角色关联
+        if (roleIds.length > 0) {
+          await this.assignRolesToUser(userId, roleIds, manager)
+        }
+      })
     }
 
     const result: IUpdateUserRes = {
@@ -269,13 +283,16 @@ export class SystemConfigUserService {
       }
     }
 
-    // 删除旧的角色关联
-    await this.userRoleRepo.delete({ userId })
+    // 先删后插需在同一事务中，避免中途失败导致角色关联丢失
+    await this.dataSource.transaction(async (manager) => {
+      // 删除旧的角色关联
+      await manager.delete(UserRoleRelation, { userId })
 
-    // 添加新的角色关联
-    if (roleIds.length > 0) {
-      await this.assignRolesToUser(userId, roleIds)
-    }
+      // 添加新的角色关联
+      if (roleIds.length > 0) {
+        await this.assignRolesToUser(userId, roleIds, manager)
+      }
+    })
 
     const result: IAssignRolesRes = {
       userId,
@@ -303,7 +320,7 @@ export class SystemConfigUserService {
   /**
    * 为用户分配角色（内部方法）
    */
-  private async assignRolesToUser(userId: number, roleIds: number[]): Promise<void> {
+  private async assignRolesToUser(userId: number, roleIds: number[], manager?: EntityManager): Promise<void> {
     const relations = roleIds.map((roleId) =>
       this.userRoleRepo.create({
         userId,
@@ -311,7 +328,11 @@ export class SystemConfigUserService {
       }),
     )
 
-    await this.userRoleRepo.save(relations)
+    if (manager) {
+      await manager.save(relations)
+    } else {
+      await this.userRoleRepo.save(relations)
+    }
   }
 
   /**

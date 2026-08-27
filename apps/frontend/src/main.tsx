@@ -13,7 +13,12 @@ dayjs.locale('zh-cn')
 
 const render = async () => {
   // 初始化一些东西
-  await store.dispatch.appModel.init()
+  try {
+    await store.dispatch.appModel.init()
+  } catch (e) {
+    // 初始化失败不阻塞渲染，避免永久白屏
+    console.error('App init failed:', e)
+  }
 
   const container = document.getElementById('app')
   if (container) {

@@ -6,21 +6,22 @@
  */
 
 :root {
-  /* ─── Brand Colors ─────────────────────────── */
-  --px-color-primary: #3F51B5;
-  --px-color-primary-hover: #5465c7;
-  --px-color-primary-active: #2c3ea3;
-  --px-color-primary-bg: rgba(63, 81, 181, 0.06);
-  --px-color-primary-border: rgba(63, 81, 181, 0.3);
+  /* ─── Brand Colors（亮色调） ────────────────── */
+  --px-color-primary: #3D7BFF;
+  --px-color-primary-hover: #6B9AFF;
+  --px-color-primary-active: #2F66E0;
+  --px-color-primary-bg: rgba(61, 123, 255, 0.06);
+  --px-color-primary-bg-strong: #EAF1FF;
+  --px-color-primary-border: rgba(61, 123, 255, 0.3);
 
-  --px-color-success: #52c41a;
-  --px-color-success-bg: rgba(82, 196, 26, 0.1);
-  --px-color-warning: #faad14;
-  --px-color-warning-bg: rgba(250, 173, 20, 0.1);
-  --px-color-error: #ff4d4f;
-  --px-color-error-bg: rgba(255, 77, 79, 0.1);
-  --px-color-info: #3F51B5;
-  --px-color-info-bg: rgba(63, 81, 181, 0.06);
+  --px-color-success: #22C55E;
+  --px-color-success-bg: rgba(34, 197, 94, 0.1);
+  --px-color-warning: #F59E0B;
+  --px-color-warning-bg: rgba(245, 158, 11, 0.1);
+  --px-color-error: #F4514C;
+  --px-color-error-bg: rgba(244, 81, 76, 0.1);
+  --px-color-info: #3D7BFF;
+  --px-color-info-bg: rgba(61, 123, 255, 0.06);
 
   /* ─── Neutral Colors ───────────────────────── */
   --px-color-text-primary: rgba(0, 0, 0, 0.88);
@@ -30,7 +31,8 @@
 
   --px-color-bg-container: #ffffff;
   --px-color-bg-elevated: #ffffff;
-  --px-color-bg-layout: #f0f2f5;
+  --px-color-bg-layout: #F5F7FB;
+  --px-color-bg-table-header: #F8FAFD;
   --px-color-bg-spotlight: rgba(0, 0, 0, 0.85);
 
   --px-color-border: #d9d9d9;
@@ -71,10 +73,10 @@
   --px-spacing-xxl: 48px;
 
   /* ─── Border Radius ───────────────────────── */
-  --px-radius-sm: 4px;
-  --px-radius-base: 6px;
-  --px-radius-lg: 8px;
-  --px-radius-xl: 12px;
+  --px-radius-sm: 6px;
+  --px-radius-base: 8px;
+  --px-radius-lg: 12px;
+  --px-radius-xl: 16px;
   --px-radius-full: 9999px;
 
   /* ─── Shadows ─────────────────────────────── */
@@ -96,7 +98,9 @@
   /* ─── Layout ──────────────────────────────── */
   --px-sidebar-width: 240px;
   --px-sidebar-collapsed-width: 64px;
-  --px-sidebar-bg: #001529;
+  --px-sidebar-bg: #ffffff;
+  --px-sidebar-selected-bg: #EAF1FF;
+  --px-sidebar-selected-color: #3D7BFF;
   --px-header-height: 64px;
   --px-page-padding: 24px;
 

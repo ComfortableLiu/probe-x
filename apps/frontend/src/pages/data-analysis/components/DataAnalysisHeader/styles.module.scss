@@ -2,16 +2,21 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  background-color: var(--px-color-bg-layout);
-  height: 40px;
-  padding: 0 4px;
-  font-size: 12px;
+  width: 100%;
+  min-height: 32px;
 
   .title {
-    flex: 1;
-    font-size: 18px;
-    line-height: 40px;
-    font-weight: bold;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--px-color-text-primary);
+    line-height: 32px;
+    white-space: nowrap;
+  }
+
+  .updateTime {
+    margin-left: var(--px-spacing-sm);
+    font-size: 12px;
+    color: var(--px-color-text-tertiary);
   }
 
   .actions {
@@ -19,5 +24,6 @@
     flex-direction: row;
     align-items: center;
     gap: 8px;
+    margin-left: auto;
   }
 }

@@ -2,6 +2,7 @@
 
 > 一款现代化的Web数据分析解决方案，基于微服务架构的埋点与数据分析系统
 
+[![CI](https://github.com/ComfortableLiu/probe-x/actions/workflows/ci.yml/badge.svg)](https://github.com/ComfortableLiu/probe-x/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.12.0-brightgreen.svg)](https://nodejs.org/)
 [![Yarn Version](https://img.shields.io/badge/yarn-%3E%3D1.22.0-blue.svg)](https://yarnpkg.com/)
@@ -24,6 +25,8 @@
 - **漏斗分析**: 用于分析一个多步骤过程中每一步的转化与流失情况
 - **用户路径分析**: 主要用于分析用户在使用产品时的路径分布情况
 - **归因分析**: 通过结果反向分析各个触点对于结果的贡献程度
+- **留存分析**: 分析用户在特定时间窗口内的回访情况，支持按日/周/月计算留存率
+- **用户分群**: 基于用户行为和属性条件进行用户分群，支持组合条件和动态计算
 
 ## 🏗️ 系统架构
 
@@ -96,6 +99,24 @@ yarn
 # 3. 启动所有服务
 yarn dev
 ```
+
+#### 管理员账号初始化
+
+`scripts/init-db.sql` 只会插入占位密码的 `admin` 用户，**无法直接登录**。首次部署（或 admin 密码被重置）后，需要运行初始化脚本设置密码：
+
+```bash
+# 使用默认初始密码 admin123（登录后请立即修改）
+yarn init:admin
+
+# 或指定自定义初始密码
+yarn init:admin --password=<你的密码>
+# 也可以用环境变量：ADMIN_PASSWORD=<你的密码> yarn init:admin
+```
+
+- 脚本位置：`scripts/init-admin-password.js`
+- 初始账号：`admin`，初始密码：`admin123`（默认，建议用 `--password` 覆盖）
+- 脚本会自动加载 `apps/data-dashboard-api-service/config/env/` 下的 `.env*` 配置，依赖其中的数据库配置（`DB_HOST`/`DB_PORT`/`DB_USERNAME`/`DB_PASSWORD`/`DB_DATABASE`）以及 `SALT`、`HMAC_SECRET`——**后两者必须与 API 服务的运行配置一致**，否则密码校验不通过
+- 登录接口提示「admin密码未初始化，请管理员先通过初始化脚本设置密码后再登录」时，运行本脚本即可
 
 ## 📋 常用命令
 
@@ -284,6 +305,7 @@ open http://localhost:9000
 - [系统架构文档](./docs/SYSTEM_ARCHITECTURE.md) - 系统架构详解
 - [Web SDK使用指南](./docs/WEB_SDK_GUIDE.md) - Web SDK详细使用说明
 - [准确系统架构文档](./docs/ACCURATE_SYSTEM_ARCHITECTURE.md) - 基于实际代码的详细架构说明
+- [数据分析 API 文档](./docs/api/data-analysis-api.md) - 留存分析和用户分群 API
 
 ### 开发指南
 - [快速启动指南](./docs/QUICK_START.md) - 环境搭建和快速开始
@@ -332,6 +354,17 @@ REDIS_PORT=6379
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
+
+### CI 持续集成
+
+仓库已配置 GitHub Actions CI（`.github/workflows/ci.yml`），在 push 到 `master`/`main` 及所有 Pull Request 时自动执行：
+
+1. 安装依赖（`yarn install --frozen-lockfile`）
+2. 全量代码检查（`yarn lint`）
+3. Web SDK 单元测试（`yarn nx test web-sdk`）
+4. 全量构建（`shared-types`、`shared-utils`、4 个后端服务、`frontend`、`ecommerce-demo`、`web-sdk`）
+
+提交 PR 前请确保以上检查在本地通过。
 
 ## 📄 许可证
 

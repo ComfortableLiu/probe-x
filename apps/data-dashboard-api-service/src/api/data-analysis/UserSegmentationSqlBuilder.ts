@@ -411,6 +411,11 @@ function buildConditionGroupSQL(
 }
 
 /**
+ * 分群查询返回的最大用户数上限，防止无界结果集撑爆内存
+ */
+const SEGMENT_QUERY_MAX_ROWS = 1000000
+
+/**
  * 生成用户分群SQL
  *
  * @param params 分群创建请求参数
@@ -452,12 +457,13 @@ export function generateSegmentSQL(params: ISegmentCreateReq): ISqlGenerateResul
       }).join(' INTERSECT ')
     }
 
-    // 最终SQL：统计用户数量并返回用户ID列表
+    // 最终SQL：统计用户数量并返回用户ID列表（LIMIT 防止无界结果集）
     const sql = `SELECT
       user_id,
       count() OVER () AS total_count
     FROM (${userQuery}) AS segment_users
-    ORDER BY user_id`
+    ORDER BY user_id
+    LIMIT ${SEGMENT_QUERY_MAX_ROWS}`
 
     return { sql, params: sqlParams }
   } catch (error) {

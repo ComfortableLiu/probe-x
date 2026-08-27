@@ -11,7 +11,7 @@ Object.defineProperty(window, 'localStorage', {
     clear: jest.fn(),
   },
   writable: true,
-});
+})
 
 Object.defineProperty(window, 'sessionStorage', {
   value: {
@@ -21,7 +21,7 @@ Object.defineProperty(window, 'sessionStorage', {
     clear: jest.fn(),
   },
   writable: true,
-});
+})
 
 // 模拟 navigator
 Object.defineProperty(window, 'navigator', {
@@ -36,7 +36,7 @@ Object.defineProperty(window, 'navigator', {
     sendBeacon: jest.fn(() => true),
   },
   writable: true,
-});
+})
 
 // 模拟 performance
 Object.defineProperty(window, 'performance', {
@@ -55,7 +55,7 @@ Object.defineProperty(window, 'performance', {
     },
   },
   writable: true,
-});
+})
 
 // 模拟 fetch
 global.fetch = jest.fn(() =>
@@ -65,8 +65,8 @@ global.fetch = jest.fn(() =>
     statusText: 'OK',
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
-  })
-) as jest.Mock;
+  }),
+) as jest.Mock
 
 // 模拟 XMLHttpRequest
 const mockXHR = {
@@ -80,40 +80,40 @@ const mockXHR = {
   responseText: '{}',
 };
 
-(global as any).XMLHttpRequest = jest.fn(() => mockXHR);
+(global as any).XMLHttpRequest = jest.fn(() => mockXHR)
 
 // 模拟 IntersectionObserver
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
-}));
+}))
 
 // 模拟 MutationObserver
 global.MutationObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   disconnect: jest.fn(),
-}));
+}))
 
 // 模拟 PerformanceObserver
 global.PerformanceObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   disconnect: jest.fn(),
-}));
+}))
 
 // 模拟 ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
-}));
+}))
 
 // 模拟 URL 和 URLSearchParams
-global.URL = URL;
-global.URLSearchParams = URLSearchParams;
+global.URL = URL
+global.URLSearchParams = URLSearchParams
 
 // 清理定时器
 afterEach(() => {
-  jest.clearAllTimers();
-  jest.clearAllMocks();
-});
+  jest.clearAllTimers()
+  jest.clearAllMocks()
+})

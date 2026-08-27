@@ -101,7 +101,7 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
       destroyOnClose
     >
       {isSuperAdmin && (
-        <div style={{ marginBottom: 16, padding: 12, background: '#fff7e6', borderRadius: 4, color: '#d46b08' }}>
+        <div style={{ marginBottom: 16, padding: 12, background: 'var(--px-color-warning-bg)', borderRadius: 4, color: 'var(--px-color-warning)' }}>
           超管角色拥有所有权限，无需分配
         </div>
       )}
@@ -130,7 +130,7 @@ function AssignPermissionsPopup(props: IAssignPermissionsPopupProps) {
                 maxHeight: '400px',
                 overflowY: 'auto',
                 padding: '8px',
-                border: '1px solid #d9d9d9',
+                border: '1px solid var(--px-color-border)',
                 borderRadius: '4px',
               },
             }}

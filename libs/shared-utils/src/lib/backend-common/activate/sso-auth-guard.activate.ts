@@ -40,7 +40,15 @@ export class SsoAuthGuard implements CanActivate {
       // payload 包含 JWT 中存储的用户信息（如 userId、username 等）
       const payload = await this.jwtService.verifyAsync(token)
 
-      // 3. 将用户信息注入到 request 对象中，供后续接口使用
+      // 3. 校验令牌类型，只允许 access token 访问业务接口，防止 refresh token 被当作 access token 使用
+      if (payload.tokenType !== 'access') {
+        throw new UnauthorizedException({
+          message: '令牌类型无效',
+          code: ErrorCode.TOKEN_EXPIRED,
+        })
+      }
+
+      // 4. 将用户信息注入到 request 对象中，供后续接口使用
       // @ts-ignore
       request.user = payload
     } catch (error) {

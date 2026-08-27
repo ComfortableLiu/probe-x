@@ -63,6 +63,7 @@ function DownloadPopup(props: IDownloadPopupProps) {
 
   useEffect(() => {
     if (show) {
+      timer.current = true
       countDown()
     } else {
       timer.current = false

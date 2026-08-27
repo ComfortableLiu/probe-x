@@ -16,5 +16,6 @@ export interface IUserCacheData {
 
   deviceId: string;
   sessionId: string;
-  updatedAt: Date;
+  // 经 JSON 序列化存入 Redis，读取后为 string
+  updatedAt: string;
 }

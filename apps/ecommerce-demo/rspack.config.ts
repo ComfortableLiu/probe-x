@@ -126,6 +126,8 @@ const config: Configuration = {
       'process.env': JSON.stringify({
         NODE_ENV: isDev ? 'development' : 'production',
         BUILD_VERSION: process.env.BUILD_VERSION || 'dev',
+        PROBE_X_API_URL: process.env.PROBE_X_API_URL || '',
+        PROBE_X_DEBUG: process.env.PROBE_X_DEBUG || '',
       }),
     }),
     isDev ? new ReactRefreshPlugin() : false,

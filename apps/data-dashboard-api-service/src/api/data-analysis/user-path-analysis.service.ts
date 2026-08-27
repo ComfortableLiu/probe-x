@@ -45,6 +45,16 @@ export class UserPathAnalysisService {
     // console.log('SQL参数：', params)
     // console.log('SQL错误：', error)
 
+    // 检查SQL生成错误（与其他分析服务保持一致）
+    if (error) {
+      throw new BusinessException(error)
+    }
+
+    // 检查SQL是否为空
+    if (!sql || sql.trim() === '') {
+      throw new BusinessException('生成的SQL语句为空')
+    }
+
     const queryResult = await this.clickhouseService.query<any>(sql, params)
     if (!queryResult || queryResult.length === 0) {
       return {
@@ -261,7 +271,8 @@ export class UserPathAnalysisService {
 
     // 任务加入 BullMQ 队列（异步执行）
     const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
-    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData)
+    // 任务状态写入 Redis，设置 24h TTL 防止无限堆积
+    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData, 60 * 60 * 24)
     return {
       taskId,
     }

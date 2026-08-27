@@ -24,6 +24,11 @@ export class AutoTracker {
   private mutationObserver?: MutationObserver;
   private intersectionObserver?: IntersectionObserver;
   private performanceObserver?: PerformanceObserver;
+  private resourceObserver?: PerformanceObserver;
+  // 保存被 patch 的原生实现，stop() 时还原
+  private originalFetch?: typeof window.fetch;
+  private originalXHROpen?: typeof XMLHttpRequest.prototype.open;
+  private originalXHRSend?: typeof XMLHttpRequest.prototype.send;
 
   constructor(config: ConfigManager, collector: EventCollector) {
     this.config = config;
@@ -40,11 +45,6 @@ export class AutoTracker {
     }
 
     this.isTracking = true;
-
-    // 页面访问跟踪
-    if (this.config.isFeatureEnabled('pageView')) {
-      this.trackPageView();
-    }
 
     // 点击事件跟踪
     if (this.config.isFeatureEnabled('click')) {
@@ -145,51 +145,26 @@ export class AutoTracker {
     if (this.performanceObserver) {
       this.performanceObserver.disconnect();
     }
-
-    console.log('AutoTracker stopped');
-  }
-
-  /**
-   * 跟踪页面访问
-   */
-  private trackPageView(): void {
-    const sendPageView = () => {
-      const event = this.collector.collectEvent('page_view', {
-        page_title: document.title,
-        page_url: window.location.href,
-        page_path: window.location.pathname,
-        referrer: document.referrer,
-        load_time: performance.now(),
-        user_agent: navigator.userAgent,
-        language: navigator.language,
-        screen_resolution: `${screen.width}x${screen.height}`,
-        viewport_size: `${window.innerWidth}x${window.innerHeight}`,
-      });
-
-      if (event) {
-        this.sendEvent(event);
-      }
-    };
-
-    // 页面加载完成时发送页面访问事件
-    if (document.readyState === 'complete') {
-      sendPageView();
-    } else {
-      const loadHandler = () => {
-        sendPageView();
-      };
-      window.addEventListener('load', loadHandler);
-      this.listeners.push({ element: window, event: 'load', handler: loadHandler });
+    if (this.resourceObserver) {
+      this.resourceObserver.disconnect();
+      this.resourceObserver = undefined;
     }
 
-    // 监听页面可见性变化
-    const visibilityHandler = () => {
-      if (!document.hidden) {
-        sendPageView();
-      }
-    };
-    document.addEventListener('visibilitychange', visibilityHandler);
-    this.listeners.push({ element: document, event: 'visibilitychange', handler: visibilityHandler });
+    // 还原被 patch 的 fetch / XMLHttpRequest
+    if (this.originalFetch) {
+      window.fetch = this.originalFetch;
+      this.originalFetch = undefined;
+    }
+    if (this.originalXHROpen) {
+      XMLHttpRequest.prototype.open = this.originalXHROpen;
+      this.originalXHROpen = undefined;
+    }
+    if (this.originalXHRSend) {
+      XMLHttpRequest.prototype.send = this.originalXHRSend;
+      this.originalXHRSend = undefined;
+    }
+
+    console.log('AutoTracker stopped');
   }
 
   /**
@@ -382,10 +357,9 @@ export class AutoTracker {
       }
     };
 
-    window.addEventListener('beforeunload', unloadHandler);
+    // 仅监听 pagehide：beforeunload 与 pagehide 双挂会导致 page_unload 重复
     window.addEventListener('pagehide', unloadHandler);
     
-    this.listeners.push({ element: window, event: 'beforeunload', handler: unloadHandler });
     this.listeners.push({ element: window, event: 'pagehide', handler: unloadHandler });
   }
 
@@ -501,33 +475,39 @@ export class AutoTracker {
     // 拦截fetch请求
     if (typeof window.fetch !== 'undefined') {
       const originalFetch = window.fetch;
+      this.originalFetch = originalFetch;
       window.fetch = async (...args) => {
         const startTime = Date.now();
         const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+        const isOwnRequest = this.isOwnRequest(url);
         
         try {
           const response = await originalFetch(...args);
           const duration = Date.now() - startTime;
           
-          this.collector.collectEvent('network_request', {
-            url,
-            method: args[1]?.method || 'GET',
-            status: response.status,
-            duration,
-            success: response.ok,
-            response_size: response.headers.get('content-length') || 0,
-          });
+          if (!isOwnRequest) {
+            this.collector.collectEvent('network_request', {
+              url,
+              method: args[1]?.method || 'GET',
+              status: response.status,
+              duration,
+              success: response.ok,
+              response_size: response.headers.get('content-length') || 0,
+            });
+          }
           
           return response;
         } catch (error) {
           const duration = Date.now() - startTime;
           
-          this.collector.collectEvent('network_error', {
-            url,
-            method: args[1]?.method || 'GET',
-            error: (error as Error).message,
-            duration,
-          });
+          if (!isOwnRequest) {
+            this.collector.collectEvent('network_error', {
+              url,
+              method: args[1]?.method || 'GET',
+              error: (error as Error).message,
+              duration,
+            });
+          }
           
           throw error;
         }
@@ -537,17 +517,20 @@ export class AutoTracker {
     // 拦截XMLHttpRequest
     if (typeof XMLHttpRequest !== 'undefined') {
       const collector = this.collector; // 通过闭包保存collector引用
+      const isOwnRequest = (url: string) => this.isOwnRequest(url); // 通过闭包保存自请求判断
       const originalOpen = XMLHttpRequest.prototype.open;
       const originalSend = XMLHttpRequest.prototype.send;
+      this.originalXHROpen = originalOpen;
+      this.originalXHRSend = originalSend;
       
       XMLHttpRequest.prototype.open = function(method: string, url: string, async: boolean = true, username?: string | null, password?: string | null) {
-        (this as any)._trackingData = { method, url, startTime: 0 };
+        (this as any)._trackingData = { method, url, startTime: 0, isOwnRequest: isOwnRequest(url) };
         return originalOpen.call(this, method, url, async, username, password);
       };
       
       XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
         const trackingData = (this as any)._trackingData;
-        if (trackingData) {
+        if (trackingData && !trackingData.isOwnRequest) {
           trackingData.startTime = Date.now();
           
           this.addEventListener('loadend', () => {
@@ -586,7 +569,7 @@ export class AutoTracker {
     // 使用PerformanceObserver监听资源加载
     if ('PerformanceObserver' in window) {
       try {
-        const resourceObserver = new PerformanceObserver((list) => {
+        this.resourceObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry) => {
             if (entry.entryType === 'resource') {
@@ -604,7 +587,7 @@ export class AutoTracker {
           });
         });
 
-        resourceObserver.observe({ entryTypes: ['resource'] });
+        this.resourceObserver.observe({ entryTypes: ['resource'] });
       } catch (error) {
         console.warn('Resource PerformanceObserver not supported:', error);
       }
@@ -655,12 +638,23 @@ export class AutoTracker {
         }
       });
 
-      this.mutationObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: false,
-        characterData: false,
-      });
+      const startObserving = () => {
+        this.mutationObserver?.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: false,
+          characterData: false,
+        });
+      };
+
+      // document.body 可能尚未就绪（如在 <head> 中加载 SDK），延迟到 DOMContentLoaded 再 observe
+      if (document.body) {
+        startObserving();
+      } else {
+        const readyHandler = () => startObserving();
+        document.addEventListener('DOMContentLoaded', readyHandler);
+        this.listeners.push({ element: document, event: 'DOMContentLoaded', handler: readyHandler });
+      }
     }
   }
 
@@ -977,6 +971,20 @@ export class AutoTracker {
       total: memory.totalJSHeapSize,
       limit: memory.jsHeapSizeLimit,
     } : null;
+  }
+
+  /**
+   * 判断是否为 SDK 自身的上报请求（避免上报请求触发 network_request 事件形成无限循环）
+   */
+  private isOwnRequest(url: string): boolean {
+    const apiUrl = this.config.get('apiUrl');
+    if (!apiUrl || !url) {
+      return false;
+    }
+
+    // gif 上报端点（sender.ts 中将 /report 替换为 /track.gif）
+    const gifUrl = apiUrl.replace(/\/report$/, '/track.gif');
+    return url.startsWith(apiUrl) || url.startsWith(gifUrl);
   }
 
   /**

@@ -87,42 +87,45 @@ CREATE TABLE IF NOT EXISTS `notification` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `alert_rule` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '规则唯一ID',
-  `rule_name` VARCHAR(100) NOT NULL COMMENT '规则名称',
-  `rule_type` VARCHAR(50) NOT NULL COMMENT '规则类型（event_count_spike/funnel_conversion_drop/custom）',
-  `condition` TEXT NOT NULL COMMENT '规则条件（JSON格式）',
-  `project_id` BIGINT NULL COMMENT '关联项目ID',
-  `notification_id` BIGINT NULL COMMENT '关联通知配置ID',
-  `is_enable` TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用（1=启用，0=禁用）',
-  `description` VARCHAR(500) NULL COMMENT '描述',
-  `last_trigger_time` DATETIME NULL COMMENT '最后触发时间',
+  `name` VARCHAR(100) NOT NULL COMMENT '规则名称',
+  `event_name` VARCHAR(100) NOT NULL COMMENT '监控事件名称',
+  `window_minutes` INT NOT NULL DEFAULT 60 COMMENT '统计时间窗（分钟）',
+  `check_interval_minutes` INT NOT NULL DEFAULT 5 COMMENT '巡检间隔（分钟）',
+  `operator` VARCHAR(4) NOT NULL COMMENT '比较运算符（>/</>=/<=/==）',
+  `threshold` DOUBLE NOT NULL COMMENT '阈值',
+  `level` VARCHAR(20) NOT NULL DEFAULT 'warning' COMMENT '告警级别（info/warning/critical）',
+  `webhook_url` VARCHAR(500) NOT NULL COMMENT '告警通知 Webhook 地址',
+  `enabled` TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用（1=启用，0=禁用）',
+  `last_checked_at` DATETIME NULL COMMENT '最后巡检时间',
+  `last_triggered_at` DATETIME NULL COMMENT '最后触发时间',
+  `create_user_id` INT NULL COMMENT '创建者ID',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间（自动填充）',
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间（自动更新）',
   PRIMARY KEY (`id`),
   INDEX `IDX_alert_rule_id` (`id`),
-  INDEX `IDX_alert_rule_rule_type` (`rule_type`),
-  INDEX `IDX_alert_rule_project_id` (`project_id`),
-  CONSTRAINT `FK_alert_rule_project_id` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `FK_alert_rule_notification_id` FOREIGN KEY (`notification_id`) REFERENCES `notification` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警规则表：存储系统中告警规则的配置信息';
+  INDEX `IDX_alert_rule_event_name` (`event_name`),
+  INDEX `IDX_alert_rule_enabled` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警规则表：存储阈值告警规则的配置信息';
 
 -- ============================================================
 -- 6. alert_history - 告警历史表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `alert_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '历史唯一ID',
-  `alert_rule_id` BIGINT NOT NULL COMMENT '告警规则ID',
-  `rule_name` VARCHAR(100) NOT NULL COMMENT '规则名称（冗余）',
-  `alert_level` VARCHAR(20) NOT NULL COMMENT '告警级别（warning/critical）',
-  `alert_content` TEXT NOT NULL COMMENT '告警内容',
-  `notify_status` VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '通知状态（pending/sent/failed）',
+  `rule_id` BIGINT NOT NULL COMMENT '告警规则ID',
+  `metric_value` DOUBLE NULL COMMENT '触发时的指标值',
+  `threshold` DOUBLE NOT NULL COMMENT '触发时的阈值',
+  `level` VARCHAR(20) NOT NULL COMMENT '告警级别（info/warning/critical）',
+  `webhook_status` VARCHAR(20) NOT NULL COMMENT 'Webhook 发送结果（success/failed）',
+  `error` TEXT NULL COMMENT '失败原因',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '触发时间（自动填充）',
   PRIMARY KEY (`id`),
   INDEX `IDX_alert_history_id` (`id`),
-  INDEX `IDX_alert_history_alert_rule_id` (`alert_rule_id`),
-  INDEX `IDX_alert_history_alert_level` (`alert_level`),
+  INDEX `IDX_alert_history_rule_id` (`rule_id`),
+  INDEX `IDX_alert_history_level` (`level`),
   INDEX `IDX_alert_history_created_at` (`created_at`),
-  CONSTRAINT `FK_alert_history_alert_rule_id` FOREIGN KEY (`alert_rule_id`) REFERENCES `alert_rule` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警历史表：记录每次告警触发的历史';
+  CONSTRAINT `FK_alert_history_rule_id` FOREIGN KEY (`rule_id`) REFERENCES `alert_rule` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警历史表：记录每次告警触发及 Webhook 通知结果';
 
 -- ============================================================
 -- 7. user_project_relation - 用户-项目关联表

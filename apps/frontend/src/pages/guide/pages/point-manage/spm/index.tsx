@@ -16,7 +16,7 @@ function SpmGuide() {
           <li><strong>C（模块）</strong>：表示模块，同页面范围内，每一个模块都拥有唯一 Id，比如轮播图模块</li>
           <li><strong>D（点位）</strong>：表示点位，一个模块内的点位 Id，比如轮播图模块中的第1张图</li>
         </ul>
-        <p style={{ marginTop: 16, color: '#666' }}>
+        <p style={{ marginTop: 16, color: 'var(--px-color-text-secondary)' }}>
           <strong>注意：</strong>站点/业务（A）不在这里维护，请在<strong>基础编码</strong>中进行维护。
         </p>
       </div>

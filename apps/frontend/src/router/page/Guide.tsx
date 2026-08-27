@@ -7,20 +7,11 @@ export default {
   key: 'guide',
   path: '/guide',
   meta: {
-    icon: <Help theme="outline" size="16" fill="rgba(255,255,255,0.65)" />,
+    icon: <Help theme="outline" size="16" fill="currentColor" />,
     isHidden: true,
   },
   component: lazy(() => import('@pages/guide/index')),
   children: [
-    {
-      path: '',
-      name: '使用说明首页',
-      key: 'guide-index',
-      component: lazy(() => import('@pages/guide/pages/index')),
-      meta: {
-        isHidden: true,
-      },
-    },
     // 数据分析说明
     {
       path: '/data-analysis/funnel',
@@ -54,15 +45,6 @@ export default {
       name: '归因分析说明',
       key: 'guide-data-analysis-attribution',
       component: lazy(() => import('@pages/guide/pages/data-analysis/attribution/index')),
-      meta: {
-        isHidden: true,
-      },
-    },
-    {
-      path: '/data-analysis/free',
-      name: '自由分析说明',
-      key: 'guide-data-analysis-free',
-      component: lazy(() => import('@pages/guide/pages/data-analysis/free/index')),
       meta: {
         isHidden: true,
       },

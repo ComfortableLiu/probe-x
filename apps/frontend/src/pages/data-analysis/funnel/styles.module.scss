@@ -1,12 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  padding: 8px 12px;
+  padding: var(--px-spacing-lg);
   gap: 24px;
-
-  * {
-    font-size: 12px;
-  }
 
   .hr {
     width: 100%;

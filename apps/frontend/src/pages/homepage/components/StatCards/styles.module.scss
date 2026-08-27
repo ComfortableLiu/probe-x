@@ -13,32 +13,6 @@
   }
 }
 
-.statCard {
-  transition: box-shadow 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-}
-
-.statValue {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--px-color-text-primary);
-  line-height: 1.2;
-}
-
-.statLabel {
-  font-size: 13px;
-  color: var(--px-color-text-tertiary);
-  margin-top: 4px;
-}
-
-.statExtra {
-  font-size: 12px;
-  margin-top: 8px;
-}
-
 .trendUp {
   color: var(--px-color-success);
 }
@@ -49,9 +23,4 @@
 
 .trendNeutral {
   color: var(--px-color-text-tertiary);
-}
-
-.statIcon {
-  font-size: 20px;
-  margin-bottom: 8px;
 }

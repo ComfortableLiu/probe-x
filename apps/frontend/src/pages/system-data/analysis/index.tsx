@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { Card, Col, DatePicker, Row, Space, Statistic, Table, Button } from "antd"
+import { Card, Col, DatePicker, Row, Space, Statistic, Table, Button, theme } from "antd"
 import { Help } from "@icon-park/react"
 import { useNavigate } from "react-router-dom"
 import PageHeader from "@components/PageHeader"
@@ -72,6 +72,15 @@ function Analysis() {
   const dispatch = useDispatch<Dispatch>()
   const navigate = useNavigate()
   const loading = useLoading()
+  const { token } = theme.useToken()
+  // 统计卡片颜色：按序循环使用主题 token 色板
+  const statisticColorPalette = [
+    token.colorPrimary,
+    token.colorSuccess,
+    token.colorWarning,
+    token.colorError,
+    token.colorTextTertiary,
+  ]
   const {
     statistics,
     hourlyChartData,
@@ -121,8 +130,11 @@ function Analysis() {
   }
 
   // 初始化24小时内图表
+  // 注意：Card 的 loading 为 true 时会卸载图表容器 div，导致依赖 [hourlyChartData] 的
+  // effect 在 div 重新挂载后不再触发，因此把 loading 也加入依赖，等加载结束容器存在时再初始化
+  const hourlyChartLoading = loading.systemDataAnalysisModel.getHourlyAnalysisTrend
   useEffect(() => {
-    if (hourlyChartRef.current && hourlyChartData) {
+    if (hourlyChartRef.current && hourlyChartData && !hourlyChartLoading) {
       // 销毁之前的实例
       if (hourlyChartInstance.current) {
         hourlyChartInstance.current.dispose()
@@ -179,13 +191,16 @@ function Analysis() {
     return () => {
       if (hourlyChartInstance.current) {
         hourlyChartInstance.current.dispose()
+        hourlyChartInstance.current = null
       }
     }
-  }, [hourlyChartData])
+  }, [hourlyChartData, hourlyChartLoading])
 
   // 初始化每日图表
+  // 同理，Card loading 会卸载容器 div，需要把 loading 加入依赖保证容器重新挂载后能初始化
+  const dailyChartLoading = loading.systemDataAnalysisModel.getAnalysisTrend
   useEffect(() => {
-    if (dailyChartRef.current && dailyChartData && dailyChartData.dates.length > 0) {
+    if (dailyChartRef.current && dailyChartData && dailyChartData.dates.length > 0 && !dailyChartLoading) {
       // 销毁之前的实例
       if (dailyChartInstance.current) {
         dailyChartInstance.current.dispose()
@@ -241,9 +256,10 @@ function Analysis() {
     return () => {
       if (dailyChartInstance.current) {
         dailyChartInstance.current.dispose()
+        dailyChartInstance.current = null
       }
     }
-  }, [dailyChartData])
+  }, [dailyChartData, dailyChartLoading])
 
   // 窗口大小变化时重绘图表
   useEffect(() => {
@@ -264,15 +280,15 @@ function Analysis() {
 
   // 组装统计数据
   const statisticData = statistics ? [
-    { title: '查询次数', value: statistics.queryCount, icon: 'bar-chart', color: '#7b68ee' },
-    { title: '查询人数', value: statistics.userCount, icon: 'user-group', color: '#40e0d0' },
-    { title: '查询平均耗时', value: statistics.avgDuration, icon: 'clock-circle', color: '#ff6347' },
-    { title: '查询失败率', value: statistics.failureRate, icon: 'close-circle', color: '#ff4500' },
-    { title: '正在排队中任务数', value: statistics.queuedTasks, icon: 'hourglass', color: '#ffa500' },
-    { title: '计算中的任务数', value: statistics.processingTasks, icon: 'desktop', color: '#32cd32' },
-    { title: '已终止的任务数', value: statistics.terminatedTasks, icon: 'stop', color: '#808080' },
-    { title: '导出数据次数', value: statistics.exportCount, icon: 'download', color: '#9370db' },
-    { title: '导出数据人数', value: statistics.exportUserCount, icon: 'user-group', color: '#20b2aa' },
+    { title: '查询次数', value: statistics.queryCount, icon: 'bar-chart' },
+    { title: '查询人数', value: statistics.userCount, icon: 'user-group' },
+    { title: '查询平均耗时', value: statistics.avgDuration, icon: 'clock-circle' },
+    { title: '查询失败率', value: statistics.failureRate, icon: 'close-circle' },
+    { title: '正在排队中任务数', value: statistics.queuedTasks, icon: 'hourglass' },
+    { title: '计算中的任务数', value: statistics.processingTasks, icon: 'desktop' },
+    { title: '已终止的任务数', value: statistics.terminatedTasks, icon: 'stop' },
+    { title: '导出数据次数', value: statistics.exportCount, icon: 'download' },
+    { title: '导出数据人数', value: statistics.exportUserCount, icon: 'user-group' },
   ] : []
 
   return (
@@ -284,7 +300,7 @@ function Analysis() {
         extra={
           <Button
             type="link"
-            icon={<Help theme="outline" size="16" fill="#000000" />}
+            icon={<Help theme="outline" size="16" fill="currentColor" />}
             onClick={() => navigate('/guide/system-data/analysis')}
           >
             说明
@@ -301,7 +317,7 @@ function Analysis() {
                 title={item.title}
                 value={item.value}
                 prefix={iconMap[item.icon]}
-                valueStyle={{ color: item.color, fontSize: 16 }}
+                valueStyle={{ color: statisticColorPalette[index % statisticColorPalette.length], fontSize: 16 }}
               />
             </Card>
           </Col>

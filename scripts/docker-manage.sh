@@ -151,7 +151,7 @@ backup_data() {
 
     # 备份 MySQL
     print_info "备份 MySQL 数据..."
-    docker compose exec -T mysql mysqldump -u root -p"${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}" "${DB_DATABASE:-probe_x}" | gzip > "$BACKUP_PATH/mysql.sql.gz"
+    docker compose exec -T mysql mysqldump -u root -p"${MYSQL_ROOT_PASSWORD}" "${DB_DATABASE:-probe_x}" | gzip > "$BACKUP_PATH/mysql.sql.gz"
 
     # 备份 ClickHouse
     print_info "备份 ClickHouse 数据..."
@@ -182,7 +182,7 @@ restore_data() {
         # 恢复 MySQL
         if [ -f "$BACKUP_PATH/mysql.sql.gz" ]; then
             print_info "恢复 MySQL 数据..."
-            gunzip -c "$BACKUP_PATH/mysql.sql.gz" | docker compose exec -T mysql mysql -u root -p"${MYSQL_ROOT_PASSWORD:-probe_x_root_2024}" "${DB_DATABASE:-probe_x}"
+            gunzip -c "$BACKUP_PATH/mysql.sql.gz" | docker compose exec -T mysql mysql -u root -p"${MYSQL_ROOT_PASSWORD}" "${DB_DATABASE:-probe_x}"
         fi
 
         print_success "数据恢复完成"
@@ -193,6 +193,13 @@ restore_data() {
 
 # 主函数
 main() {
+    # 加载 .env 环境变量（若存在）
+    if [ -f .env ]; then
+        set -a
+        . ./.env
+        set +a
+    fi
+
     check_docker
 
     case "${1:-help}" in

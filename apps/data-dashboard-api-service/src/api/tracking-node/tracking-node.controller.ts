@@ -41,13 +41,13 @@ export class TrackingNodeController {
     if (!parentCode && request?.query?.['parentCode[]']) {
       parentCode = String(request.query['parentCode[]'])
     }
-    
+
     if (!parentCode?.length) {
       throw new BusinessException('请选择业务线')
     }
     return await this.trackingNodeService.getTrackingNodeList(
       page,
-      pageSize,
+      Math.min(pageSize || 20, 100), // 限制每页最多100条数据
       parentCode,
       TrackingNodeType.SPM,
       name,
@@ -119,11 +119,11 @@ export class TrackingNodeController {
     if (!parentCode && request?.query?.['parentCode[]']) {
       parentCode = String(request.query['parentCode[]'])
     }
-    
+
     // SCM允许parentCode为空，此时查询第一级节点（A）
     return await this.trackingNodeService.getTrackingNodeList(
       page,
-      pageSize,
+      Math.min(pageSize || 20, 100), // 限制每页最多100条数据
       parentCode || null,
       TrackingNodeType.SCM,
       name,

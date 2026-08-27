@@ -29,7 +29,7 @@ export class DataSourceController {
       datasourceName,
       datasourceType: datasourceType as any,
       page: page || 1,
-      pageSize: pageSize || 20,
+      pageSize: Math.min(pageSize || 20, 100), // 限制每页最多100条数据
     }
     return await this.dataSourceService.getList(params)
   }

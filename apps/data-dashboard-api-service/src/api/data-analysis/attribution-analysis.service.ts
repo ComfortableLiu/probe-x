@@ -33,10 +33,11 @@ export class AttributionAnalysisService {
   }
 
   async queryEvent(data: IAttributionAnalysisReq, user: IUser): Promise<IAttributionAnalysisRes> {
-    // 1. 基础校验
-    if (!data) throw new Error('入参不能为空')
-    if (!data.attributionModel) throw new Error('归因模型不能为空')
-    if (!Array.isArray(data.attributionEvent) || data.attributionEvent.length === 0) throw new Error('归因事件不能为空')
+    // 1. 基础校验（业务异常走 200 + 错误码，避免前端收到裸 500）
+    if (!data) throw new BusinessException('入参不能为空')
+    if (!data.attributionModel) throw new BusinessException('归因模型不能为空')
+    if (!data.targetMetric?.eventInfo?.eventName) throw new BusinessException('转化目标指标不能为空')
+    if (!Array.isArray(data.attributionEvent) || data.attributionEvent.length === 0) throw new BusinessException('归因事件不能为空')
 
     // 2. 生成SQL（显式指定返回类型）
     const sqlResult: ISqlGenerateResult = generateAttributionAnalysisSql(data)
@@ -45,8 +46,8 @@ export class AttributionAnalysisService {
     // console.log('SQL参数：', params)
     // console.log('SQL错误：', error)
 
-    if (error) throw new Error(`SQL生成失败: ${error}`)
-    if (!sql) throw new Error('生成的SQL为空')
+    if (error) throw new BusinessException(`SQL生成失败: ${error}`)
+    if (!sql) throw new BusinessException('生成的SQL为空')
 
     try {
       // 显式获取归因事件维度（兜底空数组）
@@ -74,7 +75,7 @@ export class AttributionAnalysisService {
       }
     } catch (dbError) {
       console.error('ClickHouse查询失败：', dbError)
-      throw new Error(`归因分析查询失败: ${(dbError as Error).message}`)
+      throw new BusinessException(`归因分析查询失败: ${(dbError as Error).message}`)
     }
   }
 
@@ -313,7 +314,8 @@ export class AttributionAnalysisService {
 
     // 任务加入 BullMQ 队列（异步执行）
     const res = await this.exportQueue.add(QUEUE_TASK_NAME, taskData, { jobId: taskId })
-    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData)
+    // 任务状态写入 Redis，设置 24h TTL 防止无限堆积
+    await this.redisService.set(DOWNLOAD_TASK_KEY + taskId, taskData, 60 * 60 * 24)
     return {
       taskId,
     }

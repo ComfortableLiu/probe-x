@@ -14,6 +14,8 @@ interface IEventItemProps {
   singleMode?: boolean
   // 是否展示筛选选项
   showFilter?: boolean
+  // 是否展示指标选择器（总次数/用户数/会话数）。漏斗分析等场景指标由页面级配置决定，步骤内的指标无意义，应隐藏
+  showMetric?: boolean
   // 点击移除
   onRemove?: () => void
   // 点击复制
@@ -29,6 +31,7 @@ function EventItem(props: IEventItemProps) {
     eventInfo,
     index,
     showFilter,
+    showMetric = true,
     onCopy,
     onRemove,
     onChange,
@@ -88,18 +91,18 @@ function EventItem(props: IEventItemProps) {
     <div className={styles.operate}>
       {showFilter ?
         <a href="#" className={styles.operateBtn} onClick={() => addFilter()}>
-          <Filter className={styles.icon} theme="outline" size="14" fill="#333" />
+          <Filter className={styles.icon} theme="outline" size="14" fill="currentColor" />
           增加筛选
         </a>
         : null}
       {singleMode ? null :
         <>
           <a href="#" className={styles.operateBtn} onClick={() => onCopy?.()}>
-            <CopyOne className={styles.icon} theme="outline" size="14" fill="#333" />
+            <CopyOne className={styles.icon} theme="outline" size="14" fill="currentColor" />
             复制
           </a>
           <a href="#" className={styles.operateBtn} onClick={() => onRemove?.()}>
-            <Delete className={styles.icon} theme="outline" size="14" fill="#333" />
+            <Delete className={styles.icon} theme="outline" size="14" fill="currentColor" />
             移除
           </a>
         </>
@@ -124,22 +127,24 @@ function EventItem(props: IEventItemProps) {
           placeholder="选择一个事件"
         />
         <span>的</span>
-        <Select
-          className={styles.selectMetric}
-          onChange={onMetricChange}
-          value={eventInfo?.metrics || Metrics.COUNT}
-          options={[{
-            label: '总次数',
-            value: Metrics.COUNT,
-          }, {
-            label: '用户数',
-            value: Metrics.USERS,
-          }, {
-            label: '会话数',
-            value: Metrics.SESSIONS,
-          }]}
-          placeholder="选择指标"
-        />
+        {showMetric ?
+          <Select
+            className={styles.selectMetric}
+            onChange={onMetricChange}
+            value={eventInfo?.metrics || Metrics.COUNT}
+            options={[{
+              label: '总次数',
+              value: Metrics.COUNT,
+            }, {
+              label: '用户数',
+              value: Metrics.USERS,
+            }, {
+              label: '会话数',
+              value: Metrics.SESSIONS,
+            }]}
+            placeholder="选择指标"
+          />
+          : null}
         {renderOperate}
       </div>
       <FilterSelector

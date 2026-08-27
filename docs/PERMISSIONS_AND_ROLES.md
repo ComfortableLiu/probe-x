@@ -51,6 +51,18 @@
 - `computing:node:delete` - 删除计算节点
 - `computing:node:view` - 查看计算节点
 
+#### 1.7 通知设置页面 (`system:config:notification`)
+- `notification:create` - 创建通知配置
+- `notification:update` - 更新通知配置
+- `notification:delete` - 删除通知配置
+- `notification:view` - 查看通知配置
+
+#### 1.8 日志配置页面 (`system:config:log-config`)
+- `log:config:create` - 创建日志配置
+- `log:config:update` - 更新日志配置
+- `log:config:delete` - 删除日志配置
+- `log:config:view` - 查看日志配置
+
 ### 2. 埋点管理模块
 
 #### 2.1 事件管理页面 (`point:manage:event`)

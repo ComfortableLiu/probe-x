@@ -25,7 +25,7 @@
     border: 1px solid var(--px-color-border);
     border-radius: 4px;
     padding: 16px;
-    background: #fafafa;
+    background: var(--px-color-bg-table-header);
     max-height: calc(100vh - 200px);
     overflow-y: auto;
   }

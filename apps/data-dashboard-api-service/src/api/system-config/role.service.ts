@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { DataSource, EntityManager, In, Repository } from 'typeorm'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common/entity/response.entity'
 import { Permission } from '@probe-x/shared-utils/src/lib/backend-common/entity/Permission.entity'
 import { Role } from '@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity'
@@ -36,6 +36,7 @@ export class SystemConfigRoleService {
     private userRoleRepo: Repository<UserRoleRelation>,
     @InjectRepository(System)
     private systemRepo: Repository<System>,
+    private dataSource: DataSource,
   ) {
   }
 
@@ -280,12 +281,15 @@ export class SystemConfigRoleService {
       if (isSystemRole) {
         return ResponseData.error('系统角色的权限由系统配置决定，无法手动修改')
       }
-      // 删除旧的权限关联
-      await this.rolePermissionRepo.delete({ roleId: id })
-      // 添加新的权限关联
-      if (permissionIds.length > 0) {
-        await this.assignPermissionsToRole(id, permissionIds)
-      }
+      // 先删后插需在同一事务中，避免中途失败导致权限关联丢失
+      await this.dataSource.transaction(async (manager) => {
+        // 删除旧的权限关联
+        await manager.delete(RolePermissionRelation, { roleId: id })
+        // 添加新的权限关联
+        if (permissionIds.length > 0) {
+          await this.assignPermissionsToRole(id, permissionIds, manager)
+        }
+      })
     }
 
     const result: IUpdateRoleRes = {
@@ -375,15 +379,18 @@ export class SystemConfigRoleService {
       }
     }
 
-    // 删除旧的权限关联
-    await this.rolePermissionRepo.delete({ roleId })
+    // 先删后插需在同一事务中，避免中途失败导致权限关联丢失
+    await this.dataSource.transaction(async (manager) => {
+      // 删除旧的权限关联
+      await manager.delete(RolePermissionRelation, { roleId })
 
-    // 添加新的权限关联
-    if (permissionIds.length > 0) {
-      // 使用去重后的权限ID
-      const uniquePermissionIds = [...new Set(permissionIds)]
-      await this.assignPermissionsToRole(roleId, uniquePermissionIds)
-    }
+      // 添加新的权限关联
+      if (permissionIds.length > 0) {
+        // 使用去重后的权限ID
+        const uniquePermissionIds = [...new Set(permissionIds)]
+        await this.assignPermissionsToRole(roleId, uniquePermissionIds, manager)
+      }
+    })
 
     const result: IAssignPermissionsRes = {
       roleId,
@@ -503,7 +510,7 @@ export class SystemConfigRoleService {
   /**
    * 为角色分配权限（内部方法）
    */
-  private async assignPermissionsToRole(roleId: number, permissionIds: number[]): Promise<void> {
+  private async assignPermissionsToRole(roleId: number, permissionIds: number[], manager?: EntityManager): Promise<void> {
     const relations = permissionIds.map((permissionId) =>
       this.rolePermissionRepo.create({
         roleId,
@@ -511,7 +518,11 @@ export class SystemConfigRoleService {
       }),
     )
 
-    await this.rolePermissionRepo.save(relations)
+    if (manager) {
+      await manager.save(relations)
+    } else {
+      await this.rolePermissionRepo.save(relations)
+    }
   }
 }
 
