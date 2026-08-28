@@ -5,6 +5,11 @@ module.exports = {
   testRegex: [
     '\\.(test|spec)\\.ts$',
   ],
+  // e2e-real-data 直连真实 ClickHouse 并写入/删除数据，默认排除，需用 yarn test:e2e 显式运行
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    'e2e-real-data\\.test\\.ts$',
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: '<rootDir>/tsconfig.json',

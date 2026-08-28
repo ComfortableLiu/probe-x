@@ -9,6 +9,13 @@
     },
     "serve": {
       "command": "cd apps/final-data-cleaning-service && yarn run dev"
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn test",
+        "cwd": "apps/final-data-cleaning-service"
+      }
     }
   },
   "implicitDependencies": [

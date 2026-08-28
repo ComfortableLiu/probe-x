@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "build": "cross-env BUILD=true NODE_ENV=production rspack build",
-    "dev": "cross-env NODE_ENV=development rspack serve"
+    "dev": "cross-env NODE_ENV=development rspack serve",
+    "test": "jest",
+    "test:e2e": "jest --testPathIgnorePatterns /node_modules/ e2e-real-data"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.0",
@@ -28,11 +30,15 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@clickhouse/client": "^1.12.1",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
     "@nx/js": "^21.3.10",
     "@nx/nest": "^21.3.10",
     "@types/express": "^5.0.3",
-    "run-script-webpack-plugin": "^0.2.3"
+    "@types/jest": "^29.5.8",
+    "jest": "^29.7.0",
+    "run-script-webpack-plugin": "^0.2.3",
+    "ts-jest": "^29.1.1"
   }
 }

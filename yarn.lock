@@ -4450,13 +4450,6 @@
   resolved "https://registry.npmmirror.com/@pkgr/core/-/core-0.2.9.tgz"
   integrity sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==
 
-"@playwright/test@^1.60.0":
-  version "1.60.0"
-  resolved "https://registry.npmmirror.com/@playwright/test/-/test-1.60.0.tgz#e696c31427e8882851235cd556dc2490c3206d97"
-  integrity sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==
-  dependencies:
-    playwright "1.60.0"
-
 "@polka/url@^1.0.0-next.24":
   version "1.0.0-next.29"
   resolved "https://registry.npmmirror.com/@polka/url/-/url-1.0.0-next.29.tgz"
@@ -9274,11 +9267,6 @@ fs.realpath@^1.0.0:
   resolved "https://registry.npmmirror.com/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
-fsevents@2.3.2:
-  version "2.3.2"
-  resolved "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.2.tgz#8a526f78b8fdf4623b709e0b975c52c24c02fd1a"
-  integrity sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==
-
 fsevents@^2.3.2, fsevents@^2.3.3, fsevents@~2.3.2:
   version "2.3.3"
   resolved "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.3.tgz"
@@ -9542,18 +9530,6 @@ handlebars@^4.7.8:
   version "4.7.8"
   resolved "https://registry.npmmirror.com/handlebars/-/handlebars-4.7.8.tgz#41c42c18b1be2365439188c77c6afae71c0cd9e9"
   integrity sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==
-  dependencies:
-    minimist "^1.2.5"
-    neo-async "^2.6.2"
-    source-map "^0.6.1"
-    wordwrap "^1.0.0"
-  optionalDependencies:
-    uglify-js "^3.1.4"
-
-handlebars@^4.7.9:
-  version "4.7.9"
-  resolved "https://registry.npmmirror.com/handlebars/-/handlebars-4.7.9.tgz#6f139082ab58dc4e5a0e51efe7db5ae890d56a0f"
-  integrity sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==
   dependencies:
     minimist "^1.2.5"
     neo-async "^2.6.2"
@@ -12784,20 +12760,6 @@ pkg-dir@^4.2.0:
   dependencies:
     find-up "^4.0.0"
 
-playwright-core@1.60.0:
-  version "1.60.0"
-  resolved "https://registry.npmmirror.com/playwright-core/-/playwright-core-1.60.0.tgz#24e0d9cc4730713db5dffcace29b5e4696b1907a"
-  integrity sha512-9bW6zvX/m0lEbgTKJ6YppOKx8H3VOPBMOCFh2irXFOT4BbHgrx5hPjwJYLT40Lu+4qtD36qKc/Hn56StUW57IA==
-
-playwright@1.60.0:
-  version "1.60.0"
-  resolved "https://registry.npmmirror.com/playwright/-/playwright-1.60.0.tgz#89710863a51f21112633ef8b6b182594d3bfd7b5"
-  integrity sha512-hheHdokM8cdqCb0lcE3s+zT4t4W+vvjpGxsZlDnikarzx8tSzMebh3UiFtgqwFwnTnjYQcsyMF8ei2mCO/tpeA==
-  dependencies:
-    playwright-core "1.60.0"
-  optionalDependencies:
-    fsevents "2.3.2"
-
 pluralize@8.0.0:
   version "8.0.0"
   resolved "https://registry.npmmirror.com/pluralize/-/pluralize-8.0.0.tgz"
@@ -14363,11 +14325,6 @@ semver@^7.7.3:
   resolved "https://registry.npmmirror.com/semver/-/semver-7.7.3.tgz#4b5f4143d007633a8dc671cd0a6ef9147b8bb946"
   integrity sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==
 
-semver@^7.8.0:
-  version "7.8.1"
-  resolved "https://registry.npmmirror.com/semver/-/semver-7.8.1.tgz#bf4970b5e70fda0686363cc18bfe8805d5ed957e"
-  integrity sha512-rkVq3IXh+4FDGch+KwzX3aV9W3kO54GyEgpvBzSyctDA6Xtd7RJQV1xmXbeQp5v7+VzLOfVqiutSE6GICgPFvg==
-
 send@0.19.0:
   version "0.19.0"
   resolved "https://registry.npmmirror.com/send/-/send-0.19.0.tgz"
@@ -15313,21 +15270,6 @@ ts-jest@^29.1.1:
     lodash.memoize "^4.1.2"
     make-error "^1.3.6"
     semver "^7.7.3"
-    type-fest "^4.41.0"
-    yargs-parser "^21.1.1"
-
-ts-jest@^29.4.11:
-  version "29.4.11"
-  resolved "https://registry.npmmirror.com/ts-jest/-/ts-jest-29.4.11.tgz#42f5de21c37ccc01a580253afae6955abbf4d0b3"
-  integrity sha512-IrFl7l9AuB/qrNw5quqvAv/hmKMb8dhWOH4jQOGo0Oq8tCeo1O86/iTFG1FaRimgUkF13l4PcepO8ATFT6Ns4g==
-  dependencies:
-    bs-logger "^0.2.6"
-    fast-json-stable-stringify "^2.1.0"
-    handlebars "^4.7.9"
-    json5 "^2.2.3"
-    lodash.memoize "^4.1.2"
-    make-error "^1.3.6"
-    semver "^7.8.0"
     type-fest "^4.41.0"
     yargs-parser "^21.1.1"
 

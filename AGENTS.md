@@ -24,7 +24,7 @@ Write TypeScript with 2-space indentation. ESLint enforces no semicolons, traili
 
 ## Testing Guidelines
 
-Tests are currently concentrated in `apps/web-sdk/src/__tests__` and use Jest with `ts-jest` and `jsdom`. Name tests `*.test.ts`, `*.spec.ts`, or place them under `__tests__/`. Add focused tests for SDK behavior and shared utilities when changing collection, session, sender, or config logic. For service or UI changes without tests, document manual verification in the PR.
+Tests live in `apps/web-sdk/src/__tests__` (Jest + `ts-jest` + `jsdom`, run via `yarn nx test web-sdk`) and `apps/final-data-cleaning-service/src/__tests__` (Jest + `ts-jest`, run via `yarn nx test final-data-cleaning-service`). Name tests `*.test.ts`, `*.spec.ts`, or place them under `__tests__/`. Add focused tests for SDK behavior and shared utilities when changing collection, session, sender, or config logic. The cleaning service's `e2e-real-data.test.ts` connects to a real ClickHouse and is excluded from the default run; use `yarn test:e2e` in that package to run it explicitly. For service or UI changes without tests, document manual verification in the PR.
 
 ## Commit & Pull Request Guidelines
 
