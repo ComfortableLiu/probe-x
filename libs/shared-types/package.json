@@ -2,10 +2,12 @@
   "name": "@probe-x/shared-types",
   "version": "0.0.1",
   "description": "",
-  "main": "../../dist/libs/shared-type/index.js",
-  "types": "../../dist/libs/shared-type/index.d.ts",
+  "main": "../../dist/libs/shared-types/index.js",
+  "types": "../../dist/libs/shared-types/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc -p tsconfig.lib.json",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts src",
+    "lint:fix": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts --fix src"
   },
   "files": [
     "dist"

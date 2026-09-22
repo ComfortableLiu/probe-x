@@ -18,7 +18,7 @@
     // 必需：禁用项目引用相关选项（与路径别名方案冲突）
     "composite": false,
     "declaration": false,
-    // 定义库项目的路径别名（由 Nx 库生成器自动添加）
+    // 定义库项目的路径别名（对应 yarn workspaces 中的包名）
     "paths": {
       "@shared-utils": [
         "lib/shared-utils/src/index.ts"

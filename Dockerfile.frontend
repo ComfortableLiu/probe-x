@@ -26,7 +26,7 @@ COPY . .
 RUN yarn build:lib
 
 # 构建前端应用
-RUN yarn build:frontend
+RUN yarn workspace frontend build
 
 # ==================== 运行阶段 ====================
 FROM nginx:alpine AS runner

@@ -4,11 +4,12 @@
   "description": "电商平台Demo - 用于演示Probe-X数据埋点平台",
   "main": "index.js",
   "scripts": {
-    "start": "nx serve ecommerce-demo",
+    "start": "yarn dev",
     "build": "cross-env NODE_ENV=production rspack build",
     "dev": "cross-env NODE_ENV=development rspack dev",
-    "test": "nx test ecommerce-demo",
-    "lint": "nx lint ecommerce-demo"
+    "test": "echo 'ecommerce-demo 暂无单元测试'",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts,.tsx,.js,.jsx src",
+    "lint:fix": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts,.tsx,.js,.jsx --fix src"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.0",

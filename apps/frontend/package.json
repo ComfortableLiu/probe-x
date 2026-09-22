@@ -36,7 +36,6 @@
     "redux": "^5.0.1"
   },
   "devDependencies": {
-    "@nx/react": "^21.3.10",
     "@probe-x/shared-types": "workspace: *",
     "@probe-x/shared-utils": "workspace: *",
     "@types/dotenv-webpack": "^7.0.8",

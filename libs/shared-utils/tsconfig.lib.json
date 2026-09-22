@@ -21,10 +21,5 @@
   ],
   "exclude": [
     "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../shared-types/tsconfig.lib.json"
-    }
   ]
 }

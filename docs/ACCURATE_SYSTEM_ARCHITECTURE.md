@@ -224,7 +224,7 @@ interface EventDetailDto {
 - **大数据**: ClickHouse
 - **缓存**: Redis
 - **消息队列**: Kafka
-- **构建工具**: Nx + Rspack
+- **构建工具**: Yarn Workspaces + Rspack
 
 ### 5.3 SDK技术栈
 - **构建工具**: Rollup

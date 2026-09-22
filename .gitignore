@@ -140,7 +140,6 @@ vite.config.ts.timestamp-*
 .idea
 pubilsh.sh
 
-.nx
 tmp
 .DS_Store
 .rollup.cache

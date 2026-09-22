@@ -48,7 +48,7 @@
 - **缓存**: Redis（用于实时清洗服务，暂时没用上）
 - **消息队列**: Kafka
 - **服务通信**: gRPC
-- **构建工具**: Nx, Rspack
+- **构建工具**: Yarn Workspaces, Rspack
 
 ## 🚀 快速开始
 
@@ -361,7 +361,7 @@ REDIS_PORT=6379
 
 1. 安装依赖（`yarn install --frozen-lockfile`）
 2. 全量代码检查（`yarn lint`）
-3. Web SDK 单元测试（`yarn nx test web-sdk`）
+3. Web SDK 单元测试（`yarn workspace @probe-x/web-sdk test`）
 4. 全量构建（`shared-types`、`shared-utils`、4 个后端服务、`frontend`、`ecommerce-demo`、`web-sdk`）
 
 提交 PR 前请确保以上检查在本地通过。
