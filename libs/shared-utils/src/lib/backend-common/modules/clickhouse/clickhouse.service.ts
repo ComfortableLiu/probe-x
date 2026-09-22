@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { ClickHouseClient } from '@clickhouse/client'
+import { ClickHouseClient, ClickHouseSettings } from '@clickhouse/client'
 import { CLICKHOUSE_CLIENT } from "../../provider/clickhouse.provider"
 import { InsertResult } from "@clickhouse/client-common/dist/client"
 
@@ -31,13 +31,14 @@ export class ClickHouseService {
    * @param sql SQL 查询语句
    * @param settings ClickHouse 查询设置（可选），如 max_execution_time
    */
-  async queryWithMeta<T>(sql: string, settings?: Record<string, any>) {
+  async queryWithMeta<T>(sql: string, settings?: ClickHouseSettings) {
     const result = await this.clickhouseClient.query({
       query: sql,
       format: 'JSON',
       clickhouse_settings: settings,
     })
-    const json = await result.json<{ meta: { name: string; type: string }[]; data: T[] }>()
+    // json<T>() 的 T 是**行**类型；format 为 JSON 时返回 { meta, data: T[] }
+    const json = await result.json<T>()
     return {
       meta: json.meta || [],
       data: json.data || [],

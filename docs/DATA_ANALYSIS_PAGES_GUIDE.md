@@ -234,10 +234,13 @@ SQL 查询页面（`/data-analysis/sql`）允许用户手写 SQL 直接查询 Cl
    - 支持 `Cmd/Ctrl + Enter` 快捷键执行查询
 
 2. **安全限制**
-   - 仅支持单条 `SELECT`（含 `WITH`）查询，禁止 `INSERT`、`ALTER`、`DROP` 等写操作
+   - 仅支持单条 `SELECT`（含 `WITH`）查询，禁止 `INSERT`、`ALTER`、`DROP` 等写操作与 `EXPLAIN` 等元操作
    - 服务端同时以 ClickHouse 的 `readonly` 设置兜底，任何非查询语句与 DDL 都会被 ClickHouse 本身拒绝
-   - 不允许通过 `SETTINGS` 修改 `readonly` / `allow_ddl` / `constraints`
-   - 未指定 `LIMIT` 时自动追加 `LIMIT 1000` 上限
+   - 只读不等于安全：`file()`、`url()`、`remote()`、`mysql()`、`s3()`、`executable()`、`eval()` 这类表函数在只读模式下照样能读服务器文件、出网、跨实例查库，服务端按函数名拦截
+   - `system` 库整体不可查（`query_log` 能读到别人的 SQL，`users` / `named_collections` 是凭据面），只放行 `system.one` / `system.numbers` / `system.zeros`
+   - 不允许通过 `SETTINGS` 修改 `readonly` / `allow_ddl` / `constraints`，以及打开出网、凭据、泄密口子的其它设置
+   - 未指定顶层 `LIMIT` 时自动补 `LIMIT 1000` 上限（子查询里的 `LIMIT` 不算）；`UNION` / `INTERSECT` / `EXCEPT` 里的 `LIMIT` 只作用于最后一个分支，限不住总量，所以集合运算一律整体包一层 `SELECT * FROM (…) LIMIT n`（`n` 取你写过的最大 `LIMIT` 与 1000 中的较大者），分支内的 `LIMIT` / `ORDER BY` 原样保留
+   - 引号或注释未闭合的语句直接拒绝
 
 3. **结果展示**
    - 查询结果以表格形式动态展示列与数据
@@ -252,7 +255,10 @@ SQL 查询页面（`/data-analysis/sql`）允许用户手写 SQL 直接查询 Cl
 ### 使用说明
 
 - 表名、列名带 `$` 前缀时需使用反引号包裹，例如：``SELECT * FROM `$final_event_log` LIMIT 100``
+- 列名、别名本身是 `UPDATE` / `DELETE` / `SET` 这类写关键字时同样要用反引号包起来，例如：``SELECT `update` AS n FROM t``（反引号里的是标识符，不参与关键字判定）
 - 单条查询的执行时间有上限限制，复杂查询请合理添加过滤条件
+- 字符串字面量里出现 `system.xxx`、`readonly =` 这类写法也会被拒绝（防止把表名与设置藏进函数参数里），报错会指出具体是哪个词
+- 上述限制只约束查询本身；跨租户的行级隔离需要在 ClickHouse 侧用 ROW POLICY 或视图保证
 
 ---
 
