@@ -1,0 +1,36 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: var(--px-spacing-lg);
+  gap: 24px;
+
+  .editorSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .editorFooter {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+  }
+
+  .resultSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .columnTitle {
+    display: flex;
+    flex-direction: column;
+
+    .columnType {
+      font-size: 12px;
+      font-weight: normal;
+      color: var(--px-color-text-secondary, #8c8c8c);
+    }
+  }
+}

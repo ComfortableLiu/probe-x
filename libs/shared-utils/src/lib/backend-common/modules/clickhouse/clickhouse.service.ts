@@ -27,6 +27,24 @@ export class ClickHouseService {
   }
 
   /**
+   * 执行查询（返回 JSON 格式结果，包含列元数据）
+   * @param sql SQL 查询语句
+   * @param settings ClickHouse 查询设置（可选），如 max_execution_time
+   */
+  async queryWithMeta<T>(sql: string, settings?: Record<string, any>) {
+    const result = await this.clickhouseClient.query({
+      query: sql,
+      format: 'JSON',
+      clickhouse_settings: settings,
+    })
+    const json = await result.json<{ meta: { name: string; type: string }[]; data: T[] }>()
+    return {
+      meta: json.meta || [],
+      data: json.data || [],
+    }
+  }
+
+  /**
    * 批量插入数据
    * @param table 表名
    * @param data 要插入的数据数组
