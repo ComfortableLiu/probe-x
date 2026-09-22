@@ -31,8 +31,8 @@ ARG SERVICE_NAME
 # 构建共享库
 RUN yarn build:lib
 
-# 构建指定服务
-RUN yarn build:${SERVICE_NAME}
+# 构建指定服务（SERVICE_NAME 即 workspace 包名，如 receiving-point-service）
+RUN yarn workspace ${SERVICE_NAME} build
 
 # 确保 proto 目录存在（仅 final-data-cleaning-service 有真实 proto 文件，其余服务为空目录）
 RUN mkdir -p /app/apps/${SERVICE_NAME}/proto

@@ -5,7 +5,9 @@
   "main": "../../dist/libs/shared-utils/index.js",
   "types": "../../dist/libs/shared-utils/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc -p tsconfig.lib.json",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts src",
+    "lint:fix": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts --fix src"
   },
   "files": [
     "dist"

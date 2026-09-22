@@ -39,8 +39,6 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
-    "@nx/js": "^21.3.10",
-    "@nx/nest": "^21.3.10",
     "@probe-x/shared-types": "workspace: *",
     "@probe-x/shared-utils": "workspace: *",
     "@rspack/cli": "^1.1.8",

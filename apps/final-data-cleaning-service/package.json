@@ -33,8 +33,6 @@
     "@clickhouse/client": "^1.12.1",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
-    "@nx/js": "^21.3.10",
-    "@nx/nest": "^21.3.10",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.5.8",
     "jest": "^29.7.0",

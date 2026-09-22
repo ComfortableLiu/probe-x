@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Probe-X is an Nx TypeScript monorepo. Applications live in `apps/`: `frontend` is the React/Ant Design dashboard, `web-sdk` is the tracking SDK, `ecommerce-demo` is the demo site, and the NestJS services include `receiving-point-service`, `data-dashboard-api-service`, `preliminary-data-processing-service`, and `final-data-cleaning-service`. Shared code lives in `libs/shared-types` and `libs/shared-utils`. Static frontend assets are in `apps/frontend/public`; service environment templates are in each `config/env/.env.example`. Architecture and operating notes are under `docs/`.
+Probe-X is a Yarn 1 workspaces TypeScript monorepo. Task running and building go through `yarn workspace <name> <script>`; there is no task runner layer. Applications live in `apps/`: `frontend` is the React/Ant Design dashboard, `web-sdk` is the tracking SDK, `ecommerce-demo` is the demo site, and the NestJS services include `receiving-point-service`, `data-dashboard-api-service`, `preliminary-data-processing-service`, and `final-data-cleaning-service`. Shared code lives in `libs/shared-types` and `libs/shared-utils`. Static frontend assets are in `apps/frontend/public`; service environment templates are in each `config/env/.env.example`. Architecture and operating notes are under `docs/`.
 
 ## Build, Test, and Development Commands
 
@@ -16,7 +16,7 @@ Use Node `22` from `.nvmrc` and Yarn 1.x (`packageManager` is `yarn@1.22.22`).
 - `yarn build:sequence`: build shared libraries and apps in dependency order.
 - `yarn build`: build all configured projects in parallel.
 - `yarn lint` / `yarn lint:fix`: run or auto-fix lint checks across projects.
-- `yarn nx test web-sdk`: run SDK Jest tests. There is no root `yarn test` script currently.
+- `yarn workspace @probe-x/web-sdk test`: run SDK Jest tests. There is no root `yarn test` script currently.
 
 ## Coding Style & Naming Conventions
 
@@ -24,7 +24,7 @@ Write TypeScript with 2-space indentation. ESLint enforces no semicolons, traili
 
 ## Testing Guidelines
 
-Tests live in `apps/web-sdk/src/__tests__` (Jest + `ts-jest` + `jsdom`, run via `yarn nx test web-sdk`) and `apps/final-data-cleaning-service/src/__tests__` (Jest + `ts-jest`, run via `yarn nx test final-data-cleaning-service`). Name tests `*.test.ts`, `*.spec.ts`, or place them under `__tests__/`. Add focused tests for SDK behavior and shared utilities when changing collection, session, sender, or config logic. The cleaning service's `e2e-real-data.test.ts` connects to a real ClickHouse and is excluded from the default run; use `yarn test:e2e` in that package to run it explicitly. For service or UI changes without tests, document manual verification in the PR.
+Tests live in `apps/web-sdk/src/__tests__` (Jest + `ts-jest` + `jsdom`, run via `yarn workspace @probe-x/web-sdk test`) and `apps/final-data-cleaning-service/src/__tests__` (Jest + `ts-jest`, run via `yarn workspace final-data-cleaning-service test`). Name tests `*.test.ts`, `*.spec.ts`, or place them under `__tests__/`. Add focused tests for SDK behavior and shared utilities when changing collection, session, sender, or config logic. The cleaning service's `e2e-real-data.test.ts` connects to a real ClickHouse and is excluded from the default run; use `yarn test:e2e` in that package to run it explicitly. For service or UI changes without tests, document manual verification in the PR.
 
 ## Commit & Pull Request Guidelines
 

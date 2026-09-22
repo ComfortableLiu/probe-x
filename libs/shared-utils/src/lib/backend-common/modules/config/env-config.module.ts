@@ -8,7 +8,7 @@ const nodeEnv = process.env.NODE_ENV || 'development'
 // dist 环境（__dirname 指向 dist/apps/.../src/modules）
 const distRoot = __dirname
 
-// 按应用目录计算候选 env 文件路径（源码环境用于 ts-node / nx serve 时的 Fallback）
+// 按应用目录计算候选 env 文件路径（源码环境用于 ts-node / yarn dev 时的 Fallback）
 const resolveEnvFilePaths = (appDir: string) => {
   const sourceRoot = path.resolve(process.cwd(), appDir)
 
