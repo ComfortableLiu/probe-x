@@ -234,13 +234,19 @@ SQL 查询页面（`/data-analysis/sql`）允许用户手写 SQL 直接查询 Cl
    - 支持 `Cmd/Ctrl + Enter` 快捷键执行查询
 
 2. **安全限制**
-   - 仅支持单条 `SELECT`（含 `WITH`）查询，禁止 `INSERT`、`ALTER`、`DROP` 等写操作与 `EXPLAIN` 等元操作
-   - 服务端同时以 ClickHouse 的 `readonly` 设置兜底，任何非查询语句与 DDL 都会被 ClickHouse 本身拒绝
-   - 只读不等于安全：`file()`、`url()`、`remote()`、`mysql()`、`s3()`、`executable()`、`eval()` 这类表函数在只读模式下照样能读服务器文件、出网、跨实例查库，服务端按函数名拦截
-   - `system` 库整体不可查（`query_log` 能读到别人的 SQL，`users` / `named_collections` 是凭据面），只放行 `system.one` / `system.numbers` / `system.zeros`
-   - 不允许通过 `SETTINGS` 修改 `readonly` / `allow_ddl` / `constraints`，以及打开出网、凭据、泄密口子的其它设置
-   - 未指定顶层 `LIMIT` 时自动补 `LIMIT 1000` 上限（子查询里的 `LIMIT` 不算）；`UNION` / `INTERSECT` / `EXCEPT` 里的 `LIMIT` 只作用于最后一个分支，限不住总量，所以集合运算一律整体包一层 `SELECT * FROM (…) LIMIT n`（`n` 取你写过的最大 `LIMIT` 与 1000 中的较大者），分支内的 `LIMIT` / `ORDER BY` 原样保留
-   - 引号或注释未闭合的语句直接拒绝
+   - 仅支持单条 `SELECT`（含 `WITH`）查询，禁止 `INSERT`、`ALTER`、`DROP` 等写操作与 `EXPLAIN` 等元操作。关键字按位置判定：表达式后面的 `delete` / `set` / `update` 是别名（`SELECT (1) delete FROM (SELECT 1)` 是合法查询），`WITH x AS (SELECT 1) INSERT INTO …` 这种 CTE 之后的写语句才会被当成语句动词拦下
+   - 服务端同时以 ClickHouse 的 `readonly = 2` 兜底：非查询语句与 DDL 由 ClickHouse 本身拒绝，`readonly` 自己也改不掉。但 `readonly = 2` 允许查询改**其它**设置，而且实测 `readonly` **兜不住会改写查询本身的那一类**（见下），所以真正的设置管控是下面几条
+   - 不允许通过 `SETTINGS` 修改设置，几类都拦：
+     - 会改写查询本身的：`select` / `order` / `sort` / `filter` / `format` / `limit` / `offset` / `page` 这 8 个的值会被 ClickHouse 当成 SQL 再解析一遍——实测 `SELECT 2 SETTINGS select = '1, version()'` 返回 `1	26.10.1.1`，把 `select=1, version()` 放进查询串里也一样生效，而它们在 `readonly = 1` 下全都返回 200。同一个类别还有 `database`（等于 `USE 别的库`）与 `implicit_table_at_top_level`（把没有 FROM 的查询指向别的表），这两个实测都能绕开下面的 `system` 库规则
+     - 解除只读与约束（`readonly` / `constraints` / `changeable_in_readonly`）、出网与凭据（`use_environment_credentials` / `s3_allow_server_credentials_in_user_queries` / `ai_function_*`）、服务器文件路径与响应头（`user_files_path` / `user_scripts_path` / `http_response_headers`）、泄密（`format_display_secrets_in_show_and_select` / `query_cache_share_between_users`）、换解析语义（`dialect` / `compatibility`）、以及纯 SELECT 也会落盘的 `compile_*` 一族
+     - 按前缀的：`allow_*`（`allow_ddl` / `allow_experimental_*` / `allow_introspection_functions` / `ai_*` …）、`max_*`、`send_logs_*`、`dynamic_disk_allow_*`、`format_*`、`compile_*`
+     - 也就是说**资源上限由服务端 profile 决定**，查询里写 `SETTINGS max_threads = 8`、`max_memory_usage = 0` 会被拒绝（`max_memory_usage = 0` 是不限内存、`max_execution_time = 0` 是不限时长，几条一起写能把整台 ClickHouse 打挂）
+   - 设置名按 ClickHouse 的规则解码后再判，藏起来的写法照样拦：反引号 / 双引号标识符（`` SETTINGS `readonly` = 0 ``）、名字里带转义（`` `read\x6fnly` ``）、`SQL_` 前缀的复合名字（`SQL_a.b`）、名字里带空格或逗号（`` `SQL_my setting` ``、`` `SQL_a,b` ``）——这些在 ClickHouse 里都是合法设置名。名字一个读不断：``SETTINGS SQL_a . ` x y` = 2, max_memory_usage = 0`` 里那个带空格的名字在服务端报的是 `Cannot modify 'SQL_a. x y'`，读断了就会把后面的设置整段漏出判定
+   - 只读不等于安全：`file()`、`url()`、`remote()`、`mysql()`、`s3()`、`executable()`、`eval()` 这类表函数在只读模式下照样能读服务器文件、出网、跨实例查库，服务端按函数名拦截。两个字符串参数写 `(库名, 表名)` 的表函数（`merge()` / `buffer()` / `timeSeriesTags('system', 'query_log')`）也一样，`FROM` / `JOIN` 后面的相邻字面量会拼成 `库.表` 再判一次。探内省的一并拦掉：`getSetting('readonly')` 实测**不需要任何 grant** 就返回设置值，`getServerSetting()` / `getMergeTreeSetting()` / `getMacro()` 报的是「grant SELECT ON system.…」——它们内部就是去读 `system` 库，`fullHostName()` / `getOSKernelVersion()` / `currentRequestURL()` 能探出主机名与完整请求串。字符串二次解析入口（`formatQuery()` / `parseQueryToJSON()` / `fuzzQuery()` …）也会拦，它们能把判定过的语句改写成别的形态
+   - `system` 库整体不可查（`query_log` 能读到别人的 SQL，`users` / `named_collections` 是凭据面），只放行 `system.one` / `system.numbers` / `system.zeros`。库名与表名之间夹的引号、注释、空白都认（`` `system`.`query_log` ``、`system/**/.query_log`），但标识符大小写敏感——`System.IO.FileNotFoundException`、`kube-system.svc`、`/etc/system.d/nginx.conf` 这类文本不构成库引用
+   - 未指定顶层 `LIMIT` 时自动补 `LIMIT 1000` 上限（子查询里的 `LIMIT` 不算）；尾部的 `FORMAT` / `SETTINGS` 子句留在 `LIMIT` 之后（`SELECT 1 FORMAT TSV` → `SELECT 1 LIMIT 1000 FORMAT TSV`），整体包一层时留在括号外面。`UNION` / `INTERSECT` / `EXCEPT` 里的 `LIMIT` 只作用于最后一个分支，限不住总量，所以集合运算一律整体包一层 `SELECT * FROM (…) LIMIT n`（`n` 取你写过的最大 `LIMIT` 与 1000 中的较大者），分支内的 `LIMIT` / `ORDER BY` 原样保留。定不出**全局**行数的写法也走包一层的路子：`LIMIT toUInt64(5)` 这类常量表达式、`LIMIT 1 BY x`（按组限行）、`LIMIT 1 WITH TIES`（并列全收，实测返回不限量）、`LIMIT 5e3` / `LIMIT 1_500` / `LIMIT 0x5DC` 这类字面量按真实数值取上限。整体加括号的查询（`(SELECT …)`）后面不能直接写 `LIMIT`（ClickHouse 判语法错误），一律包一层
+   - 结尾的分号摘掉（拷贝 SQL 时很常见），中间有分号（多条语句）直接拒绝；引号或注释未闭合的语句直接拒绝；`#` 后面不是空白也不是 `!` 的写法（`SELECT * FROM t #x`）同样直接拒绝——ClickHouse 判它词法错误，放行的话补上的 `LIMIT` 反而会把 `#` 变成注释、把行数上限吃掉
+   - 词法与 ClickHouse 完全对齐：`//` 也是行注释、`/* */` 可以嵌套、引号标识符与字符串里的转义解码后再判定（`` `fil\x65`(`` 就是 `file(`）。ClickHouse 词法认的空白比 JS 的 `\s` 宽——U+200B 零宽空格、U+200C / U+200D、U+2060、U+0085、U+180E、U+00A0 都是分词空白，实测 `file​('/etc/passwd')` 照样解析出 `file()`、`system.​query_log` 照样解析出 `system.query_log`，而 `sys​tem.query_log` 报的是语法错误，所以这些码点统一按空白认。定界字符串 `$tag$…$tag$` 只在 token 起点**且**找得到闭合时才是字符串，否则回退成标识符（实测 `$hello$` 是标识符 `` `$hello$` ``、`x$a$hello$a$` 是**一个**标识符），空 tag 的 `$$…` 未闭合才按未闭合拒绝。这里藏得比 ClickHouse 多一点，后面的判定就会整段失效
 
 3. **结果展示**
    - 查询结果以表格形式动态展示列与数据
@@ -255,9 +261,11 @@ SQL 查询页面（`/data-analysis/sql`）允许用户手写 SQL 直接查询 Cl
 ### 使用说明
 
 - 表名、列名带 `$` 前缀时需使用反引号包裹，例如：``SELECT * FROM `$final_event_log` LIMIT 100``
-- 列名、别名本身是 `UPDATE` / `DELETE` / `SET` 这类写关键字时同样要用反引号包起来，例如：``SELECT `update` AS n FROM t``（反引号里的是标识符，不参与关键字判定）
+- 列名、别名本身是 `UPDATE` / `DELETE` / `SET` 这类写关键字时**不用**再包反引号（`SELECT insert, update, delete FROM sync_stats`、`SELECT 1 AS set` 都能直接跑）；反引号里的是标识符，同样不参与关键字判定
 - 单条查询的执行时间有上限限制，复杂查询请合理添加过滤条件
-- 字符串字面量里出现 `system.xxx`、`readonly =` 这类写法也会被拒绝（防止把表名与设置藏进函数参数里），报错会指出具体是哪个词
+- `settings` / `limit` 当列名或别名是没问题的（`SELECT user_id, settings FROM users WHERE plan = 'pro'`），只有写成 `SETTINGS 名字 = 值` / `LIMIT n` 这种子句形态才按子句处理
+- 字符串字面量里的内容会再扫一遍（防止把表名藏进 `remote()`、`viewExplain()` 的参数里）：`system.xxx` 这类库表引用会被拒绝，报错会指出具体是哪个词。函数名只在**代码**里判，字面量里的 `file(`、`url(` 不拦（日志里的 `'remote()'` 文本不该被误伤）。埋点日志里常见的资源设置文本（`'max_threads = 4'`）也不拦
+- 已知取舍：字面量扫描是失效即关的，`WHERE msg = 'a=1, readonly = 0'`、`'%dialect=ansi%'` 这种紧跟逗号 / 分号的设置形状文本会被误伤；`max_*` 按策略整个前缀全拦，`system.settings` 里 1852 个真实设置名有 296 个因此被拒，资源上限请到服务端 profile 里用 `<constraints>` 把这些设置逐个 `<readonly/>` 钉死；逗号连接的 `(库名, 表名)` 写法（`FROM t, merge('system','query_log')`）跨了两条引用、拼不回一个 `库.表`，靠 `merge()` 这个函数名本身拦掉
 - 上述限制只约束查询本身；跨租户的行级隔离需要在 ClickHouse 侧用 ROW POLICY 或视图保证
 
 ---
