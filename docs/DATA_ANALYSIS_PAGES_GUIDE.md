@@ -235,6 +235,8 @@ SQL 查询页面（`/data-analysis/sql`）允许用户手写 SQL 直接查询 Cl
 
 2. **安全限制**
    - 仅支持单条 `SELECT`（含 `WITH`）查询，禁止 `INSERT`、`ALTER`、`DROP` 等写操作
+   - 服务端同时以 ClickHouse 的 `readonly` 设置兜底，任何非查询语句与 DDL 都会被 ClickHouse 本身拒绝
+   - 不允许通过 `SETTINGS` 修改 `readonly` / `allow_ddl` / `constraints`
    - 未指定 `LIMIT` 时自动追加 `LIMIT 1000` 上限
 
 3. **结果展示**
