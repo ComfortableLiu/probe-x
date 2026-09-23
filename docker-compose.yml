@@ -234,13 +234,22 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: final-data-cleaning-service
-    container_name: probe-x-final-cleaning
+    # 不设 container_name：这样 `docker compose up -d --scale final-data-cleaning-service=N` 可直接扩容
     restart: unless-stopped
-    ports:
-      - "${FINAL_DATA_CLEANING_SERVICE_PORT:-10000}:10000"
+    # 不发布任何端口：节点以 gRPC 客户端拨出连总服务，只需出网、无需入网
+    # （/health 只在容器网络内可访问，供下面的 healthcheck 使用）
     environment:
       NODE_ENV: production
       PORT: 10000
+      # 计算节点接入：拨出连接总服务的 gRPC 端口
+      MASTER_HOST: data-dashboard-api-service
+      MASTER_PORT: ${NODE_CONTROL_PORT:-8105}
+      # 节点展示名。多副本扩容时建议按副本覆盖；NODE_ID 不设置则每个副本自动生成
+      NODE_NAME: ${COMPUTE_NODE_NAME:-计算节点}
+      # 节点上报地址（可选，供页面展示节点在哪）
+      NODE_ADVERTISE_ADDRESS: ${COMPUTE_NODE_ADVERTISE_ADDRESS:-}
+      # 心跳与离线判定
+      HEARTBEAT_INTERVAL_MS: ${HEARTBEAT_INTERVAL_MS:-5000}
       # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
@@ -278,6 +287,12 @@ services:
         condition: service_healthy
     networks:
       - probe-x-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   data-dashboard-api-service:
     build:
@@ -289,9 +304,15 @@ services:
     restart: unless-stopped
     ports:
       - "${DATA_DASHBOARD_API_SERVICE_PORT:-8101}:8101"
+      # 计算节点接入端口：节点拨出连接到这里（跨机器部署时需要对外可达）
+      - "${NODE_CONTROL_PORT:-8105}:8105"
     environment:
       NODE_ENV: production
       PORT: 8101
+      # 计算节点接入的 gRPC 监听端口
+      NODE_CONTROL_PORT: ${NODE_CONTROL_PORT:-8105}
+      MASTER_NODE_NAME: ${MASTER_NODE_NAME:-总服务}
+      HEARTBEAT_TIMEOUT_MS: ${HEARTBEAT_TIMEOUT_MS:-15000}
       # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306

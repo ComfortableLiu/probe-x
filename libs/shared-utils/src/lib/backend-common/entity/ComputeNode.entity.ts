@@ -13,6 +13,17 @@ export class ComputeNodeEntity {
   @Index()
   id?: number
 
+  /** 节点自报标识（自动注册的节点以此字段幂等 upsert） */
+  @Column({
+    type: 'varchar',
+    length: 100,
+    name: 'node_id',
+    nullable: true,
+    unique: true,
+    comment: '节点自报标识（自动注册的节点以此字段幂等 upsert）',
+  })
+  nodeId?: string
+
   /** 节点名称 */
   @Column({
     type: 'varchar',
@@ -31,11 +42,13 @@ export class ComputeNodeEntity {
   })
   nodeAddress?: string
 
-  /** 节点端口 */
+  /** 节点端口（拨出接入的计算节点无监听端口，允许为空） */
   @Column({
     type: 'int',
     name: 'node_port',
-    comment: '节点端口',
+    nullable: true,
+    default: 0,
+    comment: '节点端口（拨出接入的计算节点无监听端口，允许为空）',
   })
   nodePort?: number
 

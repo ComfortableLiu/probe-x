@@ -1,63 +1,37 @@
 import { Injectable, Optional } from '@nestjs/common'
-import { GrpcStreamMethod } from '@nestjs/microservices'
-import { Observable, Subject } from 'rxjs'
-import { tap } from 'rxjs/operators'
+import { Subject } from 'rxjs'
 import { ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { IPreEventLog } from "@probe-x/shared-types/src"
 import { computeAttribution } from "../lib/attribution-engine"
+import { collectNodeInfo } from "../lib/node-info"
+import type { ComputeTask, ProgressUpdate } from "../type"
 
-// 类型定义
-export interface ComputeTask {
-  task_id: string;
-  session_id: string;
-  date: string;
-}
-
-export interface ProgressUpdate {
-  // 关联的任务ID
-  task_id: string;
-  // 目标进度
-  target: number;
-  // 总进度
-  progress: number;
-  // 节点唯一标识
-  node_id: string;
-  // 附加信息（如“正在处理第3个分片”）
-  message: string;
-  // 是否完成
-  completed: boolean;
-  // 是否失败
-  failed: boolean;
-  // 失败信息
-  error: string;
-}
+// 任务流与进度流的类型定义由 ../type 统一维护，这里转出以兼容既有引用
+export type { ComputeTask, ProgressUpdate } from "../type"
 
 @Injectable()
 export class ComputeNodeService {
+  /** 节点唯一标识 */
   nodeId: string
+  /** 节点展示名 */
+  nodeName: string
+  /** 当前正在执行的任务 id，空串表示空闲 */
+  currentTaskId = ''
+  /** 最近一次任务失败信息，空串表示无异常 */
+  lastError = ''
 
   constructor(
     private readonly clickhouseService: ClickHouseService,
     // 可选注入：单测直接 new 出来的实例没有 RedisService，任务去重逻辑自动跳过
     @Optional() private readonly redisService?: RedisService,
   ) {
-    this.nodeId = `node-${Math.random().toString(36).slice(2, 8)}` // 节点唯一标识
+    this.nodeId = process.env.NODE_ID || `node-${Math.random().toString(36).slice(2, 8)}` // 节点唯一标识
+    this.nodeName = process.env.NODE_NAME || this.nodeId
   }
 
-  // 双向流实现：接收控制中心的任务流，返回进度流
-  @GrpcStreamMethod('ComputeService', 'TaskStream')
-  handleTaskStream(task$: Observable<ComputeTask>): Observable<ProgressUpdate> {
-    const progressSubject = new Subject<ProgressUpdate>()
-
-    // 监听控制中心发送的任务
-    task$.pipe(
-      tap((task) => {
-        console.log(`[节点 ${this.nodeId}] 收到控制中心任务 ${task.task_id}`)
-        this.executeTask(task, progressSubject) // 执行任务并推送进度
-      }),
-    ).subscribe()
-
-    return progressSubject.asObservable()
+  /** 采集节点资源与运行状态，用于注册帧/心跳帧 */
+  getLocalNodeInfo() {
+    return collectNodeInfo(this.currentTaskId)
   }
 
   // 把所有事件查出来
@@ -77,9 +51,10 @@ export class ComputeNodeService {
   }
 
   // 执行任务并通过 progressSubject 推送进度
-  private async executeTask(task: ComputeTask, progressSubject: Subject<ProgressUpdate>) {
+  async executeTask(task: ComputeTask, progressSubject: Subject<ProgressUpdate>) {
+    this.currentTaskId = task.task_id
     try {
-      // 任务级幂等：控制中心重复下发同一 task_id 时只执行一次，
+      // 任务级幂等：总服务重复下发同一 task_id 时只执行一次，
       // SET NX EX 86400 已存在则视为已成功重放，跳过执行并直接推 completed:true 进度
       if (this.redisService) {
         const isNewTask = await this.redisService.setNx(`clean:task:${task.task_id}`, '1', 86400)
@@ -101,7 +76,7 @@ export class ComputeNodeService {
       // 拿到所有事件
       const eventList = await this.getAllEvents(task.date, task.session_id)
 
-      // 任务开始即推送初始进度，保证控制中心能感知任务已被接收
+      // 任务开始即推送初始进度，保证总服务能感知任务已被接收
       progressSubject.next({
         task_id: task.task_id,
         node_id: this.nodeId,
@@ -135,6 +110,8 @@ export class ComputeNodeService {
 
       // TODO 手动回滚逻辑
 
+      this.lastError = ''
+
       // 任务结束只发送一条 completed:true 的进度，不要 complete() 共享流，
       // 共享 Subject 的生命周期与整个连接一致，complete 后后续任务将无法再推送进度
       progressSubject.next({
@@ -148,6 +125,8 @@ export class ComputeNodeService {
         failed: false,
       })
     } catch (e) {
+      const error = e instanceof Error ? e.message : String(e)
+      this.lastError = error
       // 任务失败时通过进度流推送失败状态，避免静默失败
       progressSubject.next({
         task_id: task.task_id,
@@ -156,9 +135,11 @@ export class ComputeNodeService {
         progress: 0,
         message: '',
         completed: false,
-        error: e instanceof Error ? e.message : String(e),
+        error,
         failed: true,
       })
+    } finally {
+      this.currentTaskId = ''
     }
   }
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ComputeNodeService } from "@src/service/node.service"
+import { NodeConnectionService } from "@src/service/node-connection.service"
 import { ClickHouseModule, envConfig, MysqlModule, RedisModule } from "@probe-x/shared-utils/src/lib/backend-common"
 import configuration from "../config/configuration"
 
@@ -10,7 +11,7 @@ import configuration from "../config/configuration"
     ClickHouseModule,
     RedisModule.forRoot(),
   ],
-  providers: [ComputeNodeService],
+  providers: [ComputeNodeService, NodeConnectionService],
 })
 export class AppModule {
 }

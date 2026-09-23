@@ -50,9 +50,10 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `compute_node` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '节点唯一ID',
+  `node_id` VARCHAR(100) NULL UNIQUE COMMENT '节点自报标识（自动注册的节点以此字段幂等 upsert）',
   `node_name` VARCHAR(100) NOT NULL COMMENT '节点名称',
   `node_address` VARCHAR(255) NOT NULL COMMENT '节点地址',
-  `node_port` INT NOT NULL COMMENT '节点端口',
+  `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）',
   `node_type` VARCHAR(20) NOT NULL DEFAULT 'grpc' COMMENT '节点类型（grpc）',
   `status` VARCHAR(20) NOT NULL DEFAULT 'stopped' COMMENT '节点状态（running/stopped/error）',
   `weight` INT NOT NULL DEFAULT 100 COMMENT '权重（用于负载均衡，默认100）',

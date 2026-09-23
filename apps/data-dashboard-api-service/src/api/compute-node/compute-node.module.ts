@@ -5,12 +5,15 @@ import { UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common/e
 import { Role } from '@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity'
 import { ComputeNodeController } from './compute-node.controller'
 import { ComputeNodeService } from './compute-node.service'
+import { NodeControlController } from './node-control.controller'
+import { NodeRegistryService } from './node-registry.service'
 import { AdminGuard } from '../../guard/admin.guard'
 
 @Module({
   imports: [TypeOrmModule.forFeature([ComputeNodeEntity, UserRoleRelation, Role])],
-  controllers: [ComputeNodeController],
-  providers: [ComputeNodeService, AdminGuard],
-  exports: [ComputeNodeService],
+  // NodeControlController 只有 gRPC handler，没有 HTTP 路由，不走 AdminGuard
+  controllers: [ComputeNodeController, NodeControlController],
+  providers: [ComputeNodeService, NodeRegistryService, AdminGuard],
+  exports: [ComputeNodeService, NodeRegistryService],
 })
 export class ComputeNodeModule {}

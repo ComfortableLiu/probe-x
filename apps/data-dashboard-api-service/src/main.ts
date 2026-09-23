@@ -2,8 +2,24 @@ import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from "@src/app.module"
 import { ValidationPipe } from '@nestjs/common'
-import { AllExceptionsFilter } from "@probe-x/shared-utils/src/lib/backend-common/index"
+import { Transport } from '@nestjs/microservices'
+import {
+  AllExceptionsFilter,
+  resolveProtoPath,
+} from "@probe-x/shared-utils/src/lib/backend-common"
 import { ConfigService } from "@nestjs/config"
+
+const PROTO_PACKAGE = 'final_data_cleaning_control_bi_stream'
+
+// 必须与计算节点客户端逐项一致，否则字段名/默认值对不上：
+// keepCase 保证 task_id、node_id 等 snake_case 字段原样进出（NestJS 默认会转成 camelCase）
+const PROTO_LOADER = {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -34,6 +50,21 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter())
 
   app.setGlobalPrefix('api')
+
+  // 计算节点接入：在 HTTP 之外再挂一个 gRPC 监听。
+  // 节点作为客户端拨出连接到 NODE_CONTROL_PORT，本服务不需要知道节点在哪。
+  const nodeControlPort = configService.get('nodeControl.port')
+  app.connectMicroservice({
+    transport: Transport.GRPC,
+    options: {
+      package: PROTO_PACKAGE,
+      protoPath: resolveProtoPath(PROTO_PACKAGE),
+      url: `0.0.0.0:${nodeControlPort}`,
+      loader: PROTO_LOADER,
+    },
+  })
+  await app.startAllMicroservices()
+  console.log(`计算节点接入端口已就绪，端口: ${nodeControlPort}`)
 
   const port = process.env.PORT || parseInt(configService.get('services.dataDashboardApi.port', '8101'))
   await app.listen(port)

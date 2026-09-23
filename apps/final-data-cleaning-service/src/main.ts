@@ -1,34 +1,30 @@
+import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
-import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { ComputeNodeService } from "@src/service/node.service"
-import { fileURLToPath } from "node:url"
-import path from "node:path"
-import { AppModule } from "@src/app.module"
+import { AppModule } from '@src/app.module'
+import { NodeConnectionService } from '@src/service/node-connection.service'
 
 async function bootstrap() {
-  const port = process.env.PORT || 10000
+  const app = await NestFactory.create(AppModule)
 
-  // @ts-ignore
-  const __filename = fileURLToPath(import.meta.url)
-  const finalDataCleaningServicePath = path.dirname(__filename)
-
-  // 计算节点作为 gRPC 服务端启动
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
-    transport: Transport.GRPC,
-    options: {
-      package: 'final_data_cleaning_control_bi_stream',
-      protoPath: path.resolve(finalDataCleaningServicePath, '../proto/final_data_cleaning_control_bi_stream.proto'),
-      url: `0.0.0.0:${port}`,
-    },
+  // 计算节点以 HTTP /health 暴露自身链接状态，供部署健康检查与运维排查；
+  // 与总服务的通信是「拨出」的 gRPC 流，本端口不需要对外发布
+  const nodeConnection = app.get(NodeConnectionService)
+  app.getHttpAdapter().get('/health', (_req, res) => {
+    res.json({
+      status: nodeConnection.linkStatus === 'connected' ? 'ok' : 'degraded',
+      ...nodeConnection.getSnapshot(),
+    })
   })
 
-  // 启用优雅关机钩子，保证进程退出前正确释放资源
+  // 启用优雅关机钩子，保证进程退出前正确释放 gRPC 连接
   app.enableShutdownHooks()
 
-  await app.listen()
+  const port = parseInt(process.env.PORT || '', 10) || 10000
+  await app.listen(port)
 
-  const nodeService = app.get(ComputeNodeService)
-  console.log(`计算节点 ${nodeService.nodeId} 启动，监听 ${port} 端口`)
+  console.log(
+    `计算节点 ${nodeConnection.getSnapshot().nodeId} 已启动，/health 监听 ${port} 端口`,
+  )
 }
 
 bootstrap()
