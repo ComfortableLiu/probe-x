@@ -54,14 +54,17 @@ export class UtmItemEntity {
 
   /**
    * 别名（用户维护的可读名称，如「2026春节微信投放」）
+   *
+   * type 必须写死：字段类型是 `string | null`，emitDecoratorMetadata 对联合类型
+   * 发出的 design:type 是 Object，TypeORM 推断不出列类型会直接拒绝启动
    */
-  @Column({ length: 255, nullable: true, name: 'alias', comment: '别名' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'alias', comment: '别名' })
   alias?: string | null
 
   /**
    * 描述
    */
-  @Column({ length: 500, nullable: true, name: 'description', comment: '描述' })
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'description', comment: '描述' })
   description?: string | null
 
   /**
