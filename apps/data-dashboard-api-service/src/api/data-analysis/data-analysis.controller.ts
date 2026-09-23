@@ -13,6 +13,8 @@ import {
   ISegmentQueryReq,
   ISegmentQueryRes,
   ISegmentStats,
+  ISqlQueryReq,
+  ISqlQueryRes,
   ISubmitDownloadTaskReq,
   ISubmitDownloadTaskRes,
   IUser,
@@ -25,6 +27,7 @@ import { UserPathAnalysisService } from "./user-path-analysis.service"
 import { AttributionAnalysisService } from "./attribution-analysis.service"
 import { RetentionAnalysisService } from "./retention-analysis.service"
 import { UserSegmentationService } from "./user-segmentation.service"
+import { SqlAnalysisService } from "./sql-analysis.service"
 import { DataAnalysisRecordService } from "./record.service"
 import { Request } from 'express'
 
@@ -37,6 +40,7 @@ export class DataAnalysisController {
     private readonly attributionAnalysisService: AttributionAnalysisService,
     private readonly retentionAnalysisService: RetentionAnalysisService,
     private readonly userSegmentationService: UserSegmentationService,
+    private readonly sqlAnalysisService: SqlAnalysisService,
     private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
@@ -408,5 +412,31 @@ export class DataAnalysisController {
     await this.dataAnalysisRecordService.recordExport(user, 'csv', '用户分群导出', data)
 
     return await this.userSegmentationService.exportSegment(data.segmentId, user)
+  }
+
+  /**
+   * SQL 查询分析 - 执行查询
+   */
+  @Post('/sql/query')
+  async querySql(
+    @Body() data: ISqlQueryReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISqlQueryRes> {
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/sql/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.sqlAnalysisService.executeQuery(data)
+      const duration = Date.now() - startTime
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.rowCount, true).catch(err => console.error('记录查询日志失败:', err))
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
+      throw error
+    }
   }
 }

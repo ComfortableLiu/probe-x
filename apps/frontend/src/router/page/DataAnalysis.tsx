@@ -29,6 +29,11 @@ export default {
     key: 'data-analysis-attribution',
     component: lazy(() => import('@pages/data-analysis/attribution/index')),
   }, {
+    path: '/data-analysis/sql',
+    name: 'SQL 查询',
+    key: 'data-analysis-sql',
+    component: lazy(() => import('@pages/data-analysis/sql/index')),
+  }, {
     path: '/data-analysis/dashboardConfig',
     name: '看板设置',
     key: 'data-analysis-dashboard-config',
