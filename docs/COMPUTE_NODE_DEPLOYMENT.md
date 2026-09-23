@@ -113,7 +113,15 @@ yarn start:final-cleaning
 ## 三、数据库变更
 
 自动注册用 `compute_node.node_id` 做幂等键，拨出接入的节点没有监听端口所以 `node_port` 放开为空。
-`DB_SYNCHRONIZE=true` 的环境不用管；**`DB_SYNCHRONIZE=false` 的环境需要执行**：
+
+**`DB_SYNCHRONIZE=true` 的环境不用管**（TypeORM 启动时会自己把表对齐到实体）。
+**`DB_SYNCHRONIZE=false` 的环境需要手工补**。先看表长什么样再挑对应的语句：
+
+```bash
+mysql -h<host> -P<port> -u<user> -p <db> -e "SHOW COLUMNS FROM \`compute_node\`"
+```
+
+### 情况 A：缺 `node_id`（表来自旧版 [scripts/create-missing-tables.sql](../scripts/create-missing-tables.sql)）
 
 ```sql
 ALTER TABLE `compute_node`
@@ -121,8 +129,33 @@ ALTER TABLE `compute_node`
   MODIFY COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）';
 ```
 
-新建库可以直接用 [scripts/create-missing-tables.sql](../scripts/create-missing-tables.sql) 里的 `compute_node` 建表语句（已与实体对齐）。
-如果表来自 [scripts/init-db.sql](../scripts/init-db.sql) 的旧版本 `compute_node`，请以上面的 `ALTER` 或实体定义为准——`init-db.sql` 里那份是历史遗留的另一套列。
+### 情况 B：有 `last_heartbeat` / `capabilities`（表来自旧版 [scripts/init-db.sql](../scripts/init-db.sql)）
+
+这一版 `node_id` 是 `NOT NULL`（手工登记的节点没有自报 id，会被拒写）、缺
+`node_address` / `node_port` / `node_type` / `weight` / `description`，而且 `status` 是
+`ENUM('online','offline','busy')`——自动注册写 `'running'` 会被截断，必须一并改掉：
+
+```sql
+ALTER TABLE `compute_node`
+  MODIFY COLUMN `node_id` VARCHAR(100) NULL COMMENT '节点自报标识（自动注册的节点以此字段幂等 upsert）' AFTER `id`,
+  ADD COLUMN `node_address` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '节点地址' AFTER `node_name`,
+  ADD COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）' AFTER `node_address`,
+  ADD COLUMN `node_type` VARCHAR(20) NOT NULL DEFAULT 'grpc' COMMENT '节点类型（grpc）' AFTER `node_port`,
+  ADD COLUMN `weight` INT NOT NULL DEFAULT 100 COMMENT '权重（用于负载均衡，默认100）' AFTER `status`,
+  ADD COLUMN `description` VARCHAR(255) NULL COMMENT '描述' AFTER `weight`,
+  MODIFY COLUMN `node_name` VARCHAR(100) NOT NULL COMMENT '节点名称',
+  MODIFY COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'stopped' COMMENT '节点状态（running/stopped/error）',
+  MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间（自动填充）',
+  MODIFY COLUMN `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间（自动更新）';
+```
+
+> `last_heartbeat` / `capabilities` 是旧表多出来的列，实体不认。留着无害；
+> 但**别在 `DB_SYNCHRONIZE=true` 下启动**——TypeORM 会把实体里没有的列直接 drop 掉。
+
+新建库用 [scripts/create-missing-tables.sql](../scripts/create-missing-tables.sql) 或
+[scripts/init-db.sql](../scripts/init-db.sql) 里的 `compute_node` 均可，两份与
+[ComputeNode.entity.ts](../libs/shared-utils/src/lib/backend-common/entity/ComputeNode.entity.ts) 已对齐。
+改列时请三处同步。
 
 ---
 
