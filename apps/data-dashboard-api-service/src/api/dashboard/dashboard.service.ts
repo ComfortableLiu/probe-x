@@ -419,6 +419,18 @@ export class DashboardService {
   }
 
   /**
+   * 检查用户是否可以查看公共看板
+   * 先查询一次用户角色信息，再复用 canViewPublicDashboardWithRole 的判断
+   */
+  private async canViewPublicDashboard(
+    dashboard: DashboardEntity,
+    user: IUser,
+  ): Promise<boolean> {
+    const userRoleInfo = await this.getUserRoleInfo(user)
+    return this.canViewPublicDashboardWithRole(dashboard, userRoleInfo)
+  }
+
+  /**
    * 检查用户是否可以查看公共看板（使用预取的角色信息，避免重复查询）
    */
   private canViewPublicDashboardWithRole(
