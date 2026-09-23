@@ -15,6 +15,7 @@ import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/
 import {
   IQueryUtmListReq,
   IQueryUtmListRes,
+  IQueryUtmOptionsRes,
   IUtmItem,
   IUtmStatCursorRes,
   IUtmStatIncrementReq,
@@ -147,6 +148,40 @@ export class UtmService implements OnModuleInit {
       this.logger.error('查询 UTM 条目失败', e)
       throw new BusinessException('查询失败')
     }
+  }
+
+  /**
+   * UTM 取值选项
+   *
+   * UTM 分析的取值筛选器用：只含有效条目，一次性返回不分页。
+   * 别名一并给出，前端下拉里直接展示「别名（原始取值）」
+   */
+  async getOptions(dimension?: UtmDimension): Promise<IQueryUtmOptionsRes> {
+    const query = this.utmItemRepo.createQueryBuilder('utm')
+      .select([
+        'utm.id as id',
+        'utm.dimension as dimension',
+        'utm.value as value',
+        'utm.alias as alias',
+        'utm.eventCount as eventCount',
+      ])
+      .where('utm.isDeleted = :isDeleted', { isDeleted: 0 })
+      // 投放量大的排前面，方便在下拉里先看到主力取值
+      .orderBy('utm.eventCount', 'DESC')
+      .addOrderBy('utm.value', 'ASC')
+
+    if (dimension) {
+      query.andWhere('utm.dimension = :dimension', { dimension })
+    }
+
+    const rows = await query.getRawMany()
+    return rows.map(row => ({
+      id: Number(row.id),
+      dimension: row.dimension,
+      value: row.value,
+      alias: row.alias || undefined,
+      eventCount: Number(row.eventCount ?? 0),
+    }))
   }
 
   /**

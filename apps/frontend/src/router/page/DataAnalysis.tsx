@@ -29,6 +29,11 @@ export default {
     key: 'data-analysis-attribution',
     component: lazy(() => import('@pages/data-analysis/attribution/index')),
   }, {
+    path: '/data-analysis/utm',
+    name: 'UTM 分析',
+    key: 'data-analysis-utm',
+    component: lazy(() => import('@pages/data-analysis/utm/index')),
+  }, {
     path: '/data-analysis/sql',
     name: 'SQL 查询',
     key: 'data-analysis-sql',

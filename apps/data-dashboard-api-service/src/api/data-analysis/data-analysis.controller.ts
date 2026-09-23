@@ -19,6 +19,8 @@ import {
   ISubmitDownloadTaskRes,
   IUser,
   IUserPathAnalysisReq,
+  IUtmAnalysisReq,
+  IUtmAnalysisRes,
 } from "@probe-x/shared-types/src"
 import { User } from "@probe-x/shared-utils/src/lib/backend-common"
 import { EventAnalysisService } from "./event-analysis.service"
@@ -28,6 +30,7 @@ import { AttributionAnalysisService } from "./attribution-analysis.service"
 import { RetentionAnalysisService } from "./retention-analysis.service"
 import { UserSegmentationService } from "./user-segmentation.service"
 import { SqlAnalysisService } from "./sql-analysis.service"
+import { UtmAnalysisService } from "./utm-analysis.service"
 import { DataAnalysisRecordService } from "./record.service"
 import { Request } from 'express'
 
@@ -41,6 +44,7 @@ export class DataAnalysisController {
     private readonly retentionAnalysisService: RetentionAnalysisService,
     private readonly userSegmentationService: UserSegmentationService,
     private readonly sqlAnalysisService: SqlAnalysisService,
+    private readonly utmAnalysisService: UtmAnalysisService,
     private readonly dataAnalysisRecordService: DataAnalysisRecordService,
   ) {
   }
@@ -438,5 +442,64 @@ export class DataAnalysisController {
       this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
       throw error
     }
+  }
+
+  /**
+   * UTM 分析 - 查询数据
+   */
+  @Post('/utm/query')
+  async queryUtm(
+    @Body() data: IUtmAnalysisReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IUtmAnalysisRes> {
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/utm/query', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
+
+    // 记录查询日志
+    const startTime = Date.now()
+    try {
+      const res = await this.utmAnalysisService.query(data, user)
+      const duration = Date.now() - startTime
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, res.rows.length, true).catch(err => console.error('记录查询日志失败:', err))
+      return res
+    } catch (error) {
+      const duration = Date.now() - startTime
+      this.dataAnalysisRecordService.recordQuery(user, JSON.stringify(data), duration, 0, false, error.message).catch(err => console.error('记录查询日志失败:', err))
+      throw error
+    }
+  }
+
+  /**
+   * UTM 分析 - 创建数据下载
+   */
+  @Post('/utm/download')
+  async createUtmDownloadTask(
+    @Body() data: IUtmAnalysisReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<ISubmitDownloadTaskRes> {
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/utm/download', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
+
+    const res = await this.utmAnalysisService.createDownloadTask(data, user)
+    // 记录导出日志
+    await this.dataAnalysisRecordService.recordExport(user, 'excel', 'UTM 分析数据导出', data)
+    return res
+  }
+
+  /**
+   * UTM 分析 - 查询下载数据任务进度
+   */
+  @Post('/utm/download/task')
+  async queryUtmDownloadTask(
+    @Body() data: IQueryDownloadTaskReq,
+    @User() user: IUser,
+    @Req() req: Request,
+  ): Promise<IQueryDownloadTaskRes> {
+    // 记录访问日志（fire-and-forget，失败仅打日志不影响主流程）
+    this.dataAnalysisRecordService.recordAccess(user, 'api_call', '/data-analysis/utm/download/task', req.ip, req.get('User-Agent') || undefined).catch(err => console.error('记录访问日志失败:', err))
+
+    return await this.utmAnalysisService.queryDownloadTask(data.taskId)
   }
 }

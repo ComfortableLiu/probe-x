@@ -10,8 +10,18 @@ import type {
   IDashboardConfig,
   IDashboardDataRes,
   IFunnelAnalysisRes,
+  IUtmAnalysisRes,
+  IUtmAnalysisRow,
   IUserPathAnalysisRes,
+  UtmDimension,
 } from "@probe-x/shared-types/src"
+import {
+  UTM_DIMENSION_LABEL,
+  utmDimAlias,
+  utmMetricDateAlias,
+  utmMetricTotalAlias,
+} from "@probe-x/shared-types/src"
+import { METRIC_LABEL } from "@pages/data-analysis/utm/type"
 
 // 分析类型中文名映射
 export const ANALYSIS_TYPE_TEXT: Record<AnalysisType, string> = {
@@ -19,6 +29,7 @@ export const ANALYSIS_TYPE_TEXT: Record<AnalysisType, string> = {
   [AnalysisType.FUNNEL]: '漏斗分析',
   [AnalysisType.USER_PATH]: '用户路径分析',
   [AnalysisType.ATTRIBUTION]: '归因分析',
+  [AnalysisType.UTM]: 'UTM 分析',
 }
 
 export interface IDashboardTableData {
@@ -243,6 +254,77 @@ function buildAttributionChartOption(data: IAttributionAnalysisRes): EChartsOpti
 }
 
 /**
+ * UTM 分析：合计 + Top N 分组的按天趋势折线图
+ * 合计线取 summary 的按天列，不能拿分组行相加（用户数是 uniq 口径）
+ */
+function buildUtmChartOption(
+  dashboard: IDashboard,
+  data: IUtmAnalysisRes,
+  timeRange?: [string, string],
+): EChartsOption | null {
+  const config = dashboard.config?.utmAnalysis
+  const dimensions = config?.dimensions || []
+  const metric = config?.metrics?.[0]
+  const dateList = buildDateList(timeRange || config?.timeRange)
+  if (!metric || !dateList.length || !data) return null
+
+  const rows = data.rows || []
+  const summary = data.summary
+  const hasSummary = !!summary && Object.keys(summary).length > 0
+  if (!rows.length && !hasSummary) return null
+
+  // 看板卡片内简化展示：取值直接用原文，别名在分析详情页看
+  const rowName = (row: IUtmAnalysisRow) =>
+    dimensions.map((dim: UtmDimension) => String(row[utmDimAlias(dim)] ?? '')).join(' / ') || '未命名'
+
+  const series: EChartsOption['series'] = []
+  const legendData: string[] = []
+
+  if (hasSummary) {
+    legendData.push('合计')
+    series.push({
+      name: '合计',
+      type: 'line',
+      smooth: true,
+      data: dateList.map(date => Number(summary[utmMetricDateAlias(metric, date)]) || 0),
+    })
+  }
+
+  rows.slice(0, 10).forEach((row) => {
+    const name = rowName(row)
+    legendData.push(name)
+    series.push({
+      name,
+      type: 'line',
+      smooth: true,
+      data: dateList.map(date => Number(row[utmMetricDateAlias(metric, date)]) || 0),
+    })
+  })
+
+  return {
+    xAxis: {
+      type: 'category',
+      data: dateList,
+      axisLabel: {
+        rotate: dateList.length > 10 ? 30 : 0,
+      },
+    },
+    yAxis: {
+      type: 'value',
+    },
+    series,
+    legend: {
+      data: legendData,
+      top: 0,
+      type: 'scroll',
+    },
+    tooltip: {
+      trigger: 'axis',
+    },
+  }
+}
+
+/**
  * 根据看板分析类型构建图表配置
  */
 export function buildChartOption(
@@ -260,6 +342,8 @@ export function buildChartOption(
       return buildUserPathChartOption(res.data)
     case AnalysisType.ATTRIBUTION:
       return buildAttributionChartOption(res.data)
+    case AnalysisType.UTM:
+      return buildUtmChartOption(dashboard, res.data, timeRange)
     default:
       return null
   }
@@ -449,6 +533,53 @@ function buildUserPathTableData(data: IUserPathAnalysisRes): IDashboardTableData
 }
 
 /**
+ * UTM 分析表格：UTM 维度 + 各指标区间合计（含合计行）
+ */
+function buildUtmTableData(dashboard: IDashboard, data: IUtmAnalysisRes): IDashboardTableData | null {
+  const config = dashboard.config?.utmAnalysis
+  const dimensions = config?.dimensions || []
+  const metrics = config?.metrics || []
+  if (!data || (!data.rows?.length && !Object.keys(data.summary || {}).length)) return null
+
+  const dataSource: Record<string, unknown>[] = []
+  const toRow = (row: IUtmAnalysisRow, key: string) => {
+    const tableRow: Record<string, unknown> = { key }
+    dimensions.forEach((dim: UtmDimension) => {
+      tableRow[utmDimAlias(dim)] = row[utmDimAlias(dim)] ?? '-'
+    })
+    metrics.forEach((metric) => {
+      tableRow[utmMetricTotalAlias(metric)] = Number(row[utmMetricTotalAlias(metric)]) || 0
+    })
+    return tableRow
+  }
+
+  // 合计行不按维度拆分，标签落在第一个维度列上
+  if (data.summary && Object.keys(data.summary).length) {
+    const summaryRow = toRow(data.summary, 'summary')
+    if (dimensions.length) {
+      summaryRow[utmDimAlias(dimensions[0])] = '合计'
+    }
+    dataSource.push(summaryRow)
+  }
+  data.rows.forEach((row, index) => dataSource.push(toRow(row, `row_${index}`)))
+
+  const columns: TableProps['columns'] = [
+    ...dimensions.map((dim: UtmDimension) => ({
+      title: UTM_DIMENSION_LABEL[dim] || dim,
+      dataIndex: utmDimAlias(dim),
+      width: 160,
+    })),
+    ...metrics.map((metric) => ({
+      title: METRIC_LABEL[metric] || metric,
+      dataIndex: utmMetricTotalAlias(metric),
+      width: 100,
+    })),
+  ]
+
+  return { columns, dataSource }
+}
+
+/**
  * 根据看板分析类型构建表格行列数据
  */
 export function buildTableData(
@@ -466,6 +597,8 @@ export function buildTableData(
       return buildUserPathTableData(res.data)
     case AnalysisType.ATTRIBUTION:
       return buildAttributionTableData(res.data)
+    case AnalysisType.UTM:
+      return buildUtmTableData(dashboard, res.data)
     default:
       return null
   }
@@ -478,6 +611,7 @@ const ANALYSIS_CONFIG_KEY: Record<AnalysisType, keyof IDashboardConfig> = {
   [AnalysisType.FUNNEL]: 'funnelAnalysis',
   [AnalysisType.USER_PATH]: 'userPathAnalysis',
   [AnalysisType.ATTRIBUTION]: 'attributionAnalysis',
+  [AnalysisType.UTM]: 'utmAnalysis',
 }
 
 // 分析类型对应的详情页路由
@@ -486,6 +620,7 @@ const ANALYSIS_DETAIL_ROUTE: Record<AnalysisType, string> = {
   [AnalysisType.FUNNEL]: '/data-analysis/funnel',
   [AnalysisType.USER_PATH]: '/data-analysis/userPath',
   [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
+  [AnalysisType.UTM]: '/data-analysis/utm',
 }
 
 /**
