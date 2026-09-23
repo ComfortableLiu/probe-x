@@ -37,6 +37,11 @@ export default {
       isHidden: true,
     },
   }, {
+    path: '/point-manage/utm',
+    name: 'UTM管理',
+    key: 'point-manage-utm',
+    component: lazy(() => import('@pages/point-manage/utm/index')),
+  }, {
     path: '/point-manage/basic-coding',
     name: '基础编码管理',
     key: 'point-manage-basic-coding',

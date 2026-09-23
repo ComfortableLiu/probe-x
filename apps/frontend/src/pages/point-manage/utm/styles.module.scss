@@ -1,0 +1,22 @@
+.utmManage {
+  padding: 24px;
+
+  .description {
+    color: var(--px-color-text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .tabContent {
+    margin-top: 16px;
+  }
+
+  .valueCell {
+    font-family: Menlo, Monaco, Consolas, monospace;
+    word-break: break-all;
+  }
+
+  .cursorTag {
+    margin-left: 8px;
+  }
+}
