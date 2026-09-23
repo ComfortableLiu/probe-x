@@ -52,6 +52,14 @@ export default () => {
         port: parseInt(process.env.RECEIVING_POINT_SERVICE_PORT || '', 10) || 8104,
       },
     },
+    // 计算节点接入：本服务额外挂一个 gRPC 监听，计算节点拨出连接到 nodeControl.port
+    nodeControl: {
+      port: parseInt(process.env.NODE_CONTROL_PORT || '', 10) || 8105,
+      // 拓扑图根节点展示名
+      name: process.env.MASTER_NODE_NAME || '总服务',
+      // 超过该时长没收到心跳即判定离线（默认 3 倍于节点 5s 心跳）
+      heartbeatTimeoutMs: parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '', 10) || 15000,
+    },
     database: {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '', 10) || 3306,

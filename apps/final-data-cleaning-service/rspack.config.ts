@@ -94,7 +94,7 @@ const config: Configuration = {
           to: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service/config'),
         },
         {
-          from: path.resolve(finalDataCleaningServicePath, 'proto'),
+          from: path.resolve(rootDir, 'libs/shared-utils/src/lib/backend-common/proto'),
           to: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service/proto'),
         },
       ],

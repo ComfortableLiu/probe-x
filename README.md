@@ -37,7 +37,7 @@
 - **数据仪表板API服务**: 提供前端管理页面的 API 接口，包括数分、埋点管理、SSO 登录等
 - **埋点接收服务**: 接收和存储原始埋点数据，然后通过 kafka 转发给数据处理服务
 - **初步数据处理服务**: 数据初步补充数据，包括 session 切割、utm 参数补充、SPM/SCM 翻译等
-- **最终数据清洗服务**: 数据最终清洗，主要清洗归因数据
+- **最终数据清洗服务**: 数据最终清洗，主要清洗归因数据；同时作为**计算节点**，拨出连接到总服务、按下发的任务执行清洗，可任意横向扩容（详见[计算节点部署指南](./docs/COMPUTE_NODE_DEPLOYMENT.md)）
 
 ### 技术栈
 - **前端**: React19, Redux, Rematch, Ant Design, TypeScript, Rspack
@@ -75,6 +75,19 @@ docker compose ps
 ```
 
 > 📚 详细部署文档请参考 [Docker 部署指南](./docs/docker-deployment.md)
+
+#### 扩容计算节点
+
+计算节点（`final-data-cleaning-service`）不需要任何入网端口，改配置就能接到总服务上：
+
+```bash
+docker compose up -d --scale final-data-cleaning-service=3
+```
+
+也可以把节点跑在任意其它机器上，只配置 `MASTER_HOST` / `MASTER_PORT` 指向总服务即可。
+节点的链接状态会实时显示在「系统数据 > 计算节点」页面上。
+
+> 📚 三种部署方式、配置速查与故障排查见 [计算节点部署指南](./docs/COMPUTE_NODE_DEPLOYMENT.md)
 
 ### 方式二：本地开发环境
 

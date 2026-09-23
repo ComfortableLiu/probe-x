@@ -301,9 +301,124 @@ export type NodeType = 'grpc' | 'http'
 /** 节点状态 */
 export type NodeStatus = 'running' | 'stopped' | 'error'
 
+/** 节点与总服务的链接状态 */
+export type ComputeNodeLinkStatus = 'connecting' | 'connected' | 'disconnected'
+
+// ---- 计算节点接入协议的线上帧（与 proto 消息一一对应，字段名为 snake_case）----
+
+/** 计算任务指令 */
+export interface ComputeTask {
+  task_id: string
+  session_id: string
+  /** 格式 YYYY-MM-DD */
+  date: string
+}
+
+/** 进度更新指令 */
+export interface ProgressUpdate {
+  task_id: string
+  target: number
+  progress: number
+  node_id: string
+  message: string
+  completed: boolean
+  failed: boolean
+  error: string
+}
+
+/** 节点资源与运行状态 */
+export interface NodeInfo {
+  /** CPU 核心数 */
+  cpu_count: number
+  /** 总内存，MB */
+  memory_size: number
+  /** 可用内存，MB */
+  available_memory_size: number
+  /** 是否可用 */
+  available: boolean
+  /** 是否忙碌中 */
+  busy: boolean
+  /** 忙碌任务 id */
+  busy_task_id: string
+}
+
+/** 节点注册/心跳帧 */
+export interface NodeRegister {
+  node_id: string
+  node_name: string
+  node_address: string
+  version: string
+  info?: NodeInfo
+}
+
+/** 总服务应答 */
+export interface MasterAck {
+  accepted: boolean
+  message: string
+}
+
+/** 节点 -> 总服务 上行帧 */
+export interface NodeFrame {
+  register?: NodeRegister
+  progress?: ProgressUpdate
+}
+
+/** 总服务 -> 节点 下行帧 */
+export interface MasterFrame {
+  ack?: MasterAck
+  task?: ComputeTask
+}
+
+/** 计算节点链接信息（拓扑图/状态展示用） */
+export interface IComputeNodeLinkInfo {
+  /** 节点唯一标识 */
+  nodeId: string
+  /** 节点展示名 */
+  nodeName: string
+  /** 节点上报地址，未上报为空串 */
+  nodeAddress: string
+  /** 节点类型 */
+  nodeType: NodeType
+  /** 链接状态 */
+  link: ComputeNodeLinkStatus
+  /** 是否正在执行任务 */
+  busy: boolean
+  /** 正在执行的任务 id */
+  busyTaskId: string
+  /** CPU 核心数 */
+  cpuCount: number
+  /** 总内存，MB */
+  memorySize: number
+  /** 可用内存，MB */
+  availableMemorySize: number
+  /** 链接建立时间，未连接为 null */
+  connectedAt: number | null
+  /** 最近一次心跳时间戳，从未上报为 null */
+  lastHeartbeat: number | null
+  /** 最近一次失败的任务错误信息，空串表示当前无异常 */
+  lastError: string
+}
+
+/** 计算节点拓扑（根节点 = 总服务） */
+export interface IComputeNodeTopology {
+  /** 总服务自身状态 */
+  root: {
+    name: string
+    status: 'running'
+    /** 当前在线节点数 */
+    onlineNodes: number
+    /** 已知节点总数（含离线） */
+    totalNodes: number
+  }
+  /** 已注册的计算节点 */
+  nodes: IComputeNodeLinkInfo[]
+}
+
 /** 计算节点列表项 */
 export interface IComputeNodeListItem {
   id: number
+  /** 节点自报标识（自动注册的节点才有） */
+  nodeId?: string
   nodeName: string
   nodeAddress: string
   nodePort: number

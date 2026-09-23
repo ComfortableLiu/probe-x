@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common'
 import { MetaService } from './meta.service'
 import { AnalysisService } from './analysis.service'
 import { OverviewService } from './overview.service'
+import { NodeRegistryService } from '../compute-node/node-registry.service'
 import {
   IDataAnalysisStatistics,
   IDataAnalysisTrend,
@@ -11,6 +12,7 @@ import {
   ISystemDataMetaOverview,
   ISystemDataTrend,
   ISystemDataOverviewResponse,
+  IComputeNodeTopology,
 } from '@probe-x/shared-types/src'
 
 @Controller('/system-data')
@@ -19,7 +21,19 @@ export class SystemDataController {
     private readonly metaService: MetaService,
     private readonly dataAnalysisService: AnalysisService,
     private readonly overviewService: OverviewService,
+    private readonly nodeRegistryService: NodeRegistryService,
   ) {
+  }
+
+  /**
+   * 计算节点拓扑（只读，链接状态由 gRPC 接入注册表实时派生）
+   *
+   * 放在 /system-data 下而非 /api/compute-node：后者挂了 AdminGuard，
+   * 而本页只需 system:data:computing-node:view 级别的只读权限。
+   */
+  @Get('computing-nodes')
+  async getComputingNodes(): Promise<IComputeNodeTopology> {
+    return await this.nodeRegistryService.getTopology()
   }
 
   @Get('overview')

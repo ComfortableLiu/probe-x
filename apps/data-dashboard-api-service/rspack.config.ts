@@ -98,6 +98,10 @@ const config: Configuration = {
           from: path.resolve(dataDashboardServicePath, 'config'),
           to: path.resolve(rootDir, 'dist/apps/data-dashboard-api-service/config'),
         },
+        {
+          from: path.resolve(rootDir, 'libs/shared-utils/src/lib/backend-common/proto'),
+          to: path.resolve(rootDir, 'dist/apps/data-dashboard-api-service/proto'),
+        },
       ],
     }),
     !process.env.BUILD &&

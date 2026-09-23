@@ -34,9 +34,6 @@ RUN yarn build:lib
 # 构建指定服务（SERVICE_NAME 即 workspace 包名，如 receiving-point-service）
 RUN yarn workspace ${SERVICE_NAME} build
 
-# 确保 proto 目录存在（仅 final-data-cleaning-service 有真实 proto 文件，其余服务为空目录）
-RUN mkdir -p /app/apps/${SERVICE_NAME}/proto
-
 # ==================== 运行阶段 ====================
 FROM node:20-alpine AS runner
 
@@ -55,9 +52,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
-# 复制 proto 文件（final-data-cleaning-service 需要，其余服务为空目录）
+# 复制共享 proto 文件（计算节点接入协议，resolveProtoPath 会从 ./proto 或 dist 内解析）
 ARG SERVICE_NAME
-COPY --from=builder --chown=nodejs:nodejs /app/apps/${SERVICE_NAME}/proto ./proto
+COPY --from=builder --chown=nodejs:nodejs /app/libs/shared-utils/src/lib/backend-common/proto ./proto
 
 # 切换到非 root 用户
 USER nodejs

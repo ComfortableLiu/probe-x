@@ -30,6 +30,17 @@ export default () => ({
       port: parseInt(process.env.RECEIVING_POINT_SERVICE_PORT || '', 10) || 8104,
     },
   },
+  // 总服务（data-dashboard-api-service）的计算节点接入端口，
+  // 节点启动后拨出连接到 master.host:master.port
+  master: {
+    host: process.env.MASTER_HOST || 'localhost',
+    port: parseInt(process.env.MASTER_PORT || '', 10) || 8105,
+  },
+  // 节点自身上报信息。节点标识 NODE_ID / NODE_NAME 由 ComputeNodeService 读取
+  node: {
+    advertiseAddress: process.env.NODE_ADVERTISE_ADDRESS || '',
+    heartbeatIntervalMs: parseInt(process.env.HEARTBEAT_INTERVAL_MS || '', 10) || 5000,
+  },
   database: {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '', 10) || 3306,

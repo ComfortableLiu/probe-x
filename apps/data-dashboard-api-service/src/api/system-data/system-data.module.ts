@@ -3,6 +3,7 @@ import { SystemDataController } from './system-data.controller'
 import { AnalysisService } from './analysis.service'
 import { MetaService } from './meta.service'
 import { OverviewService } from './overview.service'
+import { ComputeNodeModule } from '../compute-node/compute-node.module'
 import {
   ClickHouseModule,
   DataAnalysisAccessStatsEntity,
@@ -15,6 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 @Module({
   imports: [
     ClickHouseModule,
+    ComputeNodeModule,
     TypeOrmModule.forFeature([
       DataAnalysisTaskLogEntity,
       DataAnalysisQueryStatsEntity,

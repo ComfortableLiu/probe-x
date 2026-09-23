@@ -1,9 +1,9 @@
 .computing-node-tree-container {
   border: 1px solid var(--px-color-border);
   border-radius: var(--px-radius-lg);
-  overflow: hidden;
   background-color: var(--px-color-bg-layout);
   padding: 20px; // 添加内边距以确保文字可见
+  overflow-x: auto; // 节点多了画布变宽，横向可滚
 }
 
 .clickable-node {
