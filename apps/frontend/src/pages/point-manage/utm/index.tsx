@@ -117,7 +117,12 @@ function UtmManage() {
       dataIndex: "dimension",
       width: 100,
       fixed: "left",
-      render: (value: UtmDimension) => <Tag>{UTM_DIMENSION_LABEL[value] || value}</Tag>,
+      // 默认展示英文取值，中文名放 hover，跟「取值」列一样是机器可读的原文
+      render: (value: UtmDimension) => (
+        <Tooltip title={UTM_DIMENSION_LABEL[value] || value}>
+          <Tag>{value}</Tag>
+        </Tooltip>
+      ),
     }, {
       title: "取值",
       dataIndex: "value",
