@@ -201,17 +201,23 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审计日志表';
 
 -- ==================== 计算节点表 ====================
+-- 与 ComputeNodeEntity / scripts/create-missing-tables.sql 的 compute_node 保持一致，
+-- 改这里请同步改那两处，否则自动注册会因为列对不上而失败
 CREATE TABLE IF NOT EXISTS `compute_node` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `node_id` VARCHAR(100) NOT NULL UNIQUE COMMENT '节点唯一标识',
-  `node_name` VARCHAR(100) COMMENT '节点名称',
-  `status` ENUM('online', 'offline', 'busy') DEFAULT 'offline' COMMENT '节点状态',
-  `last_heartbeat` DATETIME(3) COMMENT '最后心跳时间',
-  `capabilities` JSON COMMENT '节点能力配置',
-  `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `updated_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-  INDEX `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='计算节点表';
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '节点唯一ID',
+  `node_id` VARCHAR(100) NULL UNIQUE COMMENT '节点自报标识（自动注册的节点以此字段幂等 upsert）',
+  `node_name` VARCHAR(100) NOT NULL COMMENT '节点名称',
+  `node_address` VARCHAR(255) NOT NULL COMMENT '节点地址',
+  `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）',
+  `node_type` VARCHAR(20) NOT NULL DEFAULT 'grpc' COMMENT '节点类型（grpc）',
+  `status` VARCHAR(20) NOT NULL DEFAULT 'stopped' COMMENT '节点状态（running/stopped/error）',
+  `weight` INT NOT NULL DEFAULT 100 COMMENT '权重（用于负载均衡，默认100）',
+  `description` VARCHAR(255) NULL COMMENT '描述',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间（自动填充）',
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间（自动更新）',
+  PRIMARY KEY (`id`),
+  INDEX `IDX_compute_node_id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='计算节点配置表：存储系统中计算节点的注册配置信息';
 
 -- ==================== 数据分析任务日志表 ====================
 CREATE TABLE IF NOT EXISTS `data_analysis_task_log` (
