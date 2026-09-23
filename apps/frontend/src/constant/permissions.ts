@@ -21,6 +21,7 @@ export enum PagePermission {
   POINT_MANAGE_EVENT = 'point:manage:event', // 事件管理页面
   POINT_MANAGE_PROPERTY = 'point:manage:property', // 属性管理页面
   POINT_MANAGE_SPM = 'point:manage:spm', // SPM管理页面
+  POINT_MANAGE_UTM = 'point:manage:utm', // UTM管理页面
   POINT_MANAGE_BASIC_CODING = 'point:manage:basic-coding', // 基础编码管理页面
 
   // 数据分析
@@ -184,6 +185,7 @@ export const SYSTEM_ROLE_CONFIGS: Record<SystemRoleKey, ISystemRoleConfig> = {
       PagePermission.POINT_MANAGE_EVENT,
       PagePermission.POINT_MANAGE_PROPERTY,
       PagePermission.POINT_MANAGE_SPM,
+      PagePermission.POINT_MANAGE_UTM,
       PagePermission.POINT_MANAGE_BASIC_CODING,
       PagePermission.SYSTEM_DATA_OVERVIEW,
       PagePermission.SYSTEM_DATA_META,

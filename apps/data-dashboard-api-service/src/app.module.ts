@@ -30,6 +30,7 @@ import { AlertModule } from "@src/api/alert/alert.module"
 import { AuditLogModule } from "@src/api/audit-log/audit-log.module"
 import { DataSourceModule } from "@src/api/datasource/datasource.module"
 import { NotificationModule } from "@src/api/notification/notification.module"
+import { UtmModule } from "@src/api/utm/utm.module"
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { NotificationModule } from "@src/api/notification/notification.module"
     AuditLogModule,
     DataSourceModule,
     NotificationModule,
+    UtmModule,
   ],
   providers: [{
     provide: APP_INTERCEPTOR,

@@ -232,6 +232,40 @@ CREATE TABLE IF NOT EXISTS `data_analysis_task_log` (
   FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据分析任务日志表';
 
+-- ==================== UTM 条目表 ====================
+-- 按维度存储 ClickHouse 里出现过的 UTM 取值，附带用户维护的别名/描述与累计统计。
+-- value 列显式用 utf8mb4_bin：ClickHouse 的 GROUP BY 是字节精确的，
+-- 库默认的 utf8mb4_unicode_ci 会把 Google / google 判为同一条导致 upsert 撞车。
+CREATE TABLE IF NOT EXISTS `utm_item` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `dimension` ENUM('source', 'medium', 'campaign', 'term', 'content') NOT NULL COMMENT 'UTM 维度',
+  `value` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'UTM 原始取值（大小写敏感）',
+  `alias` VARCHAR(255) COMMENT '别名',
+  `description` VARCHAR(500) COMMENT '描述',
+  `event_count` BIGINT DEFAULT 0 COMMENT '累计事件数（每日累加，精确）',
+  `first_seen_date` DATE COMMENT '首次出现日期',
+  `last_seen_date` DATE COMMENT '末次出现日期',
+  `is_deleted` TINYINT(1) DEFAULT 0 COMMENT '软删除标记（1=已删除，不再统计）',
+  `deleted_at` DATETIME(3) COMMENT '删除时间',
+  `deleted_user_id` INT COMMENT '删除用户ID',
+  `create_time` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `create_user_id` INT COMMENT '创建用户ID（条目由统计任务写入，无操作人时为空）',
+  `update_user_id` INT COMMENT '更新用户ID',
+  `update_time` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  UNIQUE KEY `uk_dimension_value` (`dimension`, `value`),
+  INDEX `idx_is_deleted` (`is_deleted`),
+  INDEX `idx_last_seen_date` (`last_seen_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='UTM 条目表';
+
+-- ==================== 统计游标表 ====================
+-- 通用 KV 形态：一行一个同步任务的进度，UTM 统计用 name = 'utm'。
+-- cursor_date 语义为「已统计到的日期（含）」，只前进不回退，保证同一天不会被二次累加。
+CREATE TABLE IF NOT EXISTS `sync_cursor` (
+  `name` VARCHAR(64) PRIMARY KEY COMMENT '游标名称，如 utm',
+  `cursor_date` DATE NOT NULL COMMENT '已统计到的日期（含）',
+  `update_time` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='统计游标表';
+
 -- ==================== 初始化数据 ====================
 
 -- 插入默认角色

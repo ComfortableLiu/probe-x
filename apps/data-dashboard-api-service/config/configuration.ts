@@ -112,6 +112,14 @@ export default () => {
       clusterEnabled: process.env.REDIS_CLUSTER_ENABLED === 'true',
       clusterNodes: process.env.REDIS_CLUSTER_NODES?.split(',') || [],
     },
+    utm: {
+      stat: {
+        // 每日统计的截止日相对今天的偏移天数。默认 -1（只统计到昨天）：
+        // 当天数据还在流动，统计到今天并把游标推到今天会永久漏掉当天剩余的量。
+        // 需要统计到当天时置 0。
+        targetOffset: Number.parseInt(process.env.UTM_STAT_TARGET_OFFSET ?? '-1', 10),
+      },
+    },
     minio: {
       host: process.env.MINIO_HOST || 'localhost',
       port: parseInt(process.env.MINIO_PORT || '', 10) || 6800,
