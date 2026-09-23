@@ -145,3 +145,29 @@ export interface IUtmStatCursorRes {
   // 每日统计的截止日相对今天的偏移
   targetOffset: number
 }
+
+/**
+ * UTM 取值选项
+ * UTM 分析的取值筛选器用，只含有效条目，一次性返回不分页
+ */
+export interface IUtmOptionItem {
+  id: number
+  // UTM 维度
+  dimension: UtmDimension
+  // UTM 原始取值
+  value: string
+  // 别名（用户维护的可读名称）
+  alias?: string
+  // 累计事件数，用来把投放量大的取值排在前面
+  eventCount: number
+}
+
+/**
+ * 查询 UTM 取值选项
+ */
+export interface IQueryUtmOptionsReq {
+  // 维度，不传返回全部维度
+  dimension?: UtmDimension
+}
+
+export type IQueryUtmOptionsRes = IUtmOptionItem[]

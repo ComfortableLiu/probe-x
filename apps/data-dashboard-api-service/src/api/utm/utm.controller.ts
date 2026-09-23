@@ -4,6 +4,7 @@ import {
   IDeleteUtmReq,
   IQueryUtmListReq,
   IQueryUtmListRes,
+  IQueryUtmOptionsRes,
   IRecalcUtmReq,
   IRecalcUtmRes,
   IRestoreUtmReq,
@@ -46,6 +47,15 @@ export class UtmController {
       pageSize: Math.min(pageSize || 20, 100),
     }
     return await this.utmService.getList(params)
+  }
+
+  /**
+   * UTM 取值选项（UTM 分析的取值筛选器用）
+   * 只返回有效条目，带别名，一次性返回不分页
+   */
+  @Get('options')
+  async getOptions(@Query('dimension') dimension?: UtmDimension): Promise<IQueryUtmOptionsRes> {
+    return await this.utmService.getOptions(dimension)
   }
 
   /**

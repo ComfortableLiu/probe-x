@@ -25,6 +25,7 @@ import { EventAnalysisService } from '../data-analysis/event-analysis.service'
 import { FunnelAnalysisService } from '../data-analysis/funnel-analysis.service'
 import { UserPathAnalysisService } from '../data-analysis/user-path-analysis.service'
 import { AttributionAnalysisService } from '../data-analysis/attribution-analysis.service'
+import { UtmAnalysisService } from '../data-analysis/utm-analysis.service'
 
 /**
  * 看板缓存Key前缀
@@ -50,6 +51,7 @@ export class DashboardService {
     private readonly funnelAnalysisService: FunnelAnalysisService,
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
+    private readonly utmAnalysisService: UtmAnalysisService,
   ) {}
 
   /**
@@ -325,6 +327,12 @@ export class DashboardService {
         queryParams.timeRange = data.timeRange
       }
       analysisData = await this.attributionAnalysisService.queryEvent(queryParams, user)
+    } else if (dashboard.analysisType === AnalysisType.UTM && config.utmAnalysis) {
+      const queryParams = { ...config.utmAnalysis }
+      if (data.timeRange) {
+        queryParams.timeRange = data.timeRange
+      }
+      analysisData = await this.utmAnalysisService.query(queryParams, user)
     }
 
     // 检查配置是否匹配分析类型
@@ -334,6 +342,7 @@ export class DashboardService {
         [AnalysisType.FUNNEL]: '漏斗分析',
         [AnalysisType.USER_PATH]: '用户路径分析',
         [AnalysisType.ATTRIBUTION]: '归因分析',
+        [AnalysisType.UTM]: 'UTM 分析',
       }[dashboard.analysisType] || dashboard.analysisType
       
       throw new BusinessException(

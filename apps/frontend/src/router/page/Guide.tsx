@@ -50,6 +50,15 @@ export default {
       },
     },
     {
+      path: '/data-analysis/utm',
+      name: 'UTM 分析说明',
+      key: 'guide-data-analysis-utm',
+      component: lazy(() => import('@pages/guide/pages/data-analysis/utm/index')),
+      meta: {
+        isHidden: true,
+      },
+    },
+    {
       path: '/data-analysis/dashboard-config',
       name: '数据看板设置说明',
       key: 'guide-data-analysis-dashboard-config',
