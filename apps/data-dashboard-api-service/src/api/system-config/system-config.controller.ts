@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Put, Query, UseGuards } from '@nestjs/common'
 import { SystemConfigUserService } from './user.service'
 import { SystemConfigRoleService } from './role.service'
 import { SystemConfigSystemService } from './system.service'
@@ -33,9 +33,12 @@ import {
   IUpdateSystemReq,
   IUpdateSystemRes,
   IDeleteSystemReq,
+  IGeneralConfig,
+  IUpdateGeneralConfigReq,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
 import { AdminGuard } from '../../guard/admin.guard'
+import { GeneralConfigService } from './general-config.service'
 
 @Controller('/system-config')
 @UseGuards(AdminGuard)
@@ -44,6 +47,7 @@ export class SystemConfigController {
     private readonly userService: SystemConfigUserService,
     private readonly roleService: SystemConfigRoleService,
     private readonly systemService: SystemConfigSystemService,
+    private readonly generalConfigService: GeneralConfigService,
   ) {}
 
   /**
@@ -285,6 +289,23 @@ export class SystemConfigController {
   @Get('system/options')
   async getSystemOptions(): Promise<Array<{ id: number; systemKey: string; systemName: string }>> {
     return await this.systemService.getSystemOptions()
+  }
+
+  /**
+   * 获取通用设置
+   */
+  @Get('general')
+  async getGeneralConfig(): Promise<IGeneralConfig> {
+    return this.generalConfigService.getGeneralConfig()
+  }
+
+  /**
+   * 保存通用设置
+   */
+  @Put('general')
+  async updateGeneralConfig(@Body() body: IUpdateGeneralConfigReq): Promise<IGeneralConfig> {
+    await this.generalConfigService.updateGeneralConfig(body)
+    return this.generalConfigService.getGeneralConfig()
   }
 }
 
