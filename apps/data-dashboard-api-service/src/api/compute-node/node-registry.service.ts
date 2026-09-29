@@ -368,10 +368,30 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     return Boolean(node.session) && now - node.lastHeartbeat <= this.heartbeatTimeoutMs
   }
 
+  /**
+   * 节点死亡时若仍有在途任务，按失败落定通知调度器
+   *
+   * 节点被强杀后永远等不到 progress 帧；不通知的话调度器的 inflight 会永久泄漏，
+   * 该 (date, session) 此后再也不会被补洗。通知后清空 busy 状态，重复扫描天然幂等，
+   * 保证每次死亡只通知一次。
+   */
+  private settleIfBusy(node: LiveNode): void {
+    if (!node.busyTaskId) return
+    const taskId = node.busyTaskId
+    node.busy = false
+    node.busyTaskId = ''
+    console.warn(`[计算节点 ${node.nodeId}] 节点离线，在途任务 ${taskId} 按失败落定`)
+    this.settleListeners.forEach(listener => listener(taskId, true))
+  }
+
   /** 节点被强杀时流可能迟迟不 close，靠心跳超时把库里的 running 改回来 */
   private async reconcileStatus(): Promise<void> {
     for (const node of this.nodes.values()) {
-      const status: NodeStatus = this.isAlive(node) ? 'running' : 'stopped'
+      const alive = this.isAlive(node)
+      // 断流（detach 已置 session=null，persistedStatus 同步改掉，不走下面的跳变分支）
+      // 与心跳超时都汇聚到这里判定死亡，所以不能只在 persistedStatus 跳变时才落定
+      if (!alive) this.settleIfBusy(node)
+      const status: NodeStatus = alive ? 'running' : 'stopped'
       if (node.persistedStatus === status) continue
       node.persistedStatus = status
       await this.computeNodeService.syncStatus(node.nodeId, status)
