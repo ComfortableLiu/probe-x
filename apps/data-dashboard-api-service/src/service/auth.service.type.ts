@@ -2,6 +2,7 @@ export interface ITokenPayload {
   // 用户唯一标识
   userId: string | number
   username: string
+  tokenVersion: number
   // 令牌类型
   tokenType: 'refresh' | 'access',
   // 唯一 ID

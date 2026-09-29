@@ -66,6 +66,10 @@ export class UserEntity {
   })
   isActive?: boolean
 
+  /** 凭证变更或禁用时递增，使已有 access/refresh token 立即失效。 */
+  @Column({ name: 'token_version', type: 'int', unsigned: true, default: 0 })
+  tokenVersion?: number
+
   /** 用户创建时间（自动填充） */
   @CreateDateColumn({
     name: 'created_at',

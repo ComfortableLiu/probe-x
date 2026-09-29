@@ -12,6 +12,8 @@ import { UserEntity } from "@probe-x/shared-utils/src/lib/backend-common/entity/
 import { UserRoleRelation } from "@probe-x/shared-utils/src/lib/backend-common/entity/UserRoleRelation.entity"
 import { IPermissionRes, IUser, IUpdateUserProfileReq, IUpdateUserProfileRes, IChangePasswordReq, IChangePasswordRes } from "@probe-x/shared-types/src"
 import { ConfigService } from "@nestjs/config"
+import { AuthorizationService } from '../../service/authorization.service'
+import { ITokenPayload } from '../../service/auth.service.type'
 
 @Injectable()
 export class UserService {
@@ -27,6 +29,7 @@ export class UserService {
     private roleRepo: Repository<Role>,
     @InjectRepository(Permission)
     private permissionRepo: Repository<Permission>,
+    private readonly authorizationService: AuthorizationService,
   ) {
   }
 
@@ -34,10 +37,7 @@ export class UserService {
    * 获取用户的角色列表
    */
   async getUserRoles(userId: number): Promise<Role[]> {
-    const userRoles = await this.userRoleRepo.find({ where: { userId } })
-    const roleIds = userRoles.map(ur => ur.roleId)
-    if (roleIds.length === 0) return []
-    return this.roleRepo.findByIds(roleIds)
+    return this.authorizationService.getGlobalRoles(userId)
   }
 
   /**
@@ -55,8 +55,10 @@ export class UserService {
       return ResponseData.error('admin用户不存在')
     }
 
-    admin.passwordHash = ''
-    await this.userRepository.save(admin)
+    await this.userRepository.update(admin.userId, {
+      passwordHash: '',
+      tokenVersion: () => 'token_version + 1',
+    })
 
     return ResponseData.success({ message: 'admin密码已重置，请通过初始化脚本设置新密码' })
   }
@@ -72,7 +74,7 @@ export class UserService {
     }
     const user = await this.userRepository.findOne({ where: { username } })
 
-    if (!user) {
+    if (!user || !user.isActive) {
       return ResponseData.error("用户名或密码错误")
     }
 
@@ -84,9 +86,9 @@ export class UserService {
     // 检查用户是否存在且密码正确
     if (this.checkPassword(password, user.passwordHash)) {
       // 生成JWT令牌
-      const accessToken = this.authService.generateAccessToken(user.userId, user.username)
+      const accessToken = this.authService.generateAccessToken(user.userId, user.username, user.tokenVersion)
       // 生成刷新令牌
-      const refreshToken = this.authService.generateRefreshToken(user.userId, user.username)
+      const refreshToken = this.authService.generateRefreshToken(user.userId, user.username, user.tokenVersion)
       return {
         accessToken,
         refreshToken,
@@ -119,6 +121,10 @@ export class UserService {
       .where('user_role.user_id = :userId', { userId })
       // 只查询启用的权限（提前过滤，减少后续处理）
       .andWhere('permission.is_enable = 1')
+      .andWhere('role.is_enable = 1')
+      .andWhere('user_role.system_id IS NULL')
+      .andWhere('role.system_id IS NULL')
+      .andWhere('permission.system_id IS NULL')
     const relations = await queryBuilder.getMany()
 
     // 7. 格式化结果
@@ -166,7 +172,7 @@ export class UserService {
    * 验证SSO token
    * @param token
    */
-  async validateSsoToken(token: string): Promise<IUser> {
+  async validateSsoToken(token: string): Promise<IUser & { tokenVersion: number }> {
     const secret = this.configService.get<string>('jwt.secret')
     try {
       // 验证JWT token
@@ -177,25 +183,34 @@ export class UserService {
         return null
       }
 
-      // 根据username查找用户
-      const user = await this.userRepository.findOne({
-        where: { username: decoded.username },
-      })
+      const user = await this.validateSession(decoded)
 
       // 检查用户是否存在
       if (user) {
         return {
           ...user,
+          tokenVersion: user.tokenVersion,
           passwordHash: '*******',
         }
       }
 
       return null
     } catch (error) {
-      // token验证失败
-      console.error('e', error)
       return null
     }
+  }
+
+  async validateSession(payload: Partial<ITokenPayload>): Promise<UserEntity | null> {
+    const userId = Number(payload.userId)
+    if (!Number.isSafeInteger(userId) || userId <= 0 ||
+      !Number.isSafeInteger(payload.tokenVersion) || payload.tokenVersion < 0) {
+      return null
+    }
+    const user = await this.userRepository.findOne({ where: { userId, isActive: true } })
+    if (!user?.isActive || user.username !== payload.username || user.tokenVersion !== payload.tokenVersion) {
+      return null
+    }
+    return user
   }
 
   /**
@@ -293,7 +308,7 @@ export class UserService {
       user.nickname = data.nickname
     }
 
-    await this.userRepository.save(user)
+    await this.userRepository.update(userId, { email: user.email, nickname: user.nickname })
 
     const result: IUser = {
       ...user,
@@ -352,8 +367,14 @@ export class UserService {
     const frontendEncrypted = this.hashPassword(newPassword)
     const newPasswordHash = this.hashPassword(frontendEncrypted)
 
-    user.passwordHash = newPasswordHash
-    await this.userRepository.save(user)
+    // 带版本条件更新，避免两个并发改密请求覆盖彼此的凭证及撤销状态。
+    const updated = await this.userRepository.update({ userId, tokenVersion: user.tokenVersion }, {
+      passwordHash: newPasswordHash,
+      tokenVersion: () => 'token_version + 1',
+    })
+    if (!updated.affected) {
+      return ResponseData.error('会话已变更，请重新登录后重试')
+    }
 
     return ResponseData.success({ userId })
   }

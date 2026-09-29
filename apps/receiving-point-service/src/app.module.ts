@@ -1,3 +1,4 @@
+import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
 import { Module } from '@nestjs/common'
 import {
   ClickHouseModule,
@@ -17,6 +18,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config"
 @Module({
   imports: [
     envConfig(configuration, 'apps/receiving-point-service'),
+    ServiceResourcesModule.forService('receiving-point-service'),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

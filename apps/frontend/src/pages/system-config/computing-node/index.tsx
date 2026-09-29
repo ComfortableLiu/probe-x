@@ -129,7 +129,7 @@ function ComputingNode() {
       <p className={styles.description}>
         管理系统的计算节点，包括节点的添加、编辑、删除和状态监控。
       </p>
-      <FormComponent formItems={formItems} />
+      <FormComponent formItems={formItems} name="computingNodeSearch" />
       <TableComponent<IComputeNodeListItem>
         exButtons={(
           <Button type="primary" onClick={handleAdd}>

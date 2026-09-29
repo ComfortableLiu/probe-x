@@ -14,20 +14,18 @@ function SystemAvailability({ systemPerformanceMetrics }: SystemAvailabilityProp
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={12}>
           <MetricCard
-            title="当前可用性"
-            value={systemPerformanceMetrics.systemAvailability}
+            title="上一分钟请求成功率"
+            value={systemPerformanceMetrics.systemAvailability ?? '—'}
             suffix="%"
             precision={2}
-            status="good"
           />
         </Col>
         <Col span={12}>
           <MetricCard
-            title="本月可用性"
-            value={systemPerformanceMetrics.currentMonthAvailability}
+            title="本月已采样请求成功率"
+            value={systemPerformanceMetrics.currentMonthAvailability ?? '—'}
             suffix="%"
             precision={2}
-            status="good"
           />
         </Col>
       </Row>

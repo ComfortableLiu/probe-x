@@ -27,7 +27,7 @@ export class UserController {
   async rolePermissionList(@User() user: IUser): Promise<IPermissionRes> {
     // 超管特判：检查用户是否拥有 admin 角色
     const userRoles = await this.userService.getUserRoles(user.userId)
-    const isAdmin = userRoles.some(role => role.roleKey === 'admin' || role.roleKey === 'super_admin' || role.roleType === 'system')
+    const isAdmin = userRoles.some(role => role.roleKey === 'admin' || role.roleKey === 'super_admin')
     if (isAdmin) {
       return await this.userService.getAllRoleAndPermission()
     }
@@ -50,10 +50,10 @@ export class UserController {
         code: ErrorCode.REFRESH_TOKEN_EXPIRED,
       })
     }
-    const newAccessToken = this.authService.generateAccessToken(userInfo.userId, userInfo.username)
+    const newAccessToken = this.authService.generateAccessToken(userInfo.userId, userInfo.username, userInfo.tokenVersion)
     // 这里也重新生成一个新的刷新token的目的是为了提升体验，让频繁使用系统的用户无感去刷新token。
     // 也就是变成了，只要7天内访问过系统，就可以不用登录，而7天内没有访问系统的用户，则需要重新登录
-    const newRefreshToken = this.authService.generateRefreshToken(userInfo.userId, userInfo.username)
+    const newRefreshToken = this.authService.generateRefreshToken(userInfo.userId, userInfo.username, userInfo.tokenVersion)
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,

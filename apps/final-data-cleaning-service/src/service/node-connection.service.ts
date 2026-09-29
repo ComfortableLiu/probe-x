@@ -1,8 +1,8 @@
 import { Injectable, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Subject } from 'rxjs'
-import grpc from '@grpc/grpc-js'
-import protoLoader from '@grpc/proto-loader'
+import * as grpc from '@grpc/grpc-js'
+import * as protoLoader from '@grpc/proto-loader'
 import { resolveProtoPath } from '@probe-x/shared-utils/src/lib/backend-common'
 import { ComputeNodeService } from './node.service'
 import type {

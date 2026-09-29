@@ -19,11 +19,12 @@ export class AuthService {
   })()
 
   // 生成刷新令牌
-  generateRefreshToken(userId: number, username: string, clientId: string = 'probe-x') {
+  generateRefreshToken(userId: number, username: string, tokenVersion: number, clientId: string = 'probe-x') {
     const expiresIn = +this.configService.get<string>('jwt.refreshExpiresIn')
     const payload: ITokenPayload = {
       userId,
       username,
+      tokenVersion,
       tokenType: 'refresh',
       jti: uuidv4(),
       clientId,
@@ -35,11 +36,12 @@ export class AuthService {
   }
 
   // 生成登录用的 Access Token
-  generateAccessToken(userId: number, username: string, clientId: string = 'probe-x') {
+  generateAccessToken(userId: number, username: string, tokenVersion: number, clientId: string = 'probe-x') {
     const expiresIn = +this.configService.get<string>('jwt.expiresIn')
     const payload: ITokenPayload = {
       userId,
       username,
+      tokenVersion,
       tokenType: 'access',
       clientId,
       jti: uuidv4(),

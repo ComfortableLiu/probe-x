@@ -26,6 +26,7 @@ import { FunnelAnalysisService } from '../data-analysis/funnel-analysis.service'
 import { UserPathAnalysisService } from '../data-analysis/user-path-analysis.service'
 import { AttributionAnalysisService } from '../data-analysis/attribution-analysis.service'
 import { UtmAnalysisService } from '../data-analysis/utm-analysis.service'
+import { AuthorizationService } from '../../service/authorization.service'
 
 /**
  * 看板缓存Key前缀
@@ -52,6 +53,7 @@ export class DashboardService {
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
     private readonly utmAnalysisService: UtmAnalysisService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   /**
@@ -407,13 +409,8 @@ export class DashboardService {
     if (!user.userId) {
       return { isAdmin: false, roleKey: 'user' }
     }
-    const userRoles = await this.userRoleRepository
-      .createQueryBuilder('user_role')
-      .leftJoinAndSelect('user_role.role', 'role')
-      .where('user_role.user_id = :userId', { userId: user.userId })
-      .getMany()
-
-    const roleKeys = userRoles.map((ur) => ur.role?.roleKey).filter(Boolean)
+    const roles = await this.authorizationService.getGlobalRoles(user.userId)
+    const roleKeys = roles.map(role => role.roleKey).filter(Boolean)
     const isAdmin = roleKeys.some((roleKey) => roleKey === 'admin' || roleKey === 'super_admin')
     const roleKey = roleKeys[0] || 'user'
     return { isAdmin, roleKey }

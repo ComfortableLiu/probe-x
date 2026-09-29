@@ -1,3 +1,4 @@
+import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
 import { Module } from '@nestjs/common'
 import { ComputeNodeService } from "@src/service/node.service"
 import { NodeConnectionService } from "@src/service/node-connection.service"
@@ -7,6 +8,7 @@ import configuration from "../config/configuration"
 @Module({
   imports: [
     envConfig(configuration, 'apps/final-data-cleaning-service'),
+    ServiceResourcesModule.forService('final-data-cleaning-service'),
     MysqlModule.forRoot(),
     ClickHouseModule,
     RedisModule.forRoot(),

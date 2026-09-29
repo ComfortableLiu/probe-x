@@ -1,4 +1,5 @@
-import { Injectable, Optional } from '@nestjs/common'
+import { recordCleaningOutcome, recordRuntimeMetric } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { Subject } from 'rxjs'
 import { ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { IPreEventLog } from "@probe-x/shared-types/src"
@@ -16,6 +17,8 @@ export class ComputeNodeService {
   /** 节点展示名 */
   nodeName: string
   /** 当前正在执行的任务 id，空串表示空闲 */
+  private readonly logger = new Logger(ComputeNodeService.name)
+  private lastMetricsWarning = 0
   currentTaskId = ''
   /** 最近一次任务失败信息，空串表示无异常 */
   lastError = ''
@@ -31,7 +34,19 @@ export class ComputeNodeService {
 
   /** 采集节点资源与运行状态，用于注册帧/心跳帧 */
   getLocalNodeInfo() {
+    this.recordMetric(() => recordRuntimeMetric(this.redisService.getClient(), 'processing', 0))
     return collectNodeInfo(this.currentTaskId)
+  }
+
+  private recordMetric(write: () => Promise<void>): void {
+    if (!this.redisService) return
+    // Telemetry failure must never turn a successful cleaning task into a failed one.
+    Promise.resolve().then(write).catch(() => {
+      if (Date.now() - this.lastMetricsWarning > 60000) {
+        this.lastMetricsWarning = Date.now()
+        this.logger.warn('处理量采样未能写入 Redis，此期间采样可能不完整')
+      }
+    })
   }
 
   // 把所有事件查出来
@@ -104,9 +119,13 @@ export class ComputeNodeService {
 
       // 保证任务原子性，统一执行落库
       await Promise.all([
-        this.clickhouseService.insert('final_event_log', result.finalEvents),
+        this.clickhouseService.insert('final_event_log', result.finalEvents).then(() => {
+          this.recordMetric(() => recordRuntimeMetric(this.redisService.getClient(), 'processing', result.finalEvents.length))
+        }),
         this.clickhouseService.insert('event_attribution', result.attributions),
       ])
+
+      this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), true))
 
       // TODO 手动回滚逻辑
 
@@ -125,6 +144,7 @@ export class ComputeNodeService {
         failed: false,
       })
     } catch (e) {
+      this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), false))
       const error = e instanceof Error ? e.message : String(e)
       this.lastError = error
       // 任务失败时通过进度流推送失败状态，避免静默失败

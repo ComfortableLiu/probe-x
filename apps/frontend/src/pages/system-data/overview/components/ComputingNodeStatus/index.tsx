@@ -17,36 +17,32 @@ function ComputingNodeStatus({ computingNodeStatus }: ComputingNodeStatusProps) 
         <Col span={6}>
           <MetricCard
             title="总节点数"
-            value={computingNodeStatus.totalNodes}
+            value={computingNodeStatus.totalNodes ?? '—'}
             precision={0}
-            status="good"
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="在线节点"
-            value={computingNodeStatus.onlineNodes}
+            value={computingNodeStatus.onlineNodes ?? '—'}
             precision={0}
             valueStyle={{ color: token.colorSuccess }}
-            status="good"
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="离线节点"
-            value={computingNodeStatus.offlineNodes}
+            value={computingNodeStatus.offlineNodes ?? '—'}
             precision={0}
             valueStyle={{ color: token.colorError }}
-            status="critical"
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="在线率"
-            value={computingNodeStatus.onlineRate}
+            value={computingNodeStatus.onlineRate ?? '—'}
             suffix="%"
             precision={2}
-            status="good"
           />
         </Col>
       </Row>
@@ -55,36 +51,32 @@ function ComputingNodeStatus({ computingNodeStatus }: ComputingNodeStatusProps) 
         <Col span={6}>
           <MetricCard
             title="CPU使用率"
-            value={computingNodeStatus.cpuUsage}
+            value={computingNodeStatus.cpuUsage ?? '—'}
             suffix="%"
             precision={1}
-            status="warning"
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="内存使用率"
-            value={computingNodeStatus.memoryUsage}
+            value={computingNodeStatus.memoryUsage ?? '—'}
             suffix="%"
             precision={1}
-            status="warning"
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="平均负载"
-            value={computingNodeStatus.avgLoad}
+            value={computingNodeStatus.avgLoad ?? '—'}
             precision={2}
-            status="good"
           />
         </Col>
         <Col span={6}>
           <MetricCard
-            title="网络流量"
-            value={computingNodeStatus.networkTraffic}
+            title="网络收发总速率"
+            value={computingNodeStatus.networkTraffic ?? '—'}
             suffix="Gbps"
             precision={2}
-            status="good"
           />
         </Col>
       </Row>

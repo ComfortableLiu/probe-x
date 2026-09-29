@@ -14,29 +14,26 @@ function AvgResponseTime({ systemPerformanceMetrics }: AvgResponseTimeProps) {
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
           <MetricCard
-            title="平均响应时间"
-            value={systemPerformanceMetrics.avgResponseTime}
+            title="今日平均响应时间"
+            value={systemPerformanceMetrics.avgResponseTime ?? '—'}
             suffix="ms"
             precision={1}
-            status="good"
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="95th响应时间"
-            value={systemPerformanceMetrics.p95ResponseTime}
+            title="今日 P95 响应时间（桶上界）"
+            value={systemPerformanceMetrics.p95ResponseTime ?? '—'}
             suffix="ms"
             precision={1}
-            status="warning"
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="99th响应时间"
-            value={systemPerformanceMetrics.p99ResponseTime}
+            title="今日 P99 响应时间（桶上界）"
+            value={systemPerformanceMetrics.p99ResponseTime ?? '—'}
             suffix="ms"
             precision={1}
-            status="critical"
           />
         </Col>
       </Row>

@@ -14,29 +14,26 @@ function ErrorRate({ systemPerformanceMetrics }: ErrorRateProps) {
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
           <MetricCard
-            title="请求错误率"
-            value={systemPerformanceMetrics.requestErrorRate}
+            title="HTTP 4xx 错误率"
+            value={systemPerformanceMetrics.requestErrorRate ?? '—'}
             suffix="%"
             precision={2}
-            status="warning"
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="系统错误率"
-            value={systemPerformanceMetrics.systemErrorRate}
+            title="HTTP 5xx 错误率"
+            value={systemPerformanceMetrics.systemErrorRate ?? '—'}
             suffix="%"
             precision={2}
-            status="warning"
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="异常捕获率"
-            value={systemPerformanceMetrics.exceptionCaptureRate}
+            title="业务错误率"
+            value={systemPerformanceMetrics.businessErrorRate ?? '—'}
             suffix="%"
             precision={2}
-            status="warning"
           />
         </Col>
       </Row>

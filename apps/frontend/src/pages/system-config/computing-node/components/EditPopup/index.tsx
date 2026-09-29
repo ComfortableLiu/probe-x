@@ -54,7 +54,8 @@ function ComputeNodeEditPopup(props: IComputeNodeEditPopupProps) {
       width={600}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={isLoading}>
+      {/* name 用于给字段 id 加前缀，避免 id="nodeName" 覆盖表单原生 nodeName 属性导致 react-dom 事件分发报错 */}
+      <Form name="computeNodeEdit" form={form} layout="vertical" onFinish={handleSubmit} disabled={isLoading}>
         <Form.Item name="nodeName" label="节点名称" rules={[{ required: true, message: "请输入节点名称" }]}>
           <Input placeholder="请输入节点名称" />
         </Form.Item>

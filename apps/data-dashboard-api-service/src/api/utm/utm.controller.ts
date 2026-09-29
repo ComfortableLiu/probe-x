@@ -18,6 +18,7 @@ import {
   UtmDimension,
 } from '@probe-x/shared-types/src'
 import { User } from '@probe-x/shared-utils/src/lib/backend-common'
+import { RequirePermissions } from '../../guard/permission.guard'
 
 @Controller('utm')
 export class UtmController {
@@ -62,6 +63,7 @@ export class UtmController {
    * 更新别名 / 描述（取值本身来自埋点上报，不允许改）
    */
   @Post('update')
+  @RequirePermissions('point:manage:utm')
   async update(
     @Body() body: IUpdateUtmReq,
     @User('userId') userId: string | number,
@@ -73,6 +75,7 @@ export class UtmController {
    * 软删除：不物理删除，后续统计不再计入该取值，UTM 分析也忽略它
    */
   @Post('delete')
+  @RequirePermissions('point:manage:utm')
   async remove(
     @Body() body: IDeleteUtmReq,
     @User('userId') userId: string | number,
@@ -84,6 +87,7 @@ export class UtmController {
    * 恢复已删除的条目
    */
   @Post('restore')
+  @RequirePermissions('point:manage:utm')
   async restore(
     @Body() body: IRestoreUtmReq,
     @User('userId') userId: string | number,
@@ -95,6 +99,7 @@ export class UtmController {
    * 重算单条累计统计（覆盖，不是累加）；恢复软删后用来补回被跳过的区间
    */
   @Post('recalc')
+  @RequirePermissions('point:manage:utm')
   async recalc(@Body() body: IRecalcUtmReq): Promise<IRecalcUtmRes> {
     return await this.utmService.recalcOne(Number(body.id))
   }
@@ -103,6 +108,7 @@ export class UtmController {
    * 全量初始化统计：把 ClickHouse 里已有的 UTM 全刷进统计表
    */
   @Post('stat/sync')
+  @RequirePermissions('point:manage:utm')
   async fullSync(@Body() body: IUtmStatSyncReq = {}): Promise<IUtmStatSyncRes> {
     return await this.utmService.fullSync(body || {})
   }
@@ -111,6 +117,7 @@ export class UtmController {
    * 增量统计：只统计游标之后到目标日的新增量
    */
   @Post('stat/increment')
+  @RequirePermissions('point:manage:utm')
   async incrementalSync(@Body() body: IUtmStatIncrementReq = {}): Promise<IUtmStatSyncRes> {
     return await this.utmService.incrementalSync(body || {})
   }

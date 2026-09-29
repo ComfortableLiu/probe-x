@@ -27,6 +27,7 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
   const {
     formItems,
     onFinish,
+    name,
   } = props
 
   const [form] = Form.useForm<T>()
@@ -114,6 +115,7 @@ function FormComponent<T extends Object = IAnyObj>(props: IFormComponentProps<T>
     <Form
       className={styles.formGroup}
       form={form}
+      name={name}
       onFinish={onHandleFinish}
     >
       <Row

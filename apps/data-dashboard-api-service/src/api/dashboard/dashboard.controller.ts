@@ -12,6 +12,7 @@ import {
   IConvertToPublicDashboardReq,
 } from '@probe-x/shared-types/src'
 import { DashboardService } from './dashboard.service'
+import { RequirePermissions } from '../../guard/permission.guard'
 
 @Controller('/dashboard')
 export class DashboardController {
@@ -21,6 +22,7 @@ export class DashboardController {
    * 创建看板
    */
   @Post('/create')
+  @RequirePermissions('dashboard:config:create')
   async createDashboard(
     @Body() data: ICreateDashboardReq,
     @User() user: IUser,
@@ -32,6 +34,7 @@ export class DashboardController {
    * 更新看板
    */
   @Post('/update')
+  @RequirePermissions('dashboard:config:update')
   async updateDashboard(
     @Body() data: IUpdateDashboardReq,
     @User() user: IUser,
@@ -43,6 +46,7 @@ export class DashboardController {
    * 删除看板
    */
   @Delete('/delete')
+  @RequirePermissions('dashboard:config:delete')
   async deleteDashboard(
     @Query('id', ParseIntPipe) id: number,
     @User() user: IUser,
@@ -87,6 +91,7 @@ export class DashboardController {
    * 将个人看板转为公共看板
    */
   @Post('/convert-to-public')
+  @RequirePermissions('dashboard:config:create')
   async convertToPublicDashboard(
     @Body() data: IConvertToPublicDashboardReq,
     @User() user: IUser,

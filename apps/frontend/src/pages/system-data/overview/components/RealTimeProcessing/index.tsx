@@ -14,22 +14,22 @@ function RealTimeProcessing({ realTimeProcessingMetrics }: RealTimeProcessingPro
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
           <MetricCard
-            title="当前处理量"
-            value={realTimeProcessingMetrics.currentProcessing}
+            title="上一分钟写入量"
+            value={realTimeProcessingMetrics.currentProcessing ?? '—'}
             precision={0}
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="峰值处理量"
-            value={realTimeProcessingMetrics.peakProcessing}
+            title="今日分钟写入峰值"
+            value={realTimeProcessingMetrics.peakProcessing ?? '—'}
             precision={0}
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="累计处理量"
-            value={realTimeProcessingMetrics.cumulativeProcessing}
+            title="清洗后事件存量"
+            value={realTimeProcessingMetrics.cumulativeProcessing ?? '—'}
             precision={0}
           />
         </Col>

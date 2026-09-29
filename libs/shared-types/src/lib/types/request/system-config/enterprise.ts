@@ -330,6 +330,12 @@ export interface ProgressUpdate {
 export interface NodeInfo {
   /** CPU 核心数 */
   cpu_count: number
+  /** New senders set validity flags; old protobuf defaults must not appear as measured zeros. */
+  resource_sampled?: boolean
+  cpu_usage?: number
+  load_average?: number
+  network_sampled?: boolean
+  network_bytes_per_second?: number
   /** 总内存，MB */
   memory_size: number
   /** 可用内存，MB */
@@ -387,6 +393,9 @@ export interface IComputeNodeLinkInfo {
   busyTaskId: string
   /** CPU 核心数 */
   cpuCount: number
+  cpuUsage?: number | null
+  loadAverage?: number | null
+  networkBytesPerSecond?: number | null
   /** 总内存，MB */
   memorySize: number
   /** 可用内存，MB */

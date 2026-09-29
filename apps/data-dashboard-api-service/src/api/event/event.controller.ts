@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common'
 import { EventService } from './event.service'
 import { UserService } from "../user/user.service"
 import type { EventFilterDto, PaginationDto, RegisterEventDto } from "./type"
+import { RequirePermissions } from '../../guard/permission.guard'
 
 @Controller('/event')
 export class EventController {
@@ -55,6 +56,7 @@ export class EventController {
    * 注册上报发现的事件
    */
   @Post('/register')
+  @RequirePermissions('event:create')
   async registerEvent(
     @Body() registerEventDto: RegisterEventDto,
     @Req() req: any,

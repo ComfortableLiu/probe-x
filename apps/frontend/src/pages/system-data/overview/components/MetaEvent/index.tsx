@@ -12,52 +12,32 @@ interface MetaEventProps {
 function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
   const { token } = theme.useToken()
 
-  // 防御性编程：确保 metaOverview 不为 null
-  const safeMetaOverview = metaOverview || {
-    originalDataTotal: '0',
-    finalCleanedData: '0',
-    firstCleaningSuccessRate: 0,
-    finalCleaningSuccessRate: 0,
-  }
-
-  // 防御性编程：确保 eventCollectionMetrics 不为 null
-  const safeEventCollectionMetrics = eventCollectionMetrics || {
-    todayCollection: 0,
-    yesterdayCollection: 0,
-    weekCollection: 0,
-    monthCollection: 0,
-    totalAmount: 0,
-  }
-
   return (
     <div>
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
           <MetricCard
-            title="元事件数量"
-            value={safeMetaOverview.originalDataTotal}
+            title="原始事件存量"
+            value={metaOverview.originalDataTotal}
             precision={0}
             valueStyle={{ color: token.colorSuccess }}
-            status="good"
           />
         </Col>
         <Col span={8}>
           <MetricCard
             title="清洗后数据量"
-            value={safeMetaOverview.finalCleanedData}
+            value={metaOverview.finalCleanedData}
             precision={0}
             valueStyle={{ color: token.colorPrimary }}
-            status="good"
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="数据清洗率"
-            value={safeMetaOverview.finalCleaningSuccessRate || '-'}
+            title="今日清洗任务成功率"
+            value={metaOverview.finalCleaningSuccessRate ?? '—'}
             suffix="%"
             precision={2}
             valueStyle={{ color: token.colorWarning }}
-            status="good"
           />
         </Col>
       </Row>
@@ -65,28 +45,28 @@ function MetaEvent({ metaOverview, eventCollectionMetrics }: MetaEventProps) {
         <Col span={6}>
           <MetricCard
             title="今日新增"
-            value={safeEventCollectionMetrics.todayCollection}
+            value={eventCollectionMetrics.todayCollection ?? '—'}
             precision={0}
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="本周新增"
-            value={safeEventCollectionMetrics.weekCollection}
+            value={eventCollectionMetrics.weekCollection ?? '—'}
             precision={0}
           />
         </Col>
         <Col span={6}>
           <MetricCard
             title="本月新增"
-            value={safeEventCollectionMetrics.monthCollection}
+            value={eventCollectionMetrics.monthCollection ?? '—'}
             precision={0}
           />
         </Col>
         <Col span={6}>
           <MetricCard
-            title="累计总量"
-            value={safeEventCollectionMetrics.totalAmount}
+            title="原始事件存量"
+            value={eventCollectionMetrics.totalAmount ?? '—'}
             precision={0}
           />
         </Col>

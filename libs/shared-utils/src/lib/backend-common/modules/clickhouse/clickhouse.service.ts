@@ -55,6 +55,10 @@ export class ClickHouseService {
       table,
       values: data,
       format: 'JSONEachRow', // 数据格式
+      clickhouse_settings: {
+        // best_effort 才能解析带时区后缀（如 ISO 8601 的 Z）的时间字符串，保留 UTC 语义
+        date_time_input_format: 'best_effort',
+      },
     })
   }
 

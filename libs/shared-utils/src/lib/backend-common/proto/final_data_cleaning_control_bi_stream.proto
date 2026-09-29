@@ -46,6 +46,11 @@ message NodeInfo {
     bool busy = 5;
     // 忙碌任务id
     string busy_task_id = 6;
+    bool resource_sampled = 7;
+    double cpu_usage = 8;
+    double load_average = 9;
+    bool network_sampled = 10;
+    double network_bytes_per_second = 11;
 }
 
 // 节点注册/心跳指令：连上总服务时必发一次，之后周期性重发兼作心跳

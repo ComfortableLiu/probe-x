@@ -1,16 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { Role, UserEntity, UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common'
+import { AuthorizationService } from '../service/authorization.service'
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(
-    @InjectRepository(UserRoleRelation)
-    private userRoleRepo: Repository<UserRoleRelation>,
-    @InjectRepository(Role)
-    private roleRepo: Repository<Role>,
-  ) {}
+  constructor(private readonly authorizationService: AuthorizationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
@@ -19,18 +12,7 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('未认证')
     }
 
-    // 查询用户的角色
-    const userRoles = await this.userRoleRepo.find({
-      where: { userId: user.userId },
-    })
-    const roleIds = userRoles.map(ur => ur.roleId)
-    if (roleIds.length === 0) {
-      throw new ForbiddenException('无管理员权限')
-    }
-
-    const roles = await this.roleRepo.findByIds(roleIds)
-    const isAdmin = roles.some(role => role.roleKey === 'admin' || role.roleKey === 'super_admin' || role.roleType === 'system')
-    if (!isAdmin) {
+    if (!(await this.authorizationService.isAdmin(user.userId))) {
       throw new ForbiddenException('无管理员权限')
     }
 

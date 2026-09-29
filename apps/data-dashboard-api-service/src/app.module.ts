@@ -1,3 +1,4 @@
+import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
 import { Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import {
@@ -9,7 +10,6 @@ import {
   RedisService,
   ResponseInterceptor,
   // SignatureInterceptor, // 已移除：HMAC签名需要客户端持有密钥，本质上不安全，后续应使用服务端签名方案
-  SsoAuthGuard,
 } from "@probe-x/shared-utils/src/lib/backend-common"
 import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"
@@ -31,10 +31,12 @@ import { AuditLogModule } from "@src/api/audit-log/audit-log.module"
 import { DataSourceModule } from "@src/api/datasource/datasource.module"
 import { NotificationModule } from "@src/api/notification/notification.module"
 import { UtmModule } from "@src/api/utm/utm.module"
+import { DashboardAuthGuard } from './guard/dashboard-auth.guard'
 
 @Module({
   imports: [
     envConfig(configuration, 'apps/data-dashboard-api-service'),
+    ServiceResourcesModule.forService('data-dashboard-api-service'),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -88,7 +90,7 @@ import { UtmModule } from "@src/api/utm/utm.module"
     useClass: JsonBodyInterceptor,
   }, {
     provide: APP_GUARD,
-    useClass: SsoAuthGuard,
+    useClass: DashboardAuthGuard,
   }],
 })
 export class AppModule {

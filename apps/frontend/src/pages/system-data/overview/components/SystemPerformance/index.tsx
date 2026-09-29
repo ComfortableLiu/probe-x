@@ -14,26 +14,23 @@ function SystemPerformance({ systemPerformanceMetrics }: SystemPerformanceProps)
       <Row gutter={16} className={styles.metricGroup}>
         <Col span={8}>
           <MetricCard
-            title="当前QPS"
-            value={systemPerformanceMetrics.currentQps}
-            precision={0}
-            status="good"
+            title="上一分钟平均 QPS"
+            value={systemPerformanceMetrics.currentQps ?? '—'}
+            precision={2}
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="峰值QPS"
-            value={systemPerformanceMetrics.peakQps}
-            precision={0}
-            status="warning"
+            title="今日分钟峰值 QPS"
+            value={systemPerformanceMetrics.peakQps ?? '—'}
+            precision={2}
           />
         </Col>
         <Col span={8}>
           <MetricCard
-            title="平均QPS"
-            value={systemPerformanceMetrics.avgQps}
-            precision={0}
-            status="good"
+            title="今日采样平均 QPS"
+            value={systemPerformanceMetrics.avgQps ?? '—'}
+            precision={2}
           />
         </Col>
       </Row>

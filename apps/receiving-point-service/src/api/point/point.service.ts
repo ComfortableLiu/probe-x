@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { IAnyObj, IEventLog } from "@probe-x/shared-types/src"
 import { TOPIC_PRELIMINARY_DATA_PROCESSING_POINT_META } from "@probe-x/shared-types/src"
 import { ClientKafka } from "@nestjs/microservices"
@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from "uuid"
 
 @Injectable()
 export class PointService {
+  private readonly logger = new Logger(PointService.name)
+
   constructor(
     @Inject('KAFKA_SERVICE')
     private readonly kafkaClient: ClientKafka,
@@ -129,6 +131,10 @@ export class PointService {
         key: event.$device_id,
         value: event,
       }),
+    )
+    this.logger.log(
+      `event received: $event_name=${event.$event_name}, $device_id=${event.$device_id}, ` +
+      `$log_time=${event.$log_time.toISOString()}, web_site=${event.$web_site}, $ip=${event.$ip}, $event_id=${event.$event_id}`,
     )
     return true
   }

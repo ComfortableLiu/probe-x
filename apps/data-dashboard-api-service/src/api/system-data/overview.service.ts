@@ -1,247 +1,157 @@
-import { Injectable } from '@nestjs/common'
-import { ClickHouseService } from '@probe-x/shared-utils/src/lib/backend-common'
+import { ServiceResourcesService } from './service-resources.service'
+import { Injectable, Logger } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { ClickHouseService, DataAnalysisQueryStatsEntity } from '@probe-x/shared-utils/src/lib/backend-common'
 import {
+  IAnalysisQueryMetrics,
   IComputingNodeStatus,
   IEventCollectionMetrics,
-  IRealTimeProcessingMetrics,
   ISystemDataOverviewResponse,
-  ISystemPerformanceMetrics,
-  ISystemDataMetaOverview,
 } from '@probe-x/shared-types/src'
-import { MetaService } from './meta.service'
+import { metricsWindow } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
+import { NodeRegistryService } from '../compute-node/node-registry.service'
+import { RuntimeMetricsService } from './runtime-metrics.service'
 
 @Injectable()
 export class OverviewService {
+  private readonly logger = new Logger(OverviewService.name)
+  private pending: Promise<ISystemDataOverviewResponse> | null = null
+  private cached: { at: number; data: ISystemDataOverviewResponse } | null = null
+
   constructor(
     private readonly clickhouseService: ClickHouseService,
-    private readonly metaService: MetaService,
+    private readonly nodeRegistry: NodeRegistryService,
+    private readonly runtimeMetrics: RuntimeMetricsService,
+    @InjectRepository(DataAnalysisQueryStatsEntity)
+    private readonly queryStats: Repository<DataAnalysisQueryStatsEntity>,
+    private readonly serviceResources: ServiceResourcesService,
   ) {}
 
-  /**
-   * 获取系统数据概览信息
-   * @returns ISystemDataOverviewResponse 系统数据概览信息
-   */
-  async getSystemDataOverview(): Promise<ISystemDataOverviewResponse> {
-    try {
-      // 并行获取各项数据
-      const [
-        computingNodeStatus,
-        systemPerformanceMetrics,
-        eventCollectionMetrics,
-        realTimeProcessingMetrics,
-        metaOverview,
-      ] = await Promise.all([
-        this.getComputingNodeStatus(),
-        this.getSystemPerformanceMetrics(),
-        this.getEventCollectionMetrics(),
-        this.getRealTimeProcessingMetrics(),
-        this.getMetaOverview(),
-      ])
+  getSystemDataOverview(): Promise<ISystemDataOverviewResponse> {
+    if (this.cached && Date.now() - this.cached.at < 15000) return Promise.resolve(this.cached.data)
+    if (this.pending) return this.pending
+    this.pending = this.loadOverview().then(data => {
+      this.cached = { at: Date.now(), data }
+      return data
+    }).finally(() => { this.pending = null })
+    return this.pending
+  }
 
-      return {
-        computingNodeStatus,
-        systemPerformanceMetrics,
-        eventCollectionMetrics,
-        realTimeProcessingMetrics,
-        metaOverview,
+  private async loadOverview(): Promise<ISystemDataOverviewResponse> {
+    const now = Date.now()
+    const warnings: string[] = []
+    const read = async <T>(label: string, query: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await query()
+      } catch (error) {
+        this.logger.warn(`${label}读取失败: ${error instanceof Error ? error.message : String(error)}`)
+        warnings.push(`${label}暂不可用`)
+        return fallback
       }
-    } catch (error) {
-      console.error('Error fetching system data overview:', error)
-      throw error
+    }
+    const [computingNodeStatus, systemPerformanceMetrics, eventCollectionMetrics, analysisQueryMetrics, processing, finalCount, serviceResources] = await Promise.all([
+      read('计算节点', () => this.getComputingNodeStatus(), {
+        totalNodes: null, onlineNodes: null, offlineNodes: null, onlineRate: null,
+        cpuUsage: null, memoryUsage: null, avgLoad: null, networkTraffic: null,
+      }),
+      read('API 性能采样', () => this.runtimeMetrics.getPerformance(now), {
+        currentQps: null, peakQps: null, avgQps: null, avgResponseTime: null,
+        p95ResponseTime: null, p99ResponseTime: null, systemAvailability: null,
+        currentMonthAvailability: null, requestErrorRate: null, systemErrorRate: null, businessErrorRate: null,
+      }),
+      read('事件收集量', () => this.getEventCollectionMetrics(now), {
+        todayCollection: null, yesterdayCollection: null, weekCollection: null, monthCollection: null, totalAmount: null,
+      }),
+      read('数分查询量', () => this.getAnalysisQueryMetrics(now), {
+        todayQueries: null, yesterdayQueries: null, weekQueries: null, monthQueries: null,
+      }),
+      read('处理吞吐采样', () => this.runtimeMetrics.getProcessing(now), { currentProcessing: null, peakProcessing: null, finalCleaningSuccessRate: null }),
+      read<number | null>('清洗后事件量', async () => {
+        const rows = await this.clickhouseService.query<{ count: string }>('SELECT toString(count()) AS count FROM final_event_log')
+        return Number(rows[0]?.count || 0)
+      }, null),
+      read('服务资源', () => this.serviceResources.getResources(now), []),
+    ])
+    return {
+      serviceResources,
+      computingNodeStatus,
+      systemPerformanceMetrics,
+      eventCollectionMetrics,
+      analysisQueryMetrics,
+      realTimeProcessingMetrics: { currentProcessing: processing.currentProcessing, peakProcessing: processing.peakProcessing, cumulativeProcessing: finalCount },
+      metaOverview: {
+        originalDataTotal: eventCollectionMetrics.totalAmount === null ? '—' : String(eventCollectionMetrics.totalAmount),
+        finalCleanedData: finalCount === null ? '—' : String(finalCount),
+        // 成功率来自今日任务结果采样，不能以不同 TTL 的表存量相除。
+        firstCleaningSuccessRate: null,
+        finalCleaningSuccessRate: processing.finalCleaningSuccessRate,
+      },
+      updatedAt: new Date(now).toISOString(),
+      warnings,
     }
   }
 
-  /**
-   * 获取元事件概览
-   * @returns ISystemDataMetaOverview 元事件概览信息
-   */
-  private async getMetaOverview(): Promise<ISystemDataMetaOverview> {
-    try {
-      // 直接调用MetaService的getMetaOverview方法
-      return await this.metaService.getMetaOverview();
-    } catch (error) {
-      console.error('Error fetching meta overview:', error);
-      // 返回默认值
-      return {
-        originalDataTotal: '0',
-        finalCleanedData: '0',
-        firstCleaningSuccessRate: 0,
-        finalCleaningSuccessRate: 0,
-      };
-    }
-  }
-
-  /**
-   * 获取计算节点状态
-   * @returns IComputingNodeStatus 计算节点状态
-   */
   private async getComputingNodeStatus(): Promise<IComputingNodeStatus> {
-    // TODO: 从实际的节点管理服务或数据库获取节点状态
-    // 这里使用模拟数据
+    const { nodes } = await this.nodeRegistry.getTopology()
+    const online = nodes.filter(node => node.link === 'connected')
+    const cpu = online.filter(node => node.cpuUsage !== null && node.cpuUsage !== undefined && node.cpuCount > 0)
+    const memory = online.filter(node => node.memorySize > 0)
+    const loads = online.filter(node => node.loadAverage !== null && node.loadAverage !== undefined)
+    const network = online.filter(node => node.networkBytesPerSecond !== null && node.networkBytesPerSecond !== undefined)
+    const cpuCount = cpu.reduce((sum, node) => sum + node.cpuCount, 0)
+    const memorySize = memory.reduce((sum, node) => sum + node.memorySize, 0)
     return {
-      totalNodes: 24,
-      onlineNodes: 22,
-      offlineNodes: 2,
-      onlineRate: 91.67,
-      cpuUsage: 65.2,
-      memoryUsage: 72.8,
-      avgLoad: 2.45,
-      networkTraffic: 1.25, // Gbps
+      totalNodes: nodes.length,
+      onlineNodes: online.length,
+      offlineNodes: nodes.length - online.length,
+      onlineRate: nodes.length ? online.length / nodes.length * 100 : null,
+      // Do not pass off a partially upgraded cluster's resource metrics as the whole cluster.
+      cpuUsage: cpu.length === online.length && cpuCount ? cpu.reduce((sum, node) => sum + node.cpuUsage * node.cpuCount, 0) / cpuCount : null,
+      memoryUsage: memory.length === online.length && memorySize
+        ? memory.reduce((sum, node) => sum + Math.max(0, node.memorySize - node.availableMemorySize), 0) / memorySize * 100 : null,
+      avgLoad: loads.length === online.length && loads.length ? loads.reduce((sum, node) => sum + node.loadAverage, 0) / loads.length : null,
+      networkTraffic: network.length === online.length && network.length
+        ? network.reduce((sum, node) => sum + node.networkBytesPerSecond, 0) * 8 / 1e9 : null,
     }
   }
 
-  /**
-   * 获取系统性能指标
-   * @returns ISystemPerformanceMetrics 系统性能指标
-   */
-  private async getSystemPerformanceMetrics(): Promise<ISystemPerformanceMetrics> {
-    // TODO: 从实际监控系统获取性能指标
-    // 这里使用模拟数据
+  private async getEventCollectionMetrics(now: number): Promise<IEventCollectionMetrics> {
+    const { today, yesterday, tomorrow, weekStart, monthStart } = metricsWindow(now)
+    const [row] = await this.clickhouseService.query<Record<string, string>>(`
+      SELECT count() AS totalAmount,
+        countIf(day = {today:Date}) AS todayCollection,
+        countIf(day = {yesterday:Date}) AS yesterdayCollection,
+        countIf(day >= {weekStart:Date} AND day < {tomorrow:Date}) AS weekCollection,
+        countIf(day >= {monthStart:Date} AND day < {tomorrow:Date}) AS monthCollection
+      FROM (SELECT toDate(\`$service_time\`, 'Asia/Shanghai') AS day FROM event_log)
+    `, { today, yesterday, tomorrow, weekStart, monthStart })
     return {
-      currentQps: 1234,
-      peakQps: 2345,
-      avgQps: 876,
-      avgResponseTime: 45.2, // ms
-      p95ResponseTime: 120.5, // ms
-      p99ResponseTime: 210.8, // ms
-      systemAvailability: 99.95, // %
-      currentMonthAvailability: 99.98, // %
-      requestErrorRate: 0.02, // %
-      systemErrorRate: 0.01, // %
-      exceptionCaptureRate: 0.03, // %
+      todayCollection: Number(row?.todayCollection || 0),
+      yesterdayCollection: Number(row?.yesterdayCollection || 0),
+      weekCollection: Number(row?.weekCollection || 0),
+      monthCollection: Number(row?.monthCollection || 0),
+      totalAmount: Number(row?.totalAmount || 0),
     }
   }
 
-  /**
-   * 获取事件收集指标
-   * @returns IEventCollectionMetrics 事件收集指标
-   */
-  private async getEventCollectionMetrics(): Promise<IEventCollectionMetrics> {
-    // TODO: 从ClickHouse获取事件收集数据
-    // 构建日期条件
-    const todayCondition = "AND toDate(`$service_time`) = today()"
-    const yesterdayCondition = "AND toDate(`$service_time`) = yesterday()"
-    const weekCondition = "AND toDate(`$service_time`) >= today() - 7"
-    const monthCondition = "AND toDate(`$service_time`) >= today() - 30"
-
-    try {
-      // 查询今日收集量
-      const todayResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1 ${todayCondition}`,
-      )
-      const todayCount = parseInt(todayResult[0]?.count || '0', 10)
-
-      // 查询昨日收集量
-      const yesterdayResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1 ${yesterdayCondition}`,
-      )
-      const yesterdayCount = parseInt(yesterdayResult[0]?.count || '0', 10)
-
-      // 查询本周收集量
-      const weekResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1 ${weekCondition}`,
-      )
-      const weekCount = parseInt(weekResult[0]?.count || '0', 10)
-
-      // 查询本月收集量
-      const monthResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1 ${monthCondition}`,
-      )
-      const monthCount = parseInt(monthResult[0]?.count || '0', 10)
-
-      // 查询总事件量
-      const totalResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1`,
-      )
-      const totalCount = parseInt(totalResult[0]?.count || '0', 10)
-
-      return {
-        todayCollection: todayCount,
-        yesterdayCollection: yesterdayCount,
-        weekCollection: weekCount,
-        monthCollection: monthCount,
-        totalAmount: totalCount,
-      }
-    } catch (error) {
-      console.error('Error fetching event collection metrics:', error)
-      // 返回默认值
-      return {
-        todayCollection: 0,
-        yesterdayCollection: 0,
-        weekCollection: 0,
-        monthCollection: 0,
-        totalAmount: 0,
-      }
-    }
-  }
-
-  /**
-   * 获取实时数据处理指标
-   * @returns IRealTimeProcessingMetrics 实时数据处理指标
-   */
-  private async getRealTimeProcessingMetrics(): Promise<IRealTimeProcessingMetrics> {
-    // TODO: 从ClickHouse获取处理后的数据量
-    // 构建日期条件
-    const todayCondition = "AND toDate(`$service_time`) = today()"
-    const weekCondition = "AND toDate(`$service_time`) >= today() - 7"
-    const monthCondition = "AND toDate(`$service_time`) >= today() - 30"
-
-    try {
-      // 查询今日处理量（从清洗后的表获取）
-      const todayResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM final_event_log
-         WHERE 1 = 1 ${todayCondition}`,
-      )
-      const todayCount = parseInt(todayResult[0]?.count || '0', 10)
-
-      // 查询本周处理量
-      const weekResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM final_event_log
-         WHERE 1 = 1 ${weekCondition}`,
-      )
-      const weekCount = parseInt(weekResult[0]?.count || '0', 10)
-
-      // 查询本月处理量
-      const monthResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM final_event_log
-         WHERE 1 = 1 ${monthCondition}`,
-      )
-      const monthCount = parseInt(monthResult[0]?.count || '0', 10)
-
-      // 总处理量
-      const totalResult = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM final_event_log
-         WHERE 1 = 1`,
-      )
-      const totalCount = parseInt(totalResult[0]?.count || '0', 10)
-
-      return {
-        currentProcessing: todayCount,
-        peakProcessing: Math.max(todayCount, 0), // 模拟峰值
-        cumulativeProcessing: totalCount,
-      }
-    } catch (error) {
-      console.error('Error fetching real time processing metrics:', error)
-      // 返回默认值
-      return {
-        currentProcessing: 0,
-        peakProcessing: 0,
-        cumulativeProcessing: 0,
-      }
+  private async getAnalysisQueryMetrics(now: number): Promise<IAnalysisQueryMetrics> {
+    const { today, yesterday, tomorrow, weekStart, monthStart } = metricsWindow(now)
+    // query_date is indexed and populated by the real analysis execution record service.
+    const row = await this.queryStats.createQueryBuilder('stats')
+      .select('COALESCE(SUM(stats.query_date = :today), 0)', 'todayQueries')
+      .addSelect('COALESCE(SUM(stats.query_date = :yesterday), 0)', 'yesterdayQueries')
+      .addSelect('COALESCE(SUM(stats.query_date >= :weekStart), 0)', 'weekQueries')
+      .addSelect('COALESCE(SUM(stats.query_date >= :monthStart), 0)', 'monthQueries')
+      .where('stats.query_date >= :start AND stats.query_date < :tomorrow', {
+        start: [yesterday, weekStart, monthStart].sort()[0], today, yesterday, tomorrow, weekStart, monthStart,
+      })
+      .getRawOne()
+    return {
+      todayQueries: Number(row?.todayQueries || 0),
+      yesterdayQueries: Number(row?.yesterdayQueries || 0),
+      weekQueries: Number(row?.weekQueries || 0),
+      monthQueries: Number(row?.monthQueries || 0),
     }
   }
 }

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `password_hash` VARCHAR(255) NOT NULL COMMENT '密码哈希值',
   `nickname` VARCHAR(50) NOT NULL COMMENT '昵称（显示名称）',
   `is_active` BOOLEAN DEFAULT TRUE COMMENT '用户是否激活',
+  `token_version` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '账号凭证版本，改密或禁用时递增',
   `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
   `last_login` DATETIME COMMENT '最后登录时间',

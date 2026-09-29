@@ -186,7 +186,13 @@ export class SystemConfigUserService {
       user.isActive = isActive
     }
 
-    await this.userRepository.save(user)
+    // 只更新允许的字段，避免并发资料更新把凭证版本覆盖回旧值。
+    await this.userRepository.update(userId, {
+      email: user.email,
+      nickname: user.nickname,
+      ...(isActive !== undefined ? { isActive } : {}),
+      ...(isActive === false ? { tokenVersion: () => 'token_version + 1' } : {}),
+    })
 
     // 更新角色
     if (roleIds !== undefined) {
@@ -252,8 +258,10 @@ export class SystemConfigUserService {
 
     // 加密新密码：先模拟前端加密，再进行后端加密（与 changePassword 保持一致）
     const frontendEncrypted = this.hashPassword(newPassword)
-    user.passwordHash = this.hashPassword(frontendEncrypted)
-    await this.userRepository.save(user)
+    await this.userRepository.update(userId, {
+      passwordHash: this.hashPassword(frontendEncrypted),
+      tokenVersion: () => 'token_version + 1',
+    })
 
     const result: IResetPasswordRes = {
       userId: user.userId!,
@@ -347,4 +355,3 @@ export class SystemConfigUserService {
     return hmac.digest('hex')
   }
 }
-

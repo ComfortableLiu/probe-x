@@ -20,6 +20,9 @@ export interface IFormComponentProps<T> {
   // 表单元素列表
   formItems: IFormItem[]
   onFinish?: (values: T) => void
+  // 原生 form 的 name；字段 key 与 HTMLFormElement 内置属性同名（如 nodeName）时必须设置，
+  // 否则字段 id 会覆盖 form.nodeName 等内置属性，导致 react-dom 事件分发报错
+  name?: string
 }
 
 export interface IFormItem extends Partial<FormItem>{

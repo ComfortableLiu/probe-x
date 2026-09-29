@@ -4,49 +4,56 @@ import { ISystemDataOverviewWithMetaState } from "./type"
 import { getSystemDataOverview } from "./services"
 
 const initState: ISystemDataOverviewWithMetaState = {
+  serviceResources: [],
   loading: false,
+  error: null,
+  updatedAt: null,
+  warnings: [],
+  analysisQueryMetrics: { todayQueries: null, yesterdayQueries: null, weekQueries: null, monthQueries: null },
   metaOverview: {
-    originalDataTotal: '0',
-    finalCleanedData: '0',
-    firstCleaningSuccessRate: 0,
-    finalCleaningSuccessRate: 0,
+    originalDataTotal: '—',
+    finalCleanedData: '—',
+    firstCleaningSuccessRate: null,
+    finalCleaningSuccessRate: null,
   },
   computingNodeStatus: {
-    totalNodes: 0,
-    onlineNodes: 0,
-    offlineNodes: 0,
-    onlineRate: 0,
-    cpuUsage: 0,
-    memoryUsage: 0,
-    avgLoad: 0,
-    networkTraffic: 0,
+    totalNodes: null,
+    onlineNodes: null,
+    offlineNodes: null,
+    onlineRate: null,
+    cpuUsage: null,
+    memoryUsage: null,
+    avgLoad: null,
+    networkTraffic: null,
   },
   systemPerformanceMetrics: {
-    currentQps: 0,
-    peakQps: 0,
-    avgQps: 0,
-    avgResponseTime: 0,
-    p95ResponseTime: 0,
-    p99ResponseTime: 0,
-    systemAvailability: 0,
-    currentMonthAvailability: 0,
-    requestErrorRate: 0,
-    systemErrorRate: 0,
-    exceptionCaptureRate: 0,
+    currentQps: null,
+    peakQps: null,
+    avgQps: null,
+    avgResponseTime: null,
+    p95ResponseTime: null,
+    p99ResponseTime: null,
+    systemAvailability: null,
+    currentMonthAvailability: null,
+    requestErrorRate: null,
+    systemErrorRate: null,
+    businessErrorRate: null,
   },
   eventCollectionMetrics: {
-    todayCollection: 0,
-    yesterdayCollection: 0,
-    weekCollection: 0,
-    monthCollection: 0,
-    totalAmount: 0,
+    todayCollection: null,
+    yesterdayCollection: null,
+    weekCollection: null,
+    monthCollection: null,
+    totalAmount: null,
   },
   realTimeProcessingMetrics: {
-    currentProcessing: 0,
-    peakProcessing: 0,
-    cumulativeProcessing: 0,
+    currentProcessing: null,
+    peakProcessing: null,
+    cumulativeProcessing: null,
   },
 }
+
+let fetching = false
 
 const systemDataOverviewModel = createModel<RootModel>()({
   name: 'systemDataOverviewModel',
@@ -68,25 +75,18 @@ const systemDataOverviewModel = createModel<RootModel>()({
   effects: (dispatch) => ({
     // 获取系统数据概览
     async fetchSystemDataOverview() {
+      if (fetching) return
+      fetching = true
       try {
         dispatch.systemDataOverviewModel.setLoading(true)
         const res = await getSystemDataOverview()
 
-        // 确保 metaOverview 不为 null，如果为 null 则使用默认值
-        const data = res.data || {}
-        if (!data.metaOverview) {
-          data.metaOverview = {
-            originalDataTotal: '0',
-            finalCleanedData: '0',
-            firstCleaningSuccessRate: 0,
-            finalCleaningSuccessRate: 0,
-          }
-        }
-
-        dispatch.systemDataOverviewModel.updateItem(data)
+        if (!res.data) throw new Error('总览接口未返回数据')
+        dispatch.systemDataOverviewModel.updateItem({ ...res.data, error: null })
       } catch (error) {
-        console.error('Failed to fetch system data overview:', error)
+        dispatch.systemDataOverviewModel.updateItem({ error: '刷新失败，当前显示的是上次成功获取的数据，请稍后重试。' })
       } finally {
+        fetching = false
         dispatch.systemDataOverviewModel.setLoading(false)
       }
     },

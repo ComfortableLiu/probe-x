@@ -10,6 +10,7 @@ import type {
 } from "@probe-x/shared-types/src"
 import { TrackingNodeStatus, TrackingNodeType } from "@probe-x/shared-types/src"
 import { BusinessException, User } from "@probe-x/shared-utils/src/lib/backend-common"
+import { RequirePermissions } from '../../guard/permission.guard'
 
 @Controller('tracking')
 export class TrackingNodeController {
@@ -65,6 +66,7 @@ export class TrackingNodeController {
   }
 
   @Post('spm/business/create')
+  @RequirePermissions('spm:create')
   async createBusiness(
     @Body() data: ICreateBusinessSiteReq,
     @User() user: IUser,
@@ -73,6 +75,7 @@ export class TrackingNodeController {
   }
 
   @Post('spm/business/update')
+  @RequirePermissions('spm:update')
   async updateBusiness(
     @Body() data: IUpdateBusinessSiteReq,
     @User() user: IUser,
@@ -81,6 +84,7 @@ export class TrackingNodeController {
   }
 
   @Post('spm/node/create')
+  @RequirePermissions('spm:create')
   async createSpmNode(
     @Body() data: ICreateSpmNodeReq,
     @User() user: IUser,
@@ -89,6 +93,7 @@ export class TrackingNodeController {
   }
 
   @Post('spm/node/update')
+  @RequirePermissions('spm:update')
   async updateSpmNode(
     @Body() data: IUpdateSpmNodeReq,
     @User() user: IUser,
@@ -141,6 +146,7 @@ export class TrackingNodeController {
   }
 
   @Post('scm/business/create')
+  @RequirePermissions('scm:create')
   async createScmBusiness(
     @Body() data: ICreateBusinessSiteReq,
     @User() user: IUser,
@@ -149,6 +155,7 @@ export class TrackingNodeController {
   }
 
   @Post('scm/business/update')
+  @RequirePermissions('scm:update')
   async updateScmBusiness(
     @Body() data: IUpdateBusinessSiteReq,
     @User() user: IUser,
@@ -157,6 +164,7 @@ export class TrackingNodeController {
   }
 
   @Post('scm/node/create')
+  @RequirePermissions('scm:create')
   async createScmNode(
     @Body() data: ICreateSpmNodeReq,
     @User() user: IUser,
@@ -165,6 +173,7 @@ export class TrackingNodeController {
   }
 
   @Post('scm/node/update')
+  @RequirePermissions('scm:update')
   async updateScmNode(
     @Body() data: IUpdateSpmNodeReq,
     @User() user: IUser,

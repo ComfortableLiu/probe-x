@@ -1,3 +1,4 @@
+import WebResourcePlugin from '../../scripts/web-resource-plugin.cjs'
 import path from 'path'
 import type { Configuration } from '@rspack/core'
 import { rspack } from '@rspack/core'
@@ -172,6 +173,7 @@ const config: Configuration = {
 
   // 插件配置
   plugins: [
+    ...(isDev ? [new WebResourcePlugin()] : []),
     // 配置 CSS 抽离插件
     new rspack.CssExtractRspackPlugin({
       filename: 'css/[name].[contenthash].css',

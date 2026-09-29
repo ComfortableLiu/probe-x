@@ -1,3 +1,4 @@
+import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
 import { Module } from '@nestjs/common'
 import { envConfig, MysqlModule, RedisModule } from "@probe-x/shared-utils/src/lib/backend-common"
 import configuration from "../config/configuration"
@@ -6,6 +7,7 @@ import { KafkaConsumerModule } from "@src/module/kafka-consumer/kafka-consumer.m
 @Module({
   imports: [
     envConfig(configuration, 'apps/preliminary-data-processing-service'),
+    ServiceResourcesModule.forService('preliminary-data-processing-service'),
     KafkaConsumerModule,
     RedisModule.forRoot(),
     MysqlModule.forRoot(),

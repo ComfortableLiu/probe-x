@@ -1,3 +1,4 @@
+import { metricsWindow } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -28,7 +29,8 @@ export class DataAnalysisRecordService {
    */
   async recordQuery(user: IUser, queryContent: string, duration: number, resultSize: number, isSuccess: boolean, errorMsg?: string) {
     const queryStats = new DataAnalysisQueryStatsEntity()
-    queryStats.queryDate = new Date()
+    // TypeORM serializes DATE using local date parts; construct the Shanghai calendar date locally.
+    queryStats.queryDate = new Date(`${metricsWindow().today}T00:00:00`)
     queryStats.userId = user.userId
     queryStats.userName = user.username
     queryStats.queryContent = queryContent
