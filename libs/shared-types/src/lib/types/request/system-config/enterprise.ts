@@ -597,3 +597,40 @@ export interface IQueryAuditLogListReq extends Partial<IPageQuery> {
 
 /** 查询审计日志列表响应 */
 export type IQueryAuditLogListRes = IPageResult<IAuditLogListItem>
+
+// ============================================
+// 通用设置（最终数据清洗调度）相关类型
+// ============================================
+
+/**
+ * 通用设置（最终数据清洗调度）
+ */
+export interface IGeneralConfig {
+  /** 是否启用每日定时清洗 */
+  enabled: boolean
+  /** 每日清洗时间，HH:mm 格式，如 02:00 */
+  dailyTime: string
+}
+
+/**
+ * 更新通用设置请求
+ */
+export type IUpdateGeneralConfigReq = IGeneralConfig
+
+/**
+ * 立即清洗请求
+ */
+export interface ICleanNowReq {
+  /** 指定清洗日期 YYYY-MM-DD；不传则清洗全部欠账（≤昨天且未清洗的 session） */
+  date?: string
+}
+
+/**
+ * 立即清洗响应
+ */
+export interface ICleanNowRes {
+  /** 本次实际下发到节点的任务数 */
+  dispatched: number
+  /** 排队等待空闲节点的任务数 */
+  pending: number
+}

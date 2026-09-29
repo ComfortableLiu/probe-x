@@ -273,6 +273,15 @@ CREATE TABLE IF NOT EXISTS `sync_cursor` (
   `update_time` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='统计游标表';
 
+-- ==================== 通用配置表 ====================
+-- 通用 KV 形态：一行一个全局配置项，当前用于最终数据清洗调度（final_cleaning.*）。
+CREATE TABLE IF NOT EXISTS `system_config` (
+  `key` VARCHAR(100) PRIMARY KEY COMMENT '配置键，如 final_cleaning.daily_time',
+  `value` TEXT NULL COMMENT '配置值',
+  `description` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '配置描述',
+  `updated_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通用配置表：一行一个全局配置项';
+
 -- ==================== 初始化数据 ====================
 
 -- 插入默认角色
