@@ -14,12 +14,14 @@ import { RolePermissionRelation } from '@probe-x/shared-utils/src/lib/backend-co
 import { System } from '@probe-x/shared-utils/src/lib/backend-common/entity/System.entity'
 import { TrackingNodeEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/TrackingNode.entity'
 import { SystemConfigEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/SystemConfig.entity'
+import { ComputeNodeModule } from '../compute-node/compute-node.module'
 import { AdminGuard } from '../../guard/admin.guard'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, UserRoleRelation, Role, Permission, RolePermissionRelation, System, TrackingNodeEntity, SystemConfigEntity]),
     ConfigModule,
+    ComputeNodeModule,
   ],
   controllers: [SystemConfigController],
   providers: [SystemConfigUserService, SystemConfigRoleService, SystemConfigSystemService, GeneralConfigService, AdminGuard],

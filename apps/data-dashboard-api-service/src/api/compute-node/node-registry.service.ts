@@ -73,6 +73,7 @@ interface LiveNode {
 @Injectable()
 export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
   private readonly nodes = new Map<string, LiveNode>()
+  private readonly settleListeners: Array<(taskId: string, failed: boolean) => void> = []
   private reconcileTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(
@@ -215,6 +216,25 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     node.lastError = ''
     return true
   }
+
+  /**
+   * 挑选一个在线且空闲的节点，无可用节点返回 null
+   */
+  pickIdleNode(): string | null {
+    const now = Date.now()
+    for (const node of this.nodes.values()) {
+      if (this.isAlive(node, now) && !node.busy) return node.nodeId
+    }
+    return null
+  }
+
+  /**
+   * 任务落定（完成或失败）时回调，供调度器立刻补发排队任务
+   */
+  onTaskSettled(listener: (taskId: string, failed: boolean) => void): void {
+    this.settleListeners.push(listener)
+  }
+
   /** 把注册/心跳帧落到节点记录上，并首次接入时自动注册进 compute_node */
   private bindNode(register: NodeRegister, session: NodeSession): LiveNode | null {
     const nodeId = (register.node_id || '').trim()
@@ -304,6 +324,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       node.busy = false
       node.busyTaskId = ''
       node.lastError = progress.error || '任务执行失败'
+      this.settleListeners.forEach(listener => listener(progress.task_id, true))
       return
     }
     if (progress.completed) {
@@ -311,6 +332,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       node.busyTaskId = ''
       // 任务跑成功即代表上次失败已成过去，红灯不应常亮
       node.lastError = ''
+      this.settleListeners.forEach(listener => listener(progress.task_id, false))
       return
     }
     node.busy = true

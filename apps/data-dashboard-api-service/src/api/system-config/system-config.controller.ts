@@ -35,10 +35,13 @@ import {
   IDeleteSystemReq,
   IGeneralConfig,
   IUpdateGeneralConfigReq,
+  ICleanNowReq,
+  ICleanNowRes,
 } from '@probe-x/shared-types/src'
 import { ResponseData } from '@probe-x/shared-utils/src/lib/backend-common'
 import { AdminGuard } from '../../guard/admin.guard'
 import { GeneralConfigService } from './general-config.service'
+import { CleaningSchedulerService } from '../compute-node/cleaning-scheduler.service'
 
 @Controller('/system-config')
 @UseGuards(AdminGuard)
@@ -48,6 +51,7 @@ export class SystemConfigController {
     private readonly roleService: SystemConfigRoleService,
     private readonly systemService: SystemConfigSystemService,
     private readonly generalConfigService: GeneralConfigService,
+    private readonly cleaningSchedulerService: CleaningSchedulerService,
   ) {}
 
   /**
@@ -306,6 +310,14 @@ export class SystemConfigController {
   async updateGeneralConfig(@Body() body: IUpdateGeneralConfigReq): Promise<IGeneralConfig> {
     await this.generalConfigService.updateGeneralConfig(body)
     return this.generalConfigService.getGeneralConfig()
+  }
+
+  /**
+   * 立即触发一次最终数据清洗
+   */
+  @Post('general/clean-now')
+  async cleanNow(@Body() body: ICleanNowReq): Promise<ICleanNowRes> {
+    return this.cleaningSchedulerService.cleanNow(body?.date)
   }
 }
 
