@@ -45,6 +45,14 @@ export function planCleaningTasks(rows: BacklogRow[], runDate: string): ComputeT
 }
 
 /**
+ * (date, session) 去重键：同一数据切片严禁洗两遍（final_event_log 是 MergeTree 不去重），
+ * 队列积压跨天（runDate 变了导致 task_id 不同）与任务在途两种场景都按它判重
+ */
+function backlogKey(task: ComputeTask): string {
+  return `${task.date}|${task.session_id}`
+}
+
+/**
  * 最终数据清洗调度器
  *
  * 每分钟检查一次：到点（启用且已过当天配置时间且今天未跑过）则枚举欠账并下发。
@@ -56,7 +64,9 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval> | null = null
   /** 待下发队列（task_id 即队列元素） */
   private queue: ComputeTask[] = []
-  /** task_id -> 已尝试次数，失败重试用 :r{n} 后缀 */
+  /** 已下发待落定的切片（`${date}|${session_id}`），防止在途任务被 cleanNow 重发给另一台节点 */
+  private readonly inflight = new Set<string>()
+  /** 任务 base id（不含 :r{n} 后缀）-> 已尝试次数，失败重试用 :r{n} 后缀 */
   private readonly attempts = new Map<string, number>()
   private draining = false
 
@@ -143,8 +153,9 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
           WHERE ${dateCondition}
         )
     `, params)
-    const queuedIds = new Set(this.queue.map(task => task.task_id))
-    const tasks = planCleaningTasks(rows, runDate).filter(task => !queuedIds.has(task.task_id))
+    const queuedKeys = new Set(this.queue.map(task => backlogKey(task)))
+    const tasks = planCleaningTasks(rows, runDate)
+      .filter(task => !queuedKeys.has(backlogKey(task)) && !this.inflight.has(backlogKey(task)))
     this.queue.push(...tasks)
     console.log(`[清洗调度] 枚举到 ${rows.length} 个欠账 session，新入队 ${tasks.length} 个任务`)
     return tasks.length
@@ -160,6 +171,7 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
         if (!nodeId) return
         const task = this.queue.shift()!
         if (this.registry.dispatchTask(nodeId, task)) {
+          this.inflight.add(backlogKey(task))
           console.log(`[清洗调度] 任务 ${task.task_id} 已下发到节点 ${nodeId}`)
         } else {
           this.queue.unshift(task)
@@ -173,14 +185,16 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   /** 任务落定：失败则换 :r{n} 后缀重新入队（同日限重试 MAX_ATTEMPTS 次），然后立刻补发 */
   private onTaskSettled(taskId: string, failed: boolean): void {
+    // 从 task_id 还原任务：clean:{runDate}:{taskDate}:{sessionId}[:r{n}]
+    // 计数键必须是剥离后缀的 base，否则 A:r1 失败会重新算成第 1 次、:r{n} 永不递增
+    const base = taskId.replace(/:r\d+$/, '')
+    const parts = base.split(':')
+    const sessionId = parts.slice(3).join(':')
+    this.inflight.delete(`${parts[2]}|${sessionId}`)
     if (failed) {
-      const attempt = (this.attempts.get(taskId) || 0) + 1
-      this.attempts.set(taskId, attempt)
+      const attempt = (this.attempts.get(base) || 0) + 1
+      this.attempts.set(base, attempt)
       if (attempt <= MAX_ATTEMPTS) {
-        // 从 task_id 还原任务：clean:{runDate}:{taskDate}:{sessionId}[:r{n}]
-        const base = taskId.replace(/:r\d+$/, '')
-        const parts = base.split(':')
-        const sessionId = parts.slice(3).join(':')
         const task: ComputeTask = {
           task_id: `${base}:r${attempt}`,
           session_id: sessionId,
@@ -189,7 +203,7 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
         console.warn(`[清洗调度] 任务 ${taskId} 失败，第 ${attempt} 次重试`)
         this.queue.push(task)
       } else {
-        console.error(`[清洗调度] 任务 ${taskId} 重试 ${MAX_ATTEMPTS} 次仍失败，放弃，次日自动补洗`)
+        console.error(`[清洗调度] 任务 ${base} 重试 ${MAX_ATTEMPTS} 次仍失败，放弃，次日自动补洗`)
       }
     }
     this.drain()
