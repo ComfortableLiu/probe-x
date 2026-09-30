@@ -6,6 +6,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 import PageHeader from "@components/PageHeader"
 import { useLoading, useModel } from "@/hooks"
 import { Dispatch } from "@/store/storeContext"
+import * as styles from "./styles.module.scss"
 import { IGeneralConfigState } from "./type"
 
 dayjs.extend(customParseFormat)
@@ -46,13 +47,13 @@ function GeneralConfig() {
   const cleaning = loading.systemConfigGeneralModel?.cleanNow
 
   return (
-    <div>
+    <div className={styles.general}>
       <PageHeader
         title="通用设置"
         onRefresh={() => dispatch.systemConfigGeneralModel.getConfig()}
         loading={loading.systemConfigGeneralModel?.getConfig}
       />
-      <p>
+      <p className={styles.description}>
         全局运行参数。最终数据清洗每天在配置时间自动执行一次，清洗昨天及以前尚未清洗的数据；
         已清洗过的会话不会重复清洗。也可选择日期后立即手动触发，不选日期则补全部欠账。
       </p>
