@@ -68,12 +68,15 @@ export class ComputeNodeService {
   // 执行任务并通过 progressSubject 推送进度
   async executeTask(task: ComputeTask, progressSubject: Subject<ProgressUpdate>) {
     this.currentTaskId = task.task_id
+    const startTime = Date.now()
+    this.logger.log(`[清洗] 任务 ${task.task_id} 开始执行（session: ${task.session_id}，日期: ${task.date}）`)
     try {
       // 任务级幂等：总服务重复下发同一 task_id 时只执行一次，
       // SET NX EX 86400 已存在则视为已成功重放，跳过执行并直接推 completed:true 进度
       if (this.redisService) {
         const isNewTask = await this.redisService.setNx(`clean:task:${task.task_id}`, '1', 86400)
         if (!isNewTask) {
+          this.logger.log(`[清洗] 任务 ${task.task_id} 已处理过（重复下发），直接标记完成`)
           progressSubject.next({
             task_id: task.task_id,
             node_id: this.nodeId,
@@ -90,6 +93,7 @@ export class ComputeNodeService {
 
       // 拿到所有事件
       const eventList = await this.getAllEvents(task.date, task.session_id)
+      this.logger.log(`[清洗] 任务 ${task.task_id} 拉取到 ${eventList.length} 条事件，开始归因计算`)
 
       // 任务开始即推送初始进度，保证总服务能感知任务已被接收
       progressSubject.next({
@@ -117,6 +121,8 @@ export class ComputeNodeService {
         })
       })
 
+      this.logger.log(`[清洗] 任务 ${task.task_id} 归因完成：${result.finalEvents.length} 条清洗事件、${result.attributions.length} 条归因记录，开始落库`)
+
       // 保证任务原子性，统一执行落库
       await Promise.all([
         this.clickhouseService.insert('final_event_log', result.finalEvents).then(() => {
@@ -126,6 +132,8 @@ export class ComputeNodeService {
       ])
 
       this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), true))
+
+      this.logger.log(`[清洗] 任务 ${task.task_id} 完成，落库 ${result.finalEvents.length} 条清洗事件，耗时 ${Date.now() - startTime}ms`)
 
       // TODO 手动回滚逻辑
 
@@ -147,6 +155,7 @@ export class ComputeNodeService {
       this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), false))
       const error = e instanceof Error ? e.message : String(e)
       this.lastError = error
+      this.logger.error(`[清洗] 任务 ${task.task_id} 执行失败：${error}`)
       // 任务失败时通过进度流推送失败状态，避免静默失败
       progressSubject.next({
         task_id: task.task_id,
