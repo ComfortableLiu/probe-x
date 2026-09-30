@@ -42,6 +42,11 @@ export default {
   //   path: '/system-config/permission',
   //   component: lazy(() => import('@pages/system-config/permission')),
   // }, {
+    name: '通用设置',
+    key: 'system-config-general',
+    path: '/system-config/general',
+    component: lazy(() => import('@pages/system-config/general')),
+  }, {
     name: '系统参数配置',
     key: 'system-config-system-params',
     path: '/system-config/system-params',
