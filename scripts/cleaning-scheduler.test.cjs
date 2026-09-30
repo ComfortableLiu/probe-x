@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
+const dayjs = require('dayjs')
 require('reflect-metadata')
 require('ts-node').register({ transpileOnly: true, skipProject: true, compilerOptions: {
   target: 'ES2022', module: 'CommonJS', moduleResolution: 'node', experimentalDecorators: true, emitDecoratorMetadata: true, esModuleInterop: true,
@@ -138,4 +139,43 @@ test('节点断流（detach 已置离线，不走 persistedStatus 跳变）时�
   assert.equal(scheduler.inflight.size, 0)
   assert.equal(scheduler.queue.length, 1)
   assert.equal(scheduler.queue[0].task_id, `${taskId}:r1`)
+})
+
+test('cleanNow 拒绝非法格式与今天/未来日期，过去日期正常触发', async () => {
+  const { scheduler } = stubScheduler()
+  await assert.rejects(scheduler.cleanNow('not-a-date'), /格式非法/)
+  await assert.rejects(scheduler.cleanNow('2026-9-8'), /格式非法/)
+  await assert.rejects(scheduler.cleanNow(dayjs().format('YYYY-MM-DD')), /今天以前/)
+  await assert.rejects(scheduler.cleanNow('2999-01-01'), /今天以前/)
+  // 合法过去日期不拦截（无欠账、无空闲节点 → 全部排队）
+  assert.deepEqual(await scheduler.cleanNow('2026-09-28'), { dispatched: 0, pending: 0 })
+})
+
+test('tick 枚举失败不消耗当天额度，恢复后正常触发并写入', async () => {
+  const writes = []
+  const redis = { get: async () => null, set: async (...args) => { writes.push(args) } }
+  const configRepo = {
+    find: async () => [
+      { key: 'final_cleaning.enabled', value: 'true' },
+      { key: 'final_cleaning.daily_time', value: '00:00' },
+    ],
+  }
+  const registry = { onTaskSettled() {}, pickIdleNode: () => null, dispatchTask: () => true }
+  const clickhouse = { query: async () => { throw new Error('ClickHouse 挂了') } }
+  const scheduler = new CleaningSchedulerService(registry, clickhouse, redis, configRepo)
+  await assert.rejects(scheduler.tick(), /ClickHouse 挂了/)
+  assert.equal(writes.length, 0)
+  // ClickHouse 恢复后下一次 tick 正常枚举并写入额度
+  clickhouse.query = async () => []
+  await scheduler.tick()
+  assert.equal(writes.length, 1)
+  assert.equal(writes[0][0], 'clean:scheduler:last_run_date')
+})
+
+test('非 clean: 前缀的落定通知被直接忽略', () => {
+  const { scheduler } = stubScheduler()
+  scheduler.onTaskSettled('some-future-task-type:1', true)
+  scheduler.onTaskSettled('some-future-task-type:1', false)
+  assert.equal(scheduler.queue.length, 0)
+  assert.equal(scheduler.attempts.size, 0)
 })

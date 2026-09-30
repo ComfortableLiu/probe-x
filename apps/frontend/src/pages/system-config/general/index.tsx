@@ -74,7 +74,13 @@ function GeneralConfig() {
         </Form.Item>
       </Form>
       <Space>
-        <DatePicker value={cleanDate} onChange={setCleanDate} placeholder="选择清洗日期（可选）" allowClear />
+        <DatePicker
+          value={cleanDate}
+          onChange={setCleanDate}
+          placeholder="选择清洗日期（可选）"
+          allowClear
+          disabledDate={(d) => d && !d.isBefore(dayjs(), 'day')}
+        />
         <Button onClick={handleCleanNow} loading={cleaning}>
           立即清洗
         </Button>

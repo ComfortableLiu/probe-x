@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import dayjs from 'dayjs'
-import { ClickHouseService, RedisService, SystemConfigEntity } from '@probe-x/shared-utils/src/lib/backend-common'
+import { BusinessException, ClickHouseService, RedisService, SystemConfigEntity } from '@probe-x/shared-utils/src/lib/backend-common'
 import { ComputeTask, ICleanNowRes } from '@probe-x/shared-types/src'
 import { NodeRegistryService } from './node-registry.service'
 
@@ -98,6 +98,17 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
    * 立即触发一次清洗。date 指定时只洗那天，否则洗全部欠账（≤昨天）。
    */
   async cleanNow(date?: string): Promise<ICleanNowRes> {
+    if (date) {
+      // 格式校验前置：垃圾字符串一路到 ClickHouse 会变成 500
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new BusinessException(`清洗日期格式非法：${date}，应为 YYYY-MM-DD`)
+      }
+      // 今天及未来的切片仍在进行中：洗一半落库后，当天后续到达的事件永远不会被最终清洗
+      // （final_event_log 是 MergeTree 不去重，已洗切片按设计不能重洗），只能洗今天以前的数据
+      if (date >= dayjs().format('YYYY-MM-DD')) {
+        throw new BusinessException('只能清洗今天以前的数据，今天及未来的切片仍在进行中')
+      }
+    }
     await this.enqueueBacklog(date)
     const queuedBeforeDrain = this.queue.length
     this.drain()
@@ -111,9 +122,11 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
     if (config.enabled && now.format('HH:mm') >= config.dailyTime) {
       const lastRun = await this.redisService.get<string>(LAST_RUN_KEY)
       if (lastRun !== today) {
-        await this.redisService.set(LAST_RUN_KEY, today, 86400 * 3)
         console.log('[清洗调度] 到点触发每日清洗')
         await this.enqueueBacklog()
+        // 枚举成功后才记当天额度：先写 key 时枚举一旦抛错，当天会被静默跳过；
+        // 崩溃后重枚举是安全的（同 task_id 命中节点侧幂等键）
+        await this.redisService.set(LAST_RUN_KEY, today, 86400 * 3)
       }
     }
     this.drain()
@@ -185,6 +198,8 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   /** 任务落定：失败则换 :r{n} 后缀重新入队（同日限重试 MAX_ATTEMPTS 次），然后立刻补发 */
   private onTaskSettled(taskId: string, failed: boolean): void {
+    // 只处理本调度器发出的清洗任务，未来其他任务类型落定不得被误解析成垃圾任务重入队
+    if (!taskId.startsWith('clean:')) return
     // 从 task_id 还原任务：clean:{runDate}:{taskDate}:{sessionId}[:r{n}]
     // 计数键必须是剥离后缀的 base，否则 A:r1 失败会重新算成第 1 次、:r{n} 永不递增
     const base = taskId.replace(/:r\d+$/, '')
