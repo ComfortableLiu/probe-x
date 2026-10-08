@@ -26,6 +26,17 @@ import {
   createBackAndForthScenario,
 } from './fixtures/event-factory'
 
+let nodeSeq = 0
+
+/**
+ * 构造一个测试节点。
+ * 默认 nodeId 来自主机名（同进程多次实例化相同），多节点场景需显式分配不同的 NODE_ID
+ */
+function createNode(ch: MockClickHouseService): ComputeNodeService {
+  process.env.NODE_ID = `node-test-${nodeSeq++}`
+  return new ComputeNodeService(ch as any)
+}
+
 /**
  * 直接执行清洗（绕过 gRPC 装饰器）
  */
@@ -45,14 +56,24 @@ async function executeCleaning(
 }
 
 describe('多节点分布式清洗', () => {
+  const originalNodeId = process.env.NODE_ID
+
+  afterAll(() => {
+    if (originalNodeId === undefined) {
+      delete process.env.NODE_ID
+    } else {
+      process.env.NODE_ID = originalNodeId
+    }
+  })
+
   describe('基础多节点并行', () => {
     it('2 个节点同时处理不同 session，数据应互不串扰', async () => {
       resetEventCounter()
 
       const ch1 = new MockClickHouseService()
       const ch2 = new MockClickHouseService()
-      const node1 = new ComputeNodeService(ch1 as any)
-      const node2 = new ComputeNodeService(ch2 as any)
+      const node1 = createNode(ch1)
+      const node2 = createNode(ch2)
 
       // 节点 ID 应不同
       expect(node1.nodeId).not.toBe(node2.nodeId)
@@ -100,7 +121,7 @@ describe('多节点分布式清洗', () => {
 
       const nodes = Array.from({ length: 3 }, () => {
         const ch = new MockClickHouseService()
-        const node = new ComputeNodeService(ch as any)
+        const node = createNode(ch)
         return { ch, node }
       })
 
@@ -132,16 +153,22 @@ describe('多节点分布式清洗', () => {
   })
 
   describe('节点 ID 唯一性', () => {
-    it('10 个节点实例应生成 10 个不同的 nodeId', () => {
+    it('同机多副本显式指定不同 NODE_ID 时，id 应各自不同', () => {
       const mockCH = new MockClickHouseService()
-      const nodes = Array.from({ length: 10 }, () => new ComputeNodeService(mockCH as any))
+      const nodes = Array.from({ length: 10 }, () => createNode(mockCH))
       const nodeIds = nodes.map(n => n.nodeId)
 
       expect(new Set(nodeIds).size).toBe(10)
+    })
 
-      nodeIds.forEach(id => {
-        expect(id).toMatch(/^node-[a-z0-9]{6}$/)
-      })
+    it('未设置 NODE_ID 时按主机名生成，同机重启（重复实例化）id 保持不变', () => {
+      delete process.env.NODE_ID
+      const mockCH = new MockClickHouseService()
+      const beforeRestart = new ComputeNodeService(mockCH as any)
+      const afterRestart = new ComputeNodeService(mockCH as any)
+
+      expect(beforeRestart.nodeId).toBe(afterRestart.nodeId)
+      expect(beforeRestart.nodeId).toMatch(/^node-[a-z0-9-]+$/)
     })
   })
 
@@ -150,8 +177,8 @@ describe('多节点分布式清洗', () => {
       resetEventCounter()
 
       const sharedCH = new MockClickHouseService()
-      const node1 = new ComputeNodeService(sharedCH as any)
-      const node2 = new ComputeNodeService(sharedCH as any)
+      const node1 = createNode(sharedCH)
+      const node2 = createNode(sharedCH)
 
       const events1 = createHomepageToListScenario('session-shared-1')
       const events2 = createNoAttributionScenario('session-shared-2')
@@ -179,8 +206,8 @@ describe('多节点分布式清洗', () => {
 
       const ch1 = new MockClickHouseService()
       const ch2 = new MockClickHouseService()
-      const heavyNode = new ComputeNodeService(ch1 as any)
-      const lightNode = new ComputeNodeService(ch2 as any)
+      const heavyNode = createNode(ch1)
+      const lightNode = createNode(ch2)
 
       const heavyEvents = createHighVolumeScenario('session-heavy', 100)
       const lightEvents = createNoAttributionScenario('session-light')
@@ -207,7 +234,7 @@ describe('多节点分布式清洗', () => {
 
       const nodePool = Array.from({ length: 4 }, () => {
         const ch = new MockClickHouseService()
-        const node = new ComputeNodeService(ch as any)
+        const node = createNode(ch)
         return { node, ch }
       })
 
@@ -253,8 +280,8 @@ describe('多节点分布式清洗', () => {
 
       const failingCH = new FailingClickHouseService()
       const normalCH = new MockClickHouseService()
-      const failingNode = new ComputeNodeService(failingCH as any)
-      const normalNode = new ComputeNodeService(normalCH as any)
+      const failingNode = createNode(failingCH)
+      const normalNode = createNode(normalCH)
 
       const normalEvents = createHomepageToListScenario('session-normal')
       normalCH.seedEventLog(normalEvents)
@@ -279,7 +306,7 @@ describe('多节点分布式清洗', () => {
 
       const nodes = Array.from({ length: 5 }, (_, i) => {
         const ch = new MockClickHouseService()
-        const node = new ComputeNodeService(ch as any)
+        const node = createNode(ch)
         const events = createHomepageToListScenario(`session-concurrent-${i}`)
         ch.seedEventLog(events)
         return { node, ch, sessionId: `session-concurrent-${i}` }

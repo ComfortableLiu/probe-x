@@ -244,7 +244,7 @@ services:
       # 计算节点接入：拨出连接总服务的 gRPC 端口
       MASTER_HOST: data-dashboard-api-service
       MASTER_PORT: ${NODE_CONTROL_PORT:-8105}
-      # 节点展示名。多副本扩容时建议按副本覆盖；NODE_ID 不设置则每个副本自动生成
+      # 节点展示名。多副本扩容时建议按副本覆盖；NODE_ID 不设置则按各副本主机名生成（重启后保持不变）
       NODE_NAME: ${COMPUTE_NODE_NAME:-计算节点}
       # 节点上报地址（可选，供页面展示节点在哪）
       NODE_ADVERTISE_ADDRESS: ${COMPUTE_NODE_ADVERTISE_ADDRESS:-}

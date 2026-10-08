@@ -94,8 +94,8 @@ describe('gRPC 传输层 + 数据完整性', () => {
 
       const progress = await simulateTaskExecution('task-grpc-002', 'session-grpc-002')
 
-      expect(progress.node_id).toMatch(/^node-[a-z0-9]{6}$/)
       expect(progress.node_id).toBe(service.nodeId)
+      expect(progress.node_id).toMatch(/^node-/)
     })
   })
 
@@ -277,6 +277,16 @@ describe('gRPC 传输层 + 数据完整性', () => {
   })
 
   describe('节点标识一致性', () => {
+    const originalNodeId = process.env.NODE_ID
+
+    afterEach(() => {
+      if (originalNodeId === undefined) {
+        delete process.env.NODE_ID
+      } else {
+        process.env.NODE_ID = originalNodeId
+      }
+    })
+
     it('同一节点在多次任务中应返回相同的 nodeId', async () => {
       mockCH.seedEventLog(createNoAttributionScenario('session-n1'))
 
@@ -287,9 +297,23 @@ describe('gRPC 传输层 + 数据完整性', () => {
       expect(p1.node_id).toBe(service.nodeId)
     })
 
+    it('未设置 NODE_ID 时按主机名生成稳定 id：多次实例化（模拟重启）得到相同 id', () => {
+      delete process.env.NODE_ID
+
+      const beforeRestart = new ComputeNodeService(mockCH as any)
+      const afterRestart = new ComputeNodeService(mockCH as any)
+
+      expect(beforeRestart.nodeId).toBe(afterRestart.nodeId)
+      expect(beforeRestart.nodeId).toMatch(/^node-[a-z0-9-]+$/)
+    })
+
     it('不同节点应有不同的 nodeId', () => {
       const ch = new MockClickHouseService()
-      const nodes = Array.from({ length: 5 }, () => new ComputeNodeService(ch as any))
+      // 默认 id 来自主机名，同机多副本需显式设置不同的 NODE_ID
+      const nodes = Array.from({ length: 5 }, (_, i) => {
+        process.env.NODE_ID = `node-replica-${i}`
+        return new ComputeNodeService(ch as any)
+      })
       const ids = nodes.map(n => n.nodeId)
 
       expect(new Set(ids).size).toBe(5)

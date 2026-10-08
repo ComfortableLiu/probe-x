@@ -47,7 +47,7 @@ docker run -d --name compute-node-1 \
 > 注意这里**没有 `-p` 端口映射**——节点只拨出，不需要入网。
 > 唯一对外暴露的 `/health` 也只在容器网络内，供 `docker` 健康检查使用。
 
-多起几个节点：换一个 `--name` 和 `NODE_NAME` 即可（**不要**给它们同一个 `NODE_ID`，留空会各自随机生成）。
+多起几个节点：换一个 `--name` 和 `NODE_NAME` 即可（**不要**给它们同一个 `NODE_ID`，留空会按各自容器的主机名生成，天然不同）。
 
 ### 方式 2：`docker compose` 同栈扩容
 
@@ -58,7 +58,7 @@ docker compose up -d --build
 docker compose up -d --scale final-data-cleaning-service=3
 ```
 
-3 个副本会各自生成 `NODE_ID`，在拓扑图上是 3 个独立的子节点。
+3 个副本会按各自的主机名生成 `NODE_ID`，在拓扑图上是 3 个独立的子节点。
 它们会共用 `COMPUTE_NODE_NAME`（默认「计算节点」），想区分的话在 `.env` 里设 `COMPUTE_NODE_NAME`，或改用方式 1 / 方式 3 按副本指定 `NODE_NAME`。
 
 ### 方式 3：本地开发
@@ -81,7 +81,7 @@ yarn start:final-cleaning
 |---|---|---|
 | `MASTER_HOST` | `localhost` | 总服务地址。写成 `http://host/` 也可以，会自动去掉协议头 |
 | `MASTER_PORT` | `8105` | 总服务的计算节点接入端口（= 总服务的 `NODE_CONTROL_PORT`） |
-| `NODE_ID` | 随机生成 | 节点唯一标识。**多副本部署务必留空**（或各副本不同），否则会互相顶掉会话 |
+| `NODE_ID` | 按主机名生成（`node-<hostname>`） | 节点唯一标识。同一机器/容器重启后保持不变；docker/k8s 多副本主机名天然不同可直接留空；**同一台机器起多个进程时务必显式设置不同的值**，否则会互相顶掉会话 |
 | `NODE_NAME` | 同 `NODE_ID` | 拓扑图上的展示名 |
 | `NODE_ADVERTISE_ADDRESS` | 空 | 节点上报地址，仅用于页面展示节点在哪 |
 | `HEARTBEAT_INTERVAL_MS` | `5000` | 心跳间隔（注册帧兼作心跳） |
@@ -195,7 +195,7 @@ ALTER TABLE `compute_node`
 | 节点日志反复出现「…ms 后重连总服务」 | `MASTER_HOST` / `MASTER_PORT` 不对，或总服务的 `NODE_CONTROL_PORT` 没对外可达。退避间隔会从 1s 指数增长到 30s，不会刷屏也不会 crash |
 | 节点 `/health` 显示 `degraded` | 同上；`lastError` 字段会给出最近一次失败原因 |
 | 拓扑图上节点是灰的（离线） | ① 节点进程还在但心跳超时 → 看 `HEARTBEAT_INTERVAL_MS` 与总服务 `HEARTBEAT_TIMEOUT_MS` 是否匹配；② 节点被强杀 → 流没正常关闭，靠心跳超时兜底（最多 15s） |
-| 拓扑图上两个节点顶来顶去 / 只剩一个 | 两个节点用了**同一个 `NODE_ID`**，后连上的会作废前一个会话。把 `NODE_ID` 留空让它们各自生成 |
+| 拓扑图上两个节点顶来顶去 / 只剩一个 | 两个节点用了**同一个 `NODE_ID`**，后连上的会作废前一个会话。docker/k8s 留空即可（按各自主机名生成）；同一台机器起多个进程时要显式设置不同的 `NODE_ID` |
 | 节点连上后很快被判离线 | 总服务 `HEARTBEAT_TIMEOUT_MS` 小于节点心跳间隔。保持「超时 ≥ 3 倍心跳」 |
 | 节点没出现在拓扑图上 | 注册帧缺 `node_id` 会被拒绝（日志有「注册帧缺少 node_id，已拒绝接入」）。检查 `NODE_ID` 是否被显式设成了空串 |
 | 页面「最近更新」时间不动 | 前端到 `GET /api/system-data/computing-nodes` 的请求失败，看浏览器网络面板 |

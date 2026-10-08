@@ -1,5 +1,6 @@
 import { recordCleaningOutcome, recordRuntimeMetric } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
 import { Injectable, Logger, Optional } from '@nestjs/common'
+import { hostname } from 'os'
 import { Subject } from 'rxjs'
 import { ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { IPreEventLog } from "@probe-x/shared-types/src"
@@ -9,6 +10,12 @@ import type { ComputeTask, ProgressUpdate } from "../type"
 
 // 任务流与进度流的类型定义由 ../type 统一维护，这里转出以兼容既有引用
 export type { ComputeTask, ProgressUpdate } from "../type"
+
+// 把主机名规整为可用的节点 id 片段（小写、仅保留字母数字和连字符）
+function normalizeHostname(): string {
+  const normalized = hostname().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return normalized || 'unknown'
+}
 
 @Injectable()
 export class ComputeNodeService {
@@ -28,7 +35,10 @@ export class ComputeNodeService {
     // 可选注入：单测直接 new 出来的实例没有 RedisService，任务去重逻辑自动跳过
     @Optional() private readonly redisService?: RedisService,
   ) {
-    this.nodeId = process.env.NODE_ID || `node-${Math.random().toString(36).slice(2, 8)}` // 节点唯一标识
+    // NODE_ID 未设置时按主机名生成稳定 id：同一机器/容器重启后 id 不变，
+    // 拓扑图上不会每次重启都多出一个离线节点；docker/k8s 多副本主机名天然不同，无需额外配置；
+    // 同一台机器起多个进程做压测时，需显式设置不同的 NODE_ID 区分
+    this.nodeId = process.env.NODE_ID || `node-${normalizeHostname()}`
     this.nodeName = process.env.NODE_NAME || this.nodeId
   }
 
