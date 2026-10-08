@@ -23,10 +23,12 @@ function createResourceClient() {
     port: Number(config.REDIS_PORT || 6379),
     db: Number(config.REDIS_DB || 0),
     password: config.REDIS_PASSWORD || undefined,
-    connectTimeout: 2000,
-    commandTimeout: 3000,
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1,
+    // 超时与服务端 RedisService 对齐：远程 Redis 走公网，2s/3s 太容易误判未就绪
+    connectTimeout: 10000,
+    commandTimeout: 10000,
+    // 断连期间命令排队等待重连（采样场景允许迟到），而不是立即失败
+    enableOfflineQueue: true,
+    maxRetriesPerRequest: 3,
     retryStrategy: attempt => Math.min(5000, attempt * 500),
   })
   // The monitor rate-limits actionable warnings; a connection failure never stops the web server.

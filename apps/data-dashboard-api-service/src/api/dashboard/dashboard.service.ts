@@ -182,8 +182,8 @@ export class DashboardService {
   ): Promise<IDashboardListRes> {
     const cacheKey = this.getListCacheKey(user.userId, data)
 
-    // 尝试从缓存获取
-    const cached = await this.redisService.get<IDashboardListRes>(cacheKey)
+    // 尝试从缓存获取（Redis 不可用时穿透到数据库）
+    const cached = await this.safeGetCache<IDashboardListRes>(cacheKey)
     if (cached) {
       // 过滤用户有权限查看的看板
       return await this.filterAccessibleDashboards(cached, user)
@@ -252,7 +252,7 @@ export class DashboardService {
     }
 
     // 缓存结果
-    await this.redisService.set(cacheKey, result, CACHE_EXPIRE_SECONDS)
+    await this.safeSetCache(cacheKey, result)
 
     return result
   }
@@ -284,8 +284,8 @@ export class DashboardService {
     const timeRangeKey = data.timeRange ? data.timeRange.join('_') : 'default'
     const cacheKey = `${DASHBOARD_DATA_CACHE_KEY_PREFIX}${data.dashboardId}:${timeRangeKey}`
 
-    // 尝试从缓存获取
-    const cached = await this.redisService.get<IDashboardDataRes>(cacheKey)
+    // 尝试从缓存获取（Redis 不可用时穿透到数据库）
+    const cached = await this.safeGetCache<IDashboardDataRes>(cacheKey)
     if (cached) {
       return cached
     }
@@ -361,7 +361,7 @@ export class DashboardService {
     }
 
     // 缓存结果
-    await this.redisService.set(cacheKey, result, CACHE_EXPIRE_SECONDS)
+    await this.safeSetCache(cacheKey, result)
 
     return result
   }
@@ -522,6 +522,35 @@ export class DashboardService {
     const page = data.page || 1
     const pageSize = data.pageSize || 10
     return `${DASHBOARD_LIST_CACHE_KEY_PREFIX}${userId}:${type}:${analysisType}:${page}:${pageSize}`
+  }
+
+  /**
+   * 安全读取缓存：Redis 不可用（连接断开/命令失败）时返回 null，穿透到数据库
+   */
+  private async safeGetCache<T>(cacheKey: string): Promise<T | null> {
+    if (!this.redisService.isReady()) {
+      return null
+    }
+    try {
+      return await this.redisService.get<T>(cacheKey)
+    } catch (error) {
+      this.logger.warn(`读取看板缓存失败，穿透到数据库: ${error instanceof Error ? error.message : error}`)
+      return null
+    }
+  }
+
+  /**
+   * 安全写入缓存：失败只记录日志，不影响主流程
+   */
+  private async safeSetCache(cacheKey: string, value: unknown): Promise<void> {
+    if (!this.redisService.isReady()) {
+      return
+    }
+    try {
+      await this.redisService.set(cacheKey, value, CACHE_EXPIRE_SECONDS)
+    } catch (error) {
+      this.logger.warn(`写入看板缓存失败: ${error instanceof Error ? error.message : error}`)
+    }
   }
 
   /**

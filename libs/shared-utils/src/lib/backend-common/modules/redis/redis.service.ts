@@ -11,15 +11,12 @@ export class RedisService implements OnModuleDestroy {
 
   constructor(options: RedisModuleOptions) {
     const maxReconnectWarnings = this.maxReconnectWarnings
-    // 改进的重试策略：限制重试次数，避免无限重连
+    // 重试策略：不限次重连、退避封顶。
+    // 远程 Redis 抖动是常态，返回 null 停止重试会让客户端进入 end 终态，
+    // 之后所有命令立即以 "Connection is closed" 失败，必须重启进程才能恢复
     const retryStrategy = options.retryStrategy || ((times: number) => {
-      // 最多重试10次，之后停止重试
-      if (times > 10) {
-        console.error('❌ Redis 重连次数超过限制，停止重试')
-        return null // 返回 null 停止重试
-      }
-      const delay = Math.min(times * 50, 2000)
-      if (times <= maxReconnectWarnings) {
+      const delay = Math.min(times * 200, 5000)
+      if (times <= maxReconnectWarnings || times % 50 === 0) {
         console.warn(`⚠️ Redis 正在重连 (第 ${times} 次)，${delay}ms 后重试...`)
       }
       return delay
@@ -88,6 +85,12 @@ export class RedisService implements OnModuleDestroy {
   // 获取原始客户端（如需使用 ioredis 全部方法）
   getClient(): Redis {
     return this.client
+  }
+
+  // 当前是否可用（已建立连接）。
+  // 调用方可据此在 Redis 不可用时走降级路径，而不是让命令在离线队列里挂起
+  isReady(): boolean {
+    return this.isConnected
   }
 
   // 封装常用方法（按需扩展）
