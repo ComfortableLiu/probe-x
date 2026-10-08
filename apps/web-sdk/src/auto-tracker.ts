@@ -5,6 +5,7 @@
 import type { ElementInfo, FormField, PerformanceData } from './types';
 import { ConfigManager } from './config';
 import { EventCollector } from './collector';
+import { Utils } from './utils'
 
 interface EventListener {
   element: EventTarget;
@@ -179,7 +180,7 @@ export class AutoTracker {
       const clickEvent = this.collector.collectEvent('click', {
         element_type: element.type,
         element_id: element.id,
-        element_class: element.className,
+        element_class: Utils.getSafeClassName(target),
         element_text: element.text,
         element_href: element.href,
         element_src: element.src,
@@ -689,7 +690,7 @@ export class AutoTracker {
           const element = entry.target as HTMLElement;
           this.collector.collectEvent('element_visibility', {
             element_id: element.id,
-            element_class: element.className,
+            element_class: Utils.getSafeClassName(element),
             element_tag: element.tagName,
             is_visible: entry.isIntersecting,
             intersection_ratio: entry.intersectionRatio,
@@ -714,7 +715,7 @@ export class AutoTracker {
     return {
       type: (element as HTMLInputElement).type || null,
       id: element.id || null,
-      className: element.className || null,
+      className: Utils.getSafeClassName(element) || null,
       text: element.textContent ? element.textContent.trim().substring(0, 100) : null,
       href: (element as HTMLAnchorElement).href || null,
       src: (element as HTMLImageElement).src || null,
@@ -771,11 +772,12 @@ export class AutoTracker {
     
     while (current && current.parentElement && current !== document.body) {
       let selector = current.tagName.toLowerCase();
-      
-      if (current.className) {
-        selector += '.' + current.className.split(' ').join('.');
+
+      const className = Utils.getSafeClassName(current).trim()
+      if (className) {
+        selector += '.' + className.split(/\s+/).join('.')
       }
-      
+
       parts.unshift(selector);
       current = current.parentElement;
     }

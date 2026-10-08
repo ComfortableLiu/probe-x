@@ -86,7 +86,8 @@ export class DataSender {
   }
 
   /**
-   * 同步批量发送（用于页面卸载场景，优先使用 sendBeacon）
+   * 同步批量发送（用于页面卸载场景）
+   * transport 为 'gif' 时跳过 beacon 直接走 gif 分支；其余情况优先使用 sendBeacon
    */
   flushSync(): void {
     if (this.queue.length === 0) {
@@ -113,8 +114,13 @@ export class DataSender {
       },
     };
 
+    const transport = this.config.get<'beacon' | 'fetch' | 'gif'>('transport', 'beacon');
+
     // 优先使用 sendBeacon（同步，不阻塞页面卸载）
-    if (this.canUseBeacon()) {
+    // transport 为 'gif' 时跳过 beacon 直接走 gif 分支；
+    // transport 为 'fetch' 时卸载场景仍使用 beacon：fetch 是异步的，页面卸载时不保证发出和完成，
+    // sendBeacon 是卸载场景下唯一可靠的同步上报通道
+    if (transport !== 'gif' && this.canUseBeacon()) {
       try {
         // 使用 Blob 设置正确的 Content-Type
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -132,7 +138,7 @@ export class DataSender {
       }
     }
 
-    // sendBeacon 不可用或失败，使用 gif 图片请求（同步）
+    // sendBeacon 不可用或失败（或 transport 配置为 'gif'），使用 gif 图片请求（同步）
     try {
       const gifUrl = apiUrl.replace(/\/report$/, '/track.gif');
       const params = new URLSearchParams();
@@ -203,7 +209,33 @@ export class DataSender {
       console.log('ProbeX sending data:', payload);
     }
 
-    // 发送数据
+    // 按 transport 配置分发上报方式，默认 beacon
+    const transport = this.config.get<'beacon' | 'fetch' | 'gif'>('transport', 'beacon');
+
+    // gif：直接走 gif 图片请求
+    if (transport === 'gif') {
+      await this.gifRequest(apiUrl, payload);
+      if (debug) {
+        console.log('ProbeX data sent successfully via gif');
+      }
+      return;
+    }
+
+    // beacon（默认）：优先 sendBeacon，返回 true 即视为成功（fire-and-forget，无响应可校验，不适用重试）；
+    // sendBeacon 不可用、返回 false 或抛异常时，降级到现有 fetch 降级链
+    if (transport === 'beacon') {
+      if (this.sendViaBeacon(apiUrl, payload)) {
+        if (debug) {
+          console.log('ProbeX data sent successfully via sendBeacon');
+        }
+        return;
+      }
+      if (debug) {
+        console.warn('ProbeX: sendBeacon unavailable or rejected, falling back to fetch chain');
+      }
+    }
+
+    // fetch（含 beacon 降级）：走现有 fetch → XMLHttpRequest → gif 降级链
     const response = await this.makeRequest(apiUrl, payload);
     
     if (!response.ok) {
@@ -232,7 +264,9 @@ export class DataSender {
       ua: event.device.userAgent,
       webSite: window.location.hostname,
       webPathname: event.page.path,
-      webParams: JSON.stringify(event.properties),
+      // webParams 是公共参数「页面参数」（$web_params 列COMMENT：页面参数），只承载事件发生时页面 URL 的 query 部分；
+      // 业务指标一律走 data（event.properties，接收端会展开成业务字段），严禁占用公共参数上报
+      webParams: (event.page.search || '').replace(/^\?/, ''),
       deviceId: this.getDeviceId(),
       referrer: event.page.referrer,
       utmSource: this.getUTMParameter('utm_source'),
@@ -261,9 +295,10 @@ export class DataSender {
   }
 
   /**
-   * 发送HTTP请求
-   * 常规批量发送按优先级：fetch → XMLHttpRequest → gif图片请求
-   * sendBeacon 无法拿到响应且无法判断失败，仅用于页面卸载场景（flushSync）
+   * 发送HTTP请求（fetch 降级链）
+   * 按优先级：fetch → XMLHttpRequest → gif图片请求
+   * transport 默认为 'beacon'，常规批量发送优先走 sendBeacon，
+   * 仅当 transport 配置为 'fetch' 或 sendBeacon 降级时进入本方法
    */
   private async makeRequest(url: string, data: any): Promise<Response> {
     // 1. 优先使用 fetch
@@ -353,6 +388,27 @@ export class DataSender {
 
       xhr.send(options.body as string);
     });
+  }
+
+  /**
+   * 通过 sendBeacon 发送数据（fire-and-forget）
+   * 返回 true 表示浏览器已接收入队；sendBeacon 不可用、返回 false 或抛异常时返回 false，由调用方降级
+   */
+  private sendViaBeacon(url: string, data: any): boolean {
+    if (!this.canUseBeacon()) {
+      return false;
+    }
+
+    try {
+      // 使用 Blob 设置正确的 Content-Type
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      return navigator.sendBeacon(url, blob);
+    } catch (error) {
+      if (this.config.get('debug')) {
+        console.warn('ProbeX: sendBeacon threw error', error);
+      }
+      return false;
+    }
   }
 
   /**

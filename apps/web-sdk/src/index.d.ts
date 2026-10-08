@@ -25,6 +25,14 @@ export interface ProbeXConfig {
   maxRetries?: number;
   retryDelay?: number;
   sendTimeout?: number;
+  /**
+   * 上报方式，默认 'beacon'
+   * - beacon：常规批量发送优先使用 navigator.sendBeacon（Blob，Content-Type application/json），
+   *   fire-and-forget，无法读取响应，sendBeacon 不可用或失败时自动降级到 fetch→XHR→gif 链
+   * - fetch：使用 fetch→XHR→gif 降级链
+   * - gif：直接使用 gif 图片请求上报，受 URL 长度限制
+   */
+  transport?: 'beacon' | 'fetch' | 'gif';
 
   // 存储配置
   storageType?: 'localStorage' | 'sessionStorage' | 'memory';

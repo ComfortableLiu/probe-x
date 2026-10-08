@@ -85,8 +85,17 @@ const probeX = new ProbeX({
   flushInterval: 5000,                          // 发送间隔(毫秒)
   maxRetries: 3,                                // 最大重试次数
   retryDelay: 1000,                             // 重试延迟(毫秒)
+  transport: 'beacon',                          // 上报方式：beacon(默认)/fetch/gif
 });
 ```
+
+三种上报方式的差异：
+
+- **beacon（默认）**：常规批量发送优先使用 `navigator.sendBeacon`（Blob，Content-Type 为 application/json）。它是 fire-and-forget 模式——浏览器保证发出但无法读取响应，因此失败重试逻辑不适用（sendBeacon 返回 true 即视为成功）。当 sendBeacon 不可用、返回 false 或抛异常时，自动降级到 fetch→XHR→gif 降级链。
+- **fetch**：使用现有的 fetch→XHR→gif 降级链，可读取响应并支持失败重试。
+- **gif**：直接使用 gif 图片请求上报，兼容性最好，但数据拼接在 URL 上，受 URL 长度限制（不适合大批量数据）。
+
+注意：页面卸载（pagehide）时统一走同步 flush 通道，优先使用信标（transport 为 gif 时直接使用 gif），因为卸载场景下 fetch 异步请求不可靠——即使配置了 fetch，卸载时仍会使用信标。
 
 ### 存储配置
 ```javascript

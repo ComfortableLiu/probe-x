@@ -23,9 +23,14 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }))
 
-  // 启用CORS（不携带 credentials，origin: true 与 credentials: true 组合存在安全隐患）
+  // 启用CORS
+  // credentials: true 是必需的——sendBeacon 的凭据模式固定为 include（会携带 Cookie），
+  // 响应缺少 Access-Control-Allow-Credentials 时浏览器会拦截并阻断上报（预检失败导致 POST 根本发不出）。
+  // 安全风险可控：origin: true 只是把请求来源反射回 ACAO（已存在的行为），且本服务是埋点数据接收端，
+  // 响应体不含敏感数据，也不做基于 Cookie 的身份认证，不存在凭据泄露面
   app.enableCors({
     origin: true,
+    credentials: true,
   })
 
   // 全局注册异常过滤器

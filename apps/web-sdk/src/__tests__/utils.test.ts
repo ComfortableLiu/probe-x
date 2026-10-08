@@ -286,4 +286,32 @@ describe('Utils', () => {
       expect(Utils.formatFileSize(1024 * 1024 * 1024)).toBe('1 GB')
     })
   })
+
+  describe('getSafeClassName', () => {
+    test('普通 HTML 元素应该返回类名字符串', () => {
+      const div = document.createElement('div')
+      div.className = 'foo bar'
+      expect(Utils.getSafeClassName(div)).toBe('foo bar')
+    })
+
+    test('SVG 元素应该返回 baseVal 字符串', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('class', 'icon-cart')
+      const className = Utils.getSafeClassName(svg)
+      expect(className).toBe('icon-cart')
+      expect(typeof className).toBe('string')
+    })
+
+    test('className 为 SVGAnimatedString 对象时应该返回 baseVal', () => {
+      const element = { className: { baseVal: 'icon-path' } } as unknown as Element
+      const className = Utils.getSafeClassName(element)
+      expect(className).toBe('icon-path')
+      expect(typeof className).toBe('string')
+    })
+
+    test('无 class 的元素应该返回空字符串', () => {
+      const div = document.createElement('div')
+      expect(Utils.getSafeClassName(div)).toBe('')
+    })
+  })
 })

@@ -46,7 +46,8 @@ export class ConfigManager {
       maxRetries: 3,
       retryDelay: 1000, // 1秒
       sendTimeout: 10000, // 10秒
-      
+      transport: 'beacon', // 上报方式：beacon(信标)/fetch/gif
+
       // 存储配置
       storageType: 'localStorage',
       maxStorageSize: 1000,
@@ -210,6 +211,11 @@ export class ConfigManager {
     // 验证存储类型
     if (this.config.storageType && !['localStorage', 'sessionStorage', 'memory'].includes(this.config.storageType)) {
       errors.push('storageType must be one of: localStorage, sessionStorage, memory');
+    }
+
+    // 验证上报方式
+    if (this.config.transport && !['beacon', 'fetch', 'gif'].includes(this.config.transport)) {
+      errors.push('transport must be one of: beacon, fetch, gif');
     }
 
     // 验证压缩类型

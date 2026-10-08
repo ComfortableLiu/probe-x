@@ -406,6 +406,15 @@ export class Utils {
   }
 
   /**
+   * 安全获取元素类名字符串（SVG 元素的 className 是 SVGAnimatedString 对象）
+   */
+  static getSafeClassName(element: Element): string {
+    const className = element.className
+    if (typeof className === 'string') return className
+    return (className as SVGAnimatedString)?.baseVal || ''
+  }
+
+  /**
    * 转义HTML字符
    */
   static escapeHtml(str: string): string {

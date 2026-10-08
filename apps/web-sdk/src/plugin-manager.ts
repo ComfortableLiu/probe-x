@@ -4,6 +4,7 @@
 
 import type { Plugin, PluginConfig, EventHooks } from './types';
 import { ConfigManager } from './config';
+import { Utils } from './utils';
 
 export class PluginManager {
   private config: ConfigManager;
@@ -415,7 +416,7 @@ export class HeatmapPlugin implements Plugin {
     return {
       tagName: element.tagName,
       id: element.id,
-      className: element.className,
+      className: Utils.getSafeClassName(element),
       textContent: element.textContent?.substring(0, 50),
     };
   }
@@ -649,10 +650,11 @@ export class SessionReplayPlugin implements Plugin {
     while (current && current !== document.body) {
       let selector = current.tagName.toLowerCase();
       
+      const className = Utils.getSafeClassName(current).trim();
       if (current.id) {
         selector += `#${current.id}`;
-      } else if (current.className) {
-        selector += `.${current.className.split(' ').join('.')}`;
+      } else if (className) {
+        selector += `.${className.split(/\s+/).join('.')}`;
       }
       
       path.unshift(selector);
