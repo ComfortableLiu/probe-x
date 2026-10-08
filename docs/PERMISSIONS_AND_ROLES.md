@@ -32,36 +32,11 @@
 - `permission:delete` - 删除权限
 - `permission:view` - 查看权限
 
-#### 1.4 数据源配置页面 (`system:config:datasource`)
-- `datasource:create` - 创建数据源
-- `datasource:update` - 更新数据源
-- `datasource:delete` - 删除数据源
-- `datasource:view` - 查看数据源
-- `datasource:test` - 测试连接
-
-#### 1.5 系统参数配置页面 (`system:config:system-params`)
-- `system:params:create` - 创建系统参数
-- `system:params:update` - 更新系统参数
-- `system:params:delete` - 删除系统参数
-- `system:params:view` - 查看系统参数
-
-#### 1.6 计算节点配置页面 (`system:config:computing-node`)
+#### 1.4 计算节点配置页面 (`system:config:computing-node`)
 - `computing:node:create` - 创建计算节点
 - `computing:node:update` - 更新计算节点
 - `computing:node:delete` - 删除计算节点
 - `computing:node:view` - 查看计算节点
-
-#### 1.7 通知设置页面 (`system:config:notification`)
-- `notification:create` - 创建通知配置
-- `notification:update` - 更新通知配置
-- `notification:delete` - 删除通知配置
-- `notification:view` - 查看通知配置
-
-#### 1.8 日志配置页面 (`system:config:log-config`)
-- `log:config:create` - 创建日志配置
-- `log:config:update` - 更新日志配置
-- `log:config:delete` - 删除日志配置
-- `log:config:view` - 查看日志配置
 
 ### 2. 埋点管理模块
 

@@ -11,10 +11,6 @@ export enum PagePermission {
   SYSTEM_CONFIG_USER = 'system:config:user', // 用户管理页面
   SYSTEM_CONFIG_ROLE = 'system:config:role', // 角色管理页面
   SYSTEM_CONFIG_PERMISSION = 'system:config:permission', // 权限管理页面
-  SYSTEM_CONFIG_DATASOURCE = 'system:config:datasource', // 数据源配置页面
-  SYSTEM_CONFIG_SYSTEM_PARAMS = 'system:config:system-params', // 系统参数配置页面
-  SYSTEM_CONFIG_NOTIFICATION = 'system:config:notification', // 通知设置页面
-  SYSTEM_CONFIG_LOG_CONFIG = 'system:config:log-config', // 日志配置页面
   SYSTEM_CONFIG_COMPUTING_NODE = 'system:config:computing-node', // 计算节点配置页面
 
   // 埋点管理
@@ -45,10 +41,6 @@ export const ROUTE_PATH_PERMISSION: Record<string, PagePermission> = {
   '/system-config/user': PagePermission.SYSTEM_CONFIG_USER,
   '/system-config/role': PagePermission.SYSTEM_CONFIG_ROLE,
   '/system-config/permission-list': PagePermission.SYSTEM_CONFIG_PERMISSION,
-  '/system-config/datasource': PagePermission.SYSTEM_CONFIG_DATASOURCE,
-  '/system-config/system-params': PagePermission.SYSTEM_CONFIG_SYSTEM_PARAMS,
-  '/system-config/notification': PagePermission.SYSTEM_CONFIG_NOTIFICATION,
-  '/system-config/log-config': PagePermission.SYSTEM_CONFIG_LOG_CONFIG,
   '/system-config/computing-node': PagePermission.SYSTEM_CONFIG_COMPUTING_NODE,
 }
 
@@ -76,31 +68,6 @@ export enum FunctionPermission {
   PERMISSION_UPDATE = 'permission:update', // 更新权限
   PERMISSION_DELETE = 'permission:delete', // 删除权限
   PERMISSION_VIEW = 'permission:view', // 查看权限
-
-  // 数据源配置功能
-  DATASOURCE_CREATE = 'datasource:create', // 创建数据源
-  DATASOURCE_UPDATE = 'datasource:update', // 更新数据源
-  DATASOURCE_DELETE = 'datasource:delete', // 删除数据源
-  DATASOURCE_TEST = 'datasource:test', // 测试数据源连接
-  DATASOURCE_VIEW = 'datasource:view', // 查看数据源
-
-  // 系统参数配置功能
-  SYSTEM_PARAMS_CREATE = 'system:params:create', // 创建系统参数
-  SYSTEM_PARAMS_UPDATE = 'system:params:update', // 更新系统参数
-  SYSTEM_PARAMS_DELETE = 'system:params:delete', // 删除系统参数
-  SYSTEM_PARAMS_VIEW = 'system:params:view', // 查看系统参数
-
-  // 通知设置功能
-  NOTIFICATION_CREATE = 'notification:create', // 创建通知配置
-  NOTIFICATION_UPDATE = 'notification:update', // 更新通知配置
-  NOTIFICATION_DELETE = 'notification:delete', // 删除通知配置
-  NOTIFICATION_VIEW = 'notification:view', // 查看通知配置
-
-  // 日志配置功能
-  LOG_CONFIG_CREATE = 'log:config:create', // 创建日志配置
-  LOG_CONFIG_UPDATE = 'log:config:update', // 更新日志配置
-  LOG_CONFIG_DELETE = 'log:config:delete', // 删除日志配置
-  LOG_CONFIG_VIEW = 'log:config:view', // 查看日志配置
 
   // 计算节点配置功能
   COMPUTING_NODE_CREATE = 'computing:node:create', // 创建计算节点

@@ -39,14 +39,9 @@ Probe-X
 │   ├── 用户管理 (/user)
 │   ├── 角色管理 (/role)
 │   ├── 系统管理 (/system)
-│   ├── 项目管理 (/project)
-│   ├── 数据源配置 (/datasource)
 │   ├── 计算节点配置 (/computing-node)
-│   ├── 通知设置 (/notification)
 │   ├── 告警管理 (/alert)
-│   ├── 审计日志 (/audit-log)
-│   ├── 日志配置 (/log-config)
-│   └── 系统参数配置 (/system-params)
+│   └── 审计日志 (/audit-log)
 │
 └── 👤 账户 (/account)
     ├── 登录 (/login) — 隐藏菜单
@@ -478,14 +473,9 @@ SPM 和 SCM 均为 4 级层次结构:
 | 用户管理 | LIST | 列表 + 新建 + 编辑 + 重置密码 + 分配角色 |
 | 角色管理 | LIST | 列表 + 新建 + 编辑 + 分配权限 |
 | 系统管理 | LIST | 系统配置项 CRUD |
-| 项目管理 | LIST | 项目 CRUD + 成员管理 |
-| 数据源配置 | LIST | 数据源 CRUD + 连接测试 |
 | 计算节点配置 | LIST | 节点 CRUD + 状态监控 |
-| 通知设置 | LIST | 通知渠道 CRUD + 发送测试 |
 | 告警管理 | LIST | 规则 CRUD + 告警历史 |
 | 审计日志 | LIST | 只读列表（无增删改） |
-| 日志配置 | CONF | 日志级别/格式配置 |
-| 系统参数 | CONF | 全局参数键值对配置 |
 
 ---
 

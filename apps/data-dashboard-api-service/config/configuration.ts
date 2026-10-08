@@ -6,11 +6,6 @@ export default () => {
   if (!process.env.SALT) {
     throw new Error('SALT 环境变量未配置，服务无法启动')
   }
-  // 数据源密码加密开关：默认开启，设为 false 可关闭（关闭时密码明文入库）
-  const datasourceEncryptEnabled = process.env.DATASOURCE_ENCRYPT_ENABLED !== 'false'
-  if (datasourceEncryptEnabled && !process.env.DATASOURCE_ENCRYPT_SECRET) {
-    throw new Error('DATASOURCE_ENCRYPT_SECRET 环境变量未配置，服务无法启动（如需关闭加密请设置 DATASOURCE_ENCRYPT_ENABLED=false）')
-  }
 
   return {
     client: {
@@ -24,10 +19,6 @@ export default () => {
       throttleMaxAttempts: parseInt(process.env.LOGIN_THROTTLE_MAX_ATTEMPTS || '', 10) || 5,
       throttleWindowMs: parseInt(process.env.LOGIN_THROTTLE_WINDOW_MS || '', 10) || 15 * 60 * 1000,
       trustProxy: process.env.LOGIN_TRUST_PROXY === 'true', // 是否存在可信代理（决定限流是否读取 x-forwarded-for）
-    },
-    datasource: {
-      encryptEnabled: datasourceEncryptEnabled,
-      encryptSecret: process.env.DATASOURCE_ENCRYPT_SECRET || '',
     },
     jwt: {
       secret: process.env.JWT_SECRET || '',

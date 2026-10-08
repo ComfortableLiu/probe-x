@@ -25,11 +25,8 @@ import { SystemConfigModule } from "@src/api/system-config/system-config.module"
 import { DashboardModule } from "@src/api/dashboard/dashboard.module"
 import { HomepageModule } from "@src/api/homepage/homepage.module"
 import { ComputeNodeModule } from "@src/api/compute-node/compute-node.module"
-import { ProjectModule } from "@src/api/project/project.module"
 import { AlertModule } from "@src/api/alert/alert.module"
 import { AuditLogModule } from "@src/api/audit-log/audit-log.module"
-import { DataSourceModule } from "@src/api/datasource/datasource.module"
-import { NotificationModule } from "@src/api/notification/notification.module"
 import { UtmModule } from "@src/api/utm/utm.module"
 import { DashboardAuthGuard } from './guard/dashboard-auth.guard'
 
@@ -75,11 +72,8 @@ import { DashboardAuthGuard } from './guard/dashboard-auth.guard'
     DashboardModule,
     HomepageModule,
     ComputeNodeModule,
-    ProjectModule,
     AlertModule,
     AuditLogModule,
-    DataSourceModule,
-    NotificationModule,
     UtmModule,
   ],
   providers: [{

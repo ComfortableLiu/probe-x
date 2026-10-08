@@ -47,31 +47,6 @@ export default {
     path: '/system-config/general',
     component: lazy(() => import('@pages/system-config/general')),
   }, {
-    name: '系统参数配置',
-    key: 'system-config-system-params',
-    path: '/system-config/system-params',
-    component: lazy(() => import('@pages/system-config/system-params')),
-  }, {
-    name: '数据源配置',
-    key: 'system-config-datasource',
-    path: '/system-config/datasource',
-    component: lazy(() => import('@pages/system-config/datasource')),
-  }, {
-    name: '通知设置',
-    key: 'system-config-notification',
-    path: '/system-config/notification',
-    component: lazy(() => import('@pages/system-config/notification')),
-  }, {
-    name: '日志配置',
-    key: 'system-config-log-config',
-    path: '/system-config/log-config',
-    component: lazy(() => import('@pages/system-config/log-config')),
-  }, {
-    name: '项目管理',
-    key: 'system-config-project',
-    path: '/system-config/project',
-    component: lazy(() => import('@pages/system-config/project')),
-  }, {
     name: '审计日志',
     key: 'system-config-audit-log',
     path: '/system-config/audit-log',
