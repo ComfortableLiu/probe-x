@@ -49,49 +49,55 @@ export const setUserProperties = (userProperties: Record<string, any>) => {
   probeX.setUser(userProperties)
 }
 
-// 页面访问埋点
-export const trackPageView = (pageName: string, additionalProperties: Record<string, any> = {}) => {
+// 页面访问埋点，tracking 用于传 SPM/SCM 点位编码（见 utils/trackingPoints.ts）
+export const trackPageView = (
+  pageName: string,
+  additionalProperties: Record<string, any> = {},
+  tracking: { spm?: string; scm?: string } = {},
+) => {
   trackEvent('page_view', {
     page_name: pageName,
     page_url: window.location.href,
     referrer: document.referrer,
+    ...(tracking.spm ? { $spm: tracking.spm } : {}),
+    ...(tracking.scm ? { $scm: tracking.scm } : {}),
     ...additionalProperties,
   })
 }
 
-// 商品浏览埋点
-export const trackProductView = (product: any, additionalProperties: Record<string, any> = {}) => {
+// 商品浏览埋点（商品身份/属性由 $scm 的 spuCode 反解，载荷不再携带）
+export const trackProductView = (additionalProperties: Record<string, any> = {}) => {
   trackEvent('product_view', {
-    product_id: product.id,
-    product_name: product.name,
-    product_category: product.category,
-    product_brand: product.brand,
-    product_price: product.price,
     ...additionalProperties,
   })
 }
 
 // 商品点击埋点
-export const trackProductClick = (product: any, clickType: string = 'card', additionalProperties: Record<string, any> = {}) => {
+export const trackProductClick = (clickType: string = 'card', additionalProperties: Record<string, any> = {}) => {
   trackEvent('product_click', {
-    product_id: product.id,
-    product_name: product.name,
-    product_category: product.category,
-    product_brand: product.brand,
-    product_price: product.price,
     click_type: clickType,
     ...additionalProperties,
   })
 }
 
-// 添加到购物车埋点
+// 商品曝光埋点
+export const trackProductExposure = (additionalProperties: Record<string, any> = {}) => {
+  trackEvent('product_exposure', {
+    ...additionalProperties,
+  })
+}
+
+// 商品收藏埋点
+export const trackProductFavorite = (favorited: boolean, additionalProperties: Record<string, any> = {}) => {
+  trackEvent('product_favorite', {
+    favorited: favorited,
+    ...additionalProperties,
+  })
+}
+
+// 添加到购物车埋点（保留 product 形参用于计算 total_value 度量）
 export const trackAddToCart = (product: any, quantity: number = 1, additionalProperties: Record<string, any> = {}) => {
   trackEvent('add_to_cart', {
-    product_id: product.id,
-    product_name: product.name,
-    product_category: product.category,
-    product_brand: product.brand,
-    product_price: product.price,
     quantity: quantity,
     total_value: product.price * quantity,
     ...additionalProperties,
@@ -99,16 +105,10 @@ export const trackAddToCart = (product: any, quantity: number = 1, additionalPro
 }
 
 // 购物车操作埋点
-export const trackCartAction = (action: string, product?: any, quantity?: number, additionalProperties: Record<string, any> = {}) => {
+export const trackCartAction = (action: string, quantity?: number, additionalProperties: Record<string, any> = {}) => {
   const eventProperties: Record<string, any> = {
     action: action,
     ...additionalProperties,
-  }
-
-  if (product) {
-    eventProperties.product_id = product.id
-    eventProperties.product_name = product.name
-    eventProperties.product_price = product.price
   }
 
   if (quantity !== undefined) {

@@ -1,36 +1,96 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Row, Col, Card, Button, Typography, Carousel } from 'antd'
 import { ShoppingCartOutlined, EyeOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { mockProducts, mockCategories } from '../data/mockData'
-import { trackPageView, trackProductClick, trackAddToCart } from '../utils/probeX'
+import { trackPageView, trackProductClick, trackAddToCart, trackButtonClick, trackProductExposure } from '../utils/probeX'
+import { SPM_PAGE_PATH, SPM_POINT, SCM_POINT, buildProductScm, buildCategoryScm, buildBannerScm } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
 
+  // 精选商品容器 ref 与已曝光商品记录（同一商品同一次页面浏览只上报一次曝光）
+  const featuredRef = useRef<HTMLDivElement>(null)
+  const exposedRef = useRef(new Set<string>())
+
   useEffect(() => {
     trackPageView('home', {
       page_title: '首页',
       featured_products_count: mockProducts.slice(0, 6).length,
       categories_count: mockCategories.length,
-    })
+    }, { spm: SPM_PAGE_PATH.HOME, scm: SCM_POINT.DIRECT_HOME })
+  }, [])
+
+  // 精选商品曝光埋点：卡片 50% 以上进入视口时上报
+  useEffect(() => {
+    const container = featuredRef.current
+    if (!container) return
+
+    const featuredProducts = mockProducts.slice(0, 6)
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const el = entry.target as HTMLElement
+        const productId = el.dataset.productId
+        if (!productId || exposedRef.current.has(productId)) return
+
+        const product = featuredProducts.find(p => p.id === productId)
+        if (product) {
+          exposedRef.current.add(productId)
+          trackProductExposure({
+            page: 'home',
+            position: Number(el.dataset.productIndex) + 1,
+            $spm: SPM_POINT.HOME_PRODUCT_EXPOSURE,
+            $scm: buildProductScm(product.id),
+          })
+        }
+        observer.unobserve(el)
+      })
+    }, { threshold: 0.5 })
+
+    container.querySelectorAll('[data-product-id]').forEach(el => observer.observe(el))
+
+    return () => observer.disconnect()
   }, [])
 
   const handleProductClick = (product: any) => {
-    trackProductClick(product, 'home_featured')
+    trackProductClick('home_featured', {
+      $spm: SPM_POINT.HOME_PRODUCT_CLICK,
+      $scm: buildProductScm(product.id),
+    })
     navigate(`/products/${product.id}`)
   }
 
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    trackAddToCart(product, 1, { source: 'home_featured' })
+    trackAddToCart(product, 1, {
+      source: 'home_featured',
+      $spm: SPM_POINT.HOME_ADD_TO_CART,
+      $scm: buildProductScm(product.id),
+    })
     // 这里可以添加到购物车的逻辑
   }
 
   const handleCategoryClick = (category: any) => {
+    trackButtonClick('category_click', 'home', {
+      category_id: category.id,
+      category_name: category.name,
+      $spm: SPM_POINT.HOME_CATEGORY_CLICK,
+      $scm: buildCategoryScm(category.name),
+    })
     navigate(`/products?category=${category.id}`)
+  }
+
+  const handleBannerClick = (image: string, index: number) => {
+    trackButtonClick('banner_click', 'home', {
+      banner_index: index + 1,
+      banner_image: image,
+      $spm: SPM_POINT.HOME_BANNER_CLICK,
+      $scm: buildBannerScm(index),
+    })
   }
 
   const bannerImages = [
@@ -47,6 +107,7 @@ const HomePage: React.FC = () => {
           {bannerImages.map((image, index) => (
             <div key={index}>
               <div
+                onClick={() => handleBannerClick(image, index)}
                 style={{
                   height: '400px',
                   backgroundImage: `url(${image})`,
@@ -97,13 +158,21 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* 精选商品 */}
-      <div>
+      <div ref={featuredRef}>
         <Title level={2} style={{ textAlign: 'center', marginBottom: '24px' }}>
           精选商品
         </Title>
         <Row gutter={[24, 24]}>
-          {mockProducts.slice(0, 6).map((product) => (
-            <Col xs={24} sm={12} md={8} lg={6} key={product.id}>
+          {mockProducts.slice(0, 6).map((product, index) => (
+            <Col
+              xs={24}
+              sm={12}
+              md={8}
+              lg={6}
+              key={product.id}
+              data-product-id={product.id}
+              data-product-index={index}
+            >
               <Card
                 hoverable
                 className="product-card"

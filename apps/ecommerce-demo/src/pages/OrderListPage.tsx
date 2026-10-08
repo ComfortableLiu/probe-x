@@ -4,6 +4,7 @@ import { Card, Tabs, Tag, Button, Typography, List, Empty } from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import { mockOrders, OrderStatus } from '../data/mockData'
 import { trackPageView, trackButtonClick } from '../utils/probeX'
+import { SPM_BUSINESS } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 const { TabPane } = Tabs
@@ -14,10 +15,11 @@ const OrderListPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('all')
 
   useEffect(() => {
+    // 树上无订单列表页点位，给到业务线层级
     trackPageView('order_list', {
       page_title: '我的订单',
       orders_count: orders.length,
-    })
+    }, { spm: SPM_BUSINESS })
   }, [orders.length, activeTab])
 
   const getStatusColor = (status: OrderStatus) => {
@@ -48,6 +50,7 @@ const OrderListPage: React.FC = () => {
     trackButtonClick('view_order', 'order_list', {
       order_id: order.id,
       order_status: order.status,
+      $spm: SPM_BUSINESS,
     })
     navigate(`/orders/${order.id}`)
   }
@@ -56,6 +59,7 @@ const OrderListPage: React.FC = () => {
     setActiveTab(key)
     trackButtonClick('order_tab_change', 'order_list', {
       tab: key,
+      $spm: SPM_BUSINESS,
     })
   }
 

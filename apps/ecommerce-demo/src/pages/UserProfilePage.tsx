@@ -4,6 +4,7 @@ import { Card, Row, Col, Button, Typography, List, Tag, Avatar } from 'antd'
 import { EditOutlined, HomeOutlined, ShoppingCartOutlined, HeartOutlined, StarOutlined } from '@ant-design/icons'
 import { mockUser } from '../data/mockData'
 import { trackPageView, trackButtonClick } from '../utils/probeX'
+import { SPM_BUSINESS } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 
@@ -13,35 +14,36 @@ const UserProfilePage: React.FC = () => {
   const [editing, setEditing] = useState(false)
 
   useEffect(() => {
+    // 树上无个人中心页点位，给到业务线层级
     trackPageView('user_profile', {
       page_title: '个人中心',
       user_id: user.id,
-    })
+    }, { spm: SPM_BUSINESS })
   }, [user.id])
 
   const handleEditProfile = () => {
     setEditing(true)
-    trackButtonClick('edit_profile', 'user_profile')
+    trackButtonClick('edit_profile', 'user_profile', { $spm: SPM_BUSINESS })
   }
 
   const handleSaveProfile = (values: any) => {
     console.log('保存用户资料:', values)
     setEditing(false)
-    trackButtonClick('save_profile', 'user_profile')
+    trackButtonClick('save_profile', 'user_profile', { $spm: SPM_BUSINESS })
   }
 
   const handleCancelEdit = () => {
     setEditing(false)
-    trackButtonClick('cancel_edit', 'user_profile')
+    trackButtonClick('cancel_edit', 'user_profile', { $spm: SPM_BUSINESS })
   }
 
   const handleEditAddress = (addressId: string) => {
-    trackButtonClick('edit_address', 'user_profile', { addressId })
+    trackButtonClick('edit_address', 'user_profile', { addressId, $spm: SPM_BUSINESS })
     // 这里可以打开编辑地址的模态框
   }
 
   const handleDeleteAddress = (addressId: string) => {
-    trackButtonClick('delete_address', 'user_profile', { addressId })
+    trackButtonClick('delete_address', 'user_profile', { addressId, $spm: SPM_BUSINESS })
     // 这里可以删除地址
   }
 

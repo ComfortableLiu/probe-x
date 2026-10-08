@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Row, Col, Card, Button, InputNumber, Tag, Space, Rate, Tabs, Image } from 'antd'
-import { ShoppingCartOutlined, HeartOutlined } from '@ant-design/icons'
+import { Row, Col, Card, Button, InputNumber, Tag, Space, Rate, Tabs, Image, message } from 'antd'
+import { ShoppingCartOutlined, HeartOutlined, HeartFilled } from '@ant-design/icons'
 import { mockProducts } from '../data/mockData'
-import { trackPageView, trackProductView, trackAddToCart, trackButtonClick } from '../utils/probeX'
+import { trackPageView, trackProductView, trackAddToCart, trackButtonClick, trackProductFavorite } from '../utils/probeX'
+import { SPM_PAGE_PATH, SPM_POINT, SCM_POINT, buildProductScm } from '../utils/trackingPoints'
 
 const { TabPane } = Tabs
 
@@ -13,18 +14,20 @@ const ProductDetailPage: React.FC = () => {
   const [product, setProduct] = useState<any>(null)
   const [quantity, setQuantity] = useState(1)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [favorited, setFavorited] = useState(false)
 
   useEffect(() => {
     if (id) {
       const foundProduct = mockProducts.find(p => p.id === id)
       if (foundProduct) {
         setProduct(foundProduct)
-        trackPageView('product_detail', {
-          product_id: id,
-          product_name: foundProduct.name,
-          product_price: foundProduct.price,
+        trackPageView('product_detail', {}, { spm: SPM_PAGE_PATH.PRODUCT_DETAIL, scm: SCM_POINT.DIRECT_HOME })
+        // 树上详情页无商品浏览点位，$spm 维持页面级两段；商品内容统一带商品 SCM
+        trackProductView({
+          source: 'product_detail',
+          $spm: SPM_PAGE_PATH.PRODUCT_DETAIL,
+          $scm: buildProductScm(foundProduct.id),
         })
-        trackProductView(foundProduct, { source: 'product_detail' })
       } else {
         navigate('/products')
       }
@@ -33,16 +36,34 @@ const ProductDetailPage: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      trackAddToCart(product, quantity, { source: 'product_detail' })
+      trackAddToCart(product, quantity, {
+        source: 'product_detail',
+        $spm: SPM_POINT.DETAIL_ADD_TO_CART,
+        $scm: buildProductScm(product.id),
+      })
       // 这里可以添加到购物车的逻辑
+    }
+  }
+
+  const handleFavorite = () => {
+    if (product) {
+      const newFavorited = !favorited
+      setFavorited(newFavorited)
+      trackProductFavorite(newFavorited, {
+        source: 'product_detail',
+        $spm: SPM_POINT.DETAIL_FAVORITE,
+        $scm: buildProductScm(product.id),
+      })
+      message.success(newFavorited ? '已收藏' : '已取消收藏')
     }
   }
 
   const handleBuyNow = () => {
     if (product) {
       trackButtonClick('buy_now', 'product_detail', {
-        product_id: product.id,
         quantity: quantity,
+        $spm: SPM_POINT.DETAIL_BUY_NOW,
+        $scm: buildProductScm(product.id),
       })
       // 这里可以跳转到结算页面
     }
@@ -51,8 +72,9 @@ const ProductDetailPage: React.FC = () => {
   const handleImageChange = (index: number) => {
     setSelectedImageIndex(index)
     trackButtonClick('product_image_change', 'product_detail', {
-      product_id: product?.id,
       image_index: index,
+      // 树上无图片切换点位，给到页面层级
+      $spm: SPM_PAGE_PATH.PRODUCT_DETAIL,
     })
   }
 
@@ -157,10 +179,11 @@ const ProductDetailPage: React.FC = () => {
               </Button>
               <Button
                 size="large"
-                icon={<HeartOutlined />}
+                icon={favorited ? <HeartFilled style={{ color: '#f5222d' }} /> : <HeartOutlined />}
+                onClick={handleFavorite}
                 style={{ flex: 1 }}
               >
-                收藏
+                {favorited ? '已收藏' : '收藏'}
               </Button>
             </div>
 

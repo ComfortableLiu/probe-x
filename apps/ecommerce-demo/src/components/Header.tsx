@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { trackButtonClick, trackSearch } from '../utils/probeX'
+import { SPM_BUSINESS } from '../utils/trackingPoints'
 
 const { Header: AntHeader } = Layout
 const { Search } = Input
@@ -21,23 +22,24 @@ const Header: React.FC = () => {
 
   const handleSearch = (value: string) => {
     if (value.trim()) {
-      trackSearch(value, 0, { page: 'header' })
+      // 头部为全局组件，树上无对应点位，给到业务线层级
+      trackSearch(value, 0, { page: 'header', $spm: SPM_BUSINESS })
       navigate(`/search?keyword=${encodeURIComponent(value)}`)
     }
   }
 
   const handleMenuClick = (key: string) => {
-    trackButtonClick('navigation', 'header', { menu_item: key })
+    trackButtonClick('navigation', 'header', { menu_item: key, $spm: SPM_BUSINESS })
     navigate(`/${key}`)
   }
 
   const handleCartClick = () => {
-    trackButtonClick('cart', 'header')
+    trackButtonClick('cart', 'header', { $spm: SPM_BUSINESS })
     navigate('/cart')
   }
 
   const handleProfileClick = () => {
-    trackButtonClick('profile', 'header')
+    trackButtonClick('profile', 'header', { $spm: SPM_BUSINESS })
     navigate('/profile')
   }
 
@@ -100,7 +102,7 @@ const Header: React.FC = () => {
           cursor: 'pointer',
         }}
         onClick={() => {
-          trackButtonClick('logo', 'header')
+          trackButtonClick('logo', 'header', { $spm: SPM_BUSINESS })
           navigate('/')
         }}
       >
@@ -141,7 +143,7 @@ const Header: React.FC = () => {
           type="text"
           icon={<BellOutlined />}
           size="large"
-          onClick={() => trackButtonClick('notification', 'header')}
+          onClick={() => trackButtonClick('notification', 'header', { $spm: SPM_BUSINESS })}
         />
 
         {/* 购物车 */}
@@ -160,7 +162,7 @@ const Header: React.FC = () => {
             items: userMenuItems,
             onClick: ({ key }) => {
               if (key === 'logout') {
-                trackButtonClick('logout', 'header')
+                trackButtonClick('logout', 'header', { $spm: SPM_BUSINESS })
                 // 处理退出登录
               } else {
                 handleMenuClick(key)

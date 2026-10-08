@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, Button, Space, Typography, Select, Divider, message } from 'antd'
-import { ToolOutlined, CloseOutlined } from '@ant-design/icons'
+import { ToolOutlined, CloseOutlined, UserAddOutlined } from '@ant-design/icons'
 import { getProbeX } from '../utils/probeX'
 
 // 简单的UUID生成函数
@@ -19,14 +19,24 @@ const generateUUID = (): string => {
 const { Text, Title } = Typography
 const { Option } = Select
 
+interface TestUser {
+  id: string;
+  username: string;
+  email: string;
+}
+
 // 测试用户列表
-const TEST_USERS = [
+const TEST_USERS: TestUser[] = [
   { id: '1', username: '张三', email: 'zhangsan@example.com' },
   { id: '2', username: '李四', email: 'lisi@example.com' },
   { id: '3', username: '王五', email: 'wangwu@example.com' },
   { id: '4', username: '赵六', email: 'zhaoliu@example.com' },
   { id: '5', username: '钱七', email: 'qianqi@example.com' },
 ]
+
+// 随机新用户姓名生成池
+const SURNAMES = ['张', '李', '王', '赵', '钱', '孙', '周', '吴', '郑', '冯', '陈', '刘']
+const GIVEN_NAMES = ['伟', '芳', '娜', '敏', '静', '磊', '洋', '艳', '勇', '军', '杰', '涛']
 
 interface Position {
   x: number;
@@ -37,7 +47,8 @@ const DevTools: React.FC = () => {
   const [visible, setVisible] = useState(false)
   const [position, setPosition] = useState<Position>({ x: window.innerWidth - 100, y: 100 })
   const [dragging, setDragging] = useState(false)
-  const [currentUser, setCurrentUser] = useState(TEST_USERS[0])
+  const [currentUser, setCurrentUser] = useState<TestUser>(TEST_USERS[0])
+  const [userList, setUserList] = useState<TestUser[]>(TEST_USERS)
   const [deviceId, setDeviceId] = useState<string>('')
   const [sessionId, setSessionId] = useState<string>('')
 
@@ -125,7 +136,7 @@ const DevTools: React.FC = () => {
 
   // 切换用户
   const handleSwitchUser = (userId: string) => {
-    const user = TEST_USERS.find(u => u.id === userId)
+    const user = userList.find(u => u.id === userId)
     if (user) {
       const probeX = getProbeX()
       probeX.setUser({
@@ -136,6 +147,30 @@ const DevTools: React.FC = () => {
       setCurrentUser(user)
       message.success(`已切换用户：${user.username}`)
     }
+  }
+
+  // 生成随机新用户，加入切换列表并切换
+  const handleNewUser = () => {
+    const surname = SURNAMES[Math.floor(Math.random() * SURNAMES.length)]
+    const givenName = GIVEN_NAMES[Math.floor(Math.random() * GIVEN_NAMES.length)]
+    const randomSuffix = Math.random().toString(36).slice(2, 6)
+
+    const newUser: TestUser = {
+      id: `u_${generateUUID().slice(0, 8)}`,
+      username: `${surname}${givenName}_${randomSuffix}`,
+      email: `user_${randomSuffix}@example.com`,
+    }
+
+    setUserList(prev => [...prev, newUser])
+
+    const probeX = getProbeX()
+    probeX.setUser({
+      user_id: newUser.id,
+      user_name: newUser.username,
+      email: newUser.email,
+    })
+    setCurrentUser(newUser)
+    message.success(`已生成并切换到新用户：${newUser.username}`)
   }
 
   // 切换设备ID
@@ -249,12 +284,21 @@ const DevTools: React.FC = () => {
                   onChange={handleSwitchUser}
                   style={{ width: '100%' }}
                 >
-                  {TEST_USERS.map(user => (
+                  {userList.map(user => (
                     <Option key={user.id} value={user.id}>
                       {user.username} ({user.email})
                     </Option>
                   ))}
                 </Select>
+                <Button
+                  type="primary"
+                  block
+                  icon={<UserAddOutlined />}
+                  onClick={handleNewUser}
+                  style={{ marginTop: '8px' }}
+                >
+                  一键切换新用户
+                </Button>
               </div>
 
               <Divider style={{ margin: '12px 0' }} />

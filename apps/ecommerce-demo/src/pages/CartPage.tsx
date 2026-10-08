@@ -4,6 +4,7 @@ import { Card, Button, InputNumber, Checkbox, Modal, Typography, Empty } from 'a
 import { DeleteOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import { mockProducts } from '../data/mockData'
 import { trackPageView, trackCartAction, trackButtonClick } from '../utils/probeX'
+import { SPM_PAGE_PATH, SPM_POINT, SCM_POINT, buildProductScm } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 
@@ -41,7 +42,7 @@ const CartPage: React.FC = () => {
     trackPageView('cart', {
       page_title: '购物车',
       cart_items_count: mockCartItems.length,
-    })
+    }, { spm: SPM_PAGE_PATH.CART, scm: SCM_POINT.DIRECT_HOME })
   }, [])
 
   const calculateTotalValue = (items: CartItem[]) => {
@@ -65,7 +66,11 @@ const CartPage: React.FC = () => {
         : item,
     ))
 
-    trackCartAction('quantity_change', cartItems.find(item => item.id === itemId)?.product, newQuantity)
+    const product = cartItems.find(item => item.id === itemId)?.product
+    trackCartAction('quantity_change', newQuantity, {
+      $spm: SPM_POINT.CART_QUANTITY_CHANGE,
+      ...(product ? { $scm: buildProductScm(product.id) } : {}),
+    })
   }
 
   const handleItemSelect = (itemId: string, selected: boolean) => {
@@ -75,14 +80,20 @@ const CartPage: React.FC = () => {
         : item,
     ))
 
-    trackCartAction('item_select', cartItems.find(item => item.id === itemId)?.product, undefined, { selected })
+    const product = cartItems.find(item => item.id === itemId)?.product
+    trackCartAction('item_select', undefined, {
+      selected,
+      $spm: SPM_POINT.CART_ITEM_SELECT,
+      ...(product ? { $scm: buildProductScm(product.id) } : {}),
+    })
   }
 
   const handleSelectAll = (checked: boolean) => {
     setCartItems(prev => prev.map(item => ({ ...item, selected: checked })))
     setSelectAll(checked)
 
-    trackButtonClick('select_all', 'cart', { checked })
+    // 全选针对多个商品，不属于单个商品内容事件，不带 $scm
+    trackButtonClick('select_all', 'cart', { checked, $spm: SPM_POINT.CART_SELECT_ALL })
   }
 
   const handleRemoveItem = (itemId: string) => {
@@ -93,7 +104,10 @@ const CartPage: React.FC = () => {
       content: '确定要从购物车中删除这个商品吗？',
       onOk: () => {
         setCartItems(prev => prev.filter(item => item.id !== itemId))
-        trackCartAction('remove_item', item?.product)
+        trackCartAction('remove_item', undefined, {
+          $spm: SPM_POINT.CART_REMOVE_ITEM,
+          ...(item?.product ? { $scm: buildProductScm(item.product.id) } : {}),
+        })
       },
     })
   }
@@ -111,6 +125,7 @@ const CartPage: React.FC = () => {
     trackButtonClick('checkout', 'cart', {
       selected_items_count: selectedItems.length,
       total_amount: calculateTotalValue(selectedItems),
+      $spm: SPM_POINT.CART_CHECKOUT,
     })
 
     navigate('/checkout', { state: { items: selectedItems } })

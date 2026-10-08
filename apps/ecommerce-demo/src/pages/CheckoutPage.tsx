@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, Form, Input, Select, Button, Typography, Divider, List, message, Row, Col } from 'antd'
 import { mockUser } from '../data/mockData'
 import { trackPageView, trackButtonClick, trackPurchase } from '../utils/probeX'
+import { SPM_PAGE_PATH, SPM_POINT, SCM_POINT } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
@@ -24,7 +25,7 @@ const CheckoutPage: React.FC = () => {
         page_title: '结算页面',
         items_count: location.state.items.length,
         total_amount: calculateTotalAmount(location.state.items),
-      })
+      }, { spm: SPM_PAGE_PATH.CHECKOUT, scm: SCM_POINT.DIRECT_HOME })
     } else {
       navigate('/cart')
     }
@@ -38,6 +39,7 @@ const CheckoutPage: React.FC = () => {
     setPaymentMethod(value)
     trackButtonClick('payment_method_change', 'checkout', {
       payment_method: value,
+      $spm: SPM_POINT.CHECKOUT_PAYMENT_SWITCH,
     })
   }
 
@@ -45,8 +47,10 @@ const CheckoutPage: React.FC = () => {
     const address = mockUser.address.find(addr => addr.id === value)
     if (address) {
       setShippingAddress(address)
+      // 树上无地址切换点位，给到页面层级
       trackButtonClick('address_change', 'checkout', {
         address_id: value,
+        $spm: SPM_PAGE_PATH.CHECKOUT,
       })
     }
   }
@@ -68,7 +72,7 @@ const CheckoutPage: React.FC = () => {
         ...values,
       }
 
-      trackPurchase(order, { source: 'checkout' })
+      trackPurchase(order, { source: 'checkout', $spm: SPM_POINT.CHECKOUT_SUBMIT_ORDER })
 
       message.success('订单提交成功！')
       navigate('/orders', { state: { order } })

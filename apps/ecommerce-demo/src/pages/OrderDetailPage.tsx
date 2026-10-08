@@ -4,6 +4,7 @@ import { Card, Tag, Timeline, List, Typography, Button, Row, Col } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { mockOrders, OrderStatus } from '../data/mockData'
 import { trackPageView, trackButtonClick } from '../utils/probeX'
+import { SPM_BUSINESS } from '../utils/trackingPoints'
 
 const { Title, Text } = Typography
 
@@ -18,16 +19,17 @@ const OrderDetailPage: React.FC = () => {
       const foundOrder = mockOrders.find(o => o.id === id)
       if (foundOrder) {
         setOrder(foundOrder)
+        // 树上无订单详情页点位，给到业务线层级
         trackPageView('order_detail', {
           order_id: id,
           order_status: foundOrder.status,
-        })
+        }, { spm: SPM_BUSINESS })
       } else if (location.state?.order) {
         setOrder(location.state.order)
         trackPageView('order_detail', {
           order_id: id,
           order_status: location.state.order.status,
-        })
+        }, { spm: SPM_BUSINESS })
       } else {
         navigate('/orders')
       }

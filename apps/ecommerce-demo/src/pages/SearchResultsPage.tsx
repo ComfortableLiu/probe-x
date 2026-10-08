@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Row, Col, Card, Input, Select, Button, Pagination, Spin, Empty, Tag, Space, Rate, Typography, Breadcrumb } from 'antd'
-import { SearchOutlined, FilterOutlined, EyeOutlined, HeartOutlined, ShoppingCartOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons'
+import { SearchOutlined, FilterOutlined, EyeOutlined, HeartOutlined, HeartFilled, ShoppingCartOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons'
 import { mockProducts, mockCategories } from '../data/mockData'
-import { trackPageView, trackSearch, trackProductClick, trackAddToCart, trackButtonClick } from '../utils/probeX'
+import { trackPageView, trackSearch, trackProductClick, trackAddToCart, trackButtonClick, trackProductExposure } from '../utils/probeX'
+import { SPM_PAGE_PATH, SPM_POINT, SCM_POINT, buildProductScm } from '../utils/trackingPoints'
+import { useFavorites } from '../hooks/useFavorites'
 
 const { Search } = Input
 const { Option } = Select
@@ -21,6 +23,11 @@ const SearchResultsPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
+  const { favorites, toggleFavorite } = useFavorites('search_results', SPM_POINT.SEARCH_FAVORITE)
+
+  // 结果列表容器 ref 与已曝光商品记录（同一商品同一次页面浏览只上报一次曝光）
+  const listRef = useRef<HTMLDivElement>(null)
+  const exposedRef = useRef(new Set<string>())
 
   // 获取所有品牌
   const brands = Array.from(new Set(mockProducts.map(product => product.brand)))
@@ -96,34 +103,73 @@ const SearchResultsPage: React.FC = () => {
       search_keyword: searchKeyword,
       results_count: filteredProducts.length,
       current_page: currentPage,
-    })
+    }, { spm: SPM_PAGE_PATH.SEARCH_RESULTS, scm: SCM_POINT.SEARCH_RESULTS })
   }, [searchKeyword, filteredProducts.length, currentPage])
+
+  // 商品曝光埋点：卡片 50% 以上进入视口时上报，翻页/筛选后重新观察
+  useEffect(() => {
+    const container = listRef.current
+    if (!container || currentProducts.length === 0) return
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const el = entry.target as HTMLElement
+        const productId = el.dataset.productId
+        if (!productId || exposedRef.current.has(productId)) return
+
+        const product = currentProducts.find(p => p.id === productId)
+        if (product) {
+          exposedRef.current.add(productId)
+          trackProductExposure({
+            page: 'search_results',
+            position: Number(el.dataset.productIndex) + 1,
+            $spm: SPM_POINT.SEARCH_PRODUCT_EXPOSURE,
+            $scm: buildProductScm(product.id),
+          })
+        }
+        observer.unobserve(el)
+      })
+    }, { threshold: 0.5 })
+
+    container.querySelectorAll('[data-product-id]').forEach(el => observer.observe(el))
+
+    return () => observer.disconnect()
+  }, [currentProducts])
 
   const handleSearch = (value: string) => {
     setSearchKeyword(value)
     trackSearch(value, filteredProducts.length, {
       page: 'search_results',
+      // 树上无搜索点位，给到页面层级
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
   const handleProductClick = (product: any) => {
-    trackProductClick(product, 'search_results_card')
+    trackProductClick('search_results_card', {
+      $spm: SPM_POINT.SEARCH_PRODUCT_CLICK,
+      $scm: buildProductScm(product.id),
+    })
     navigate(`/products/${product.id}`)
   }
 
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    trackButtonClick('add_to_cart', 'search_results', {
-      product_id: product.id,
-      product_name: product.name,
-      product_price: product.price,
+    trackAddToCart(product, 1, {
+      source: 'search_results',
+      $spm: SPM_POINT.SEARCH_QUICK_ADD_TO_CART,
+      $scm: buildProductScm(product.id),
     })
   }
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value)
+    // 树上搜索结果页无筛选器模块，给到页面层级
     trackButtonClick('category_filter', 'search_results', {
       category: value,
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
@@ -131,6 +177,7 @@ const SearchResultsPage: React.FC = () => {
     setSelectedBrand(value)
     trackButtonClick('brand_filter', 'search_results', {
       brand: value,
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
@@ -139,6 +186,7 @@ const SearchResultsPage: React.FC = () => {
     trackButtonClick('sort_change', 'search_results', {
       sort_by: value,
       sort_order: sortOrder,
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
@@ -148,6 +196,7 @@ const SearchResultsPage: React.FC = () => {
     trackButtonClick('sort_order_change', 'search_results', {
       sort_by: sortBy,
       sort_order: newOrder,
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
@@ -158,6 +207,7 @@ const SearchResultsPage: React.FC = () => {
       page: page,
       page_size: size,
       total_products: filteredProducts.length,
+      $spm: SPM_PAGE_PATH.SEARCH_RESULTS,
     })
   }
 
@@ -279,7 +329,7 @@ const SearchResultsPage: React.FC = () => {
                 setSelectedBrand('')
                 setSortBy('default')
                 setSortOrder('asc')
-                trackButtonClick('clear_filters', 'search_results')
+                trackButtonClick('clear_filters', 'search_results', { $spm: SPM_PAGE_PATH.SEARCH_RESULTS })
               }}
             >
               清除筛选
@@ -291,82 +341,111 @@ const SearchResultsPage: React.FC = () => {
       {/* 搜索结果 */}
       {currentProducts.length > 0 ? (
         <>
-          <Row gutter={[24, 24]}>
-            {currentProducts.map((product) => (
-              <Col xs={24} sm={12} md={8} lg={6} key={product.id}>
-                <Card
-                  hoverable
-                  className="product-card"
-                  cover={
-                    <div
-                      style={{
-                        height: '200px',
-                        backgroundImage: `url(${product.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => handleProductClick(product)}
-                    />
-                  }
-                  actions={[
-                    <EyeOutlined
-                      key="view"
-                      onClick={() => handleProductClick(product)}
-                    />,
-                    <HeartOutlined key="favorite" />,
-                    <ShoppingCartOutlined
-                      key="cart"
-                      onClick={(e) => handleAddToCart(product, e)}
-                    />,
-                  ]}
+          <div ref={listRef}>
+            <Row gutter={[24, 24]}>
+              {currentProducts.map((product, index) => (
+                <Col
+                  xs={24}
+                  sm={12}
+                  md={8}
+                  lg={6}
+                  key={product.id}
+                  data-product-id={product.id}
+                  data-product-index={index}
                 >
-                  <div>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-                      {product.name}
-                    </div>
-                    <div className="product-description" style={{
-                      color: '#666',
-                      fontSize: '14px',
-                      marginBottom: '12px',
-                      height: '40px',
-                      overflow: 'hidden',
-                    }}>
-                      {product.description}
-                    </div>
-                    <div style={{ marginBottom: '12px' }}>
-                      <Rate disabled defaultValue={product.rating} style={{ fontSize: '14px' }} />
-                      <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999' }}>
-                        ({product.reviewCount})
-                      </span>
-                    </div>
-                    <Space wrap>
-                      <Tag color="blue">{product.brand}</Tag>
-                      <Tag color="green">{product.category}</Tag>
-                      {product.stock < 10 && (
-                        <Tag color="red">库存紧张</Tag>
-                      )}
-                    </Space>
-                  </div>
-                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Card
+                    hoverable
+                    className="product-card"
+                    cover={
+                      <div
+                        style={{
+                          height: '200px',
+                          backgroundImage: `url(${product.image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => handleProductClick(product)}
+                      />
+                    }
+                    actions={[
+                      <EyeOutlined
+                        key="view"
+                        onClick={() => handleProductClick(product)}
+                      />,
+                      favorites.has(product.id)
+                        ? (
+                          <HeartFilled
+                            key="favorite"
+                            style={{ color: '#f5222d' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleFavorite(product)
+                            }}
+                          />
+                        )
+                        : (
+                          <HeartOutlined
+                            key="favorite"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleFavorite(product)
+                            }}
+                          />
+                        ),
+                      <ShoppingCartOutlined
+                        key="cart"
+                        onClick={(e) => handleAddToCart(product, e)}
+                      />,
+                    ]}
+                  >
                     <div>
-                      <span style={{ color: '#f5222d', fontSize: '18px', fontWeight: 'bold' }}>
-                        ¥{product.price}
-                      </span>
-                      {product.originalPrice && product.originalPrice > product.price && (
-                        <span style={{ color: '#999', marginLeft: '8px', textDecoration: 'line-through' }}>
-                          ¥{product.originalPrice}
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+                        {product.name}
+                      </div>
+                      <div className="product-description" style={{
+                        color: '#666',
+                        fontSize: '14px',
+                        marginBottom: '12px',
+                        height: '40px',
+                        overflow: 'hidden',
+                      }}>
+                        {product.description}
+                      </div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <Rate disabled defaultValue={product.rating} style={{ fontSize: '14px' }} />
+                        <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999' }}>
+                        ({product.reviewCount})
                         </span>
-                      )}
+                      </div>
+                      <Space wrap>
+                        <Tag color="blue">{product.brand}</Tag>
+                        <Tag color="green">{product.category}</Tag>
+                        {product.stock < 10 && (
+                          <Tag color="red">库存紧张</Tag>
+                        )}
+                      </Space>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>
+                    <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: '#f5222d', fontSize: '18px', fontWeight: 'bold' }}>
+                        ¥{product.price}
+                        </span>
+                        {product.originalPrice && product.originalPrice > product.price && (
+                          <span style={{ color: '#999', marginLeft: '8px', textDecoration: 'line-through' }}>
+                          ¥{product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#999' }}>
                       已售 {product.sales}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
 
           {/* 分页 */}
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
