@@ -104,35 +104,42 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
   }
 
   /**
-   * 补充scm/spm信息，TODO 没验证
+   * 补充scm/spm信息
+   * 编码按「位置即层级」解析：第 N 段恒对应第 N 层；
+   * 空维度保留句点占位（如 A..C.、A...D），空段跳过不查库
    * @param data
    */
   async completeSpmAndScm(data: IEventLog) {
-    const spmList = data.$spm?.split('.') || []
-    const scmList = data.$scm?.split('.') || []
+    // $spm/$scm 缺失或为空字符串都按空列表处理（''.split('.') 会得到 ['']）
+    const spmList = data.$spm ? data.$spm.split('.') : []
+    const scmList = data.$scm ? data.$scm.split('.') : []
 
-    // 查数据库，查出来spm和scm数组里面所有的值是什么
-    const queryBuilder = this.trackingNodeRepository.createQueryBuilder()
-    const level = [TrackingNodeLevel.LEVEL1, TrackingNodeLevel.LEVEL2, TrackingNodeLevel.LEVEL3, TrackingNodeLevel.LEVEL4]
-    const type = [TrackingNodeType.SPM, TrackingNodeType.SCM]
+    // spm 和 scm 都为空时不查库：不加任何 WHERE 条件的 getMany 会全表扫描 tracking_node
+    let res: TrackingNodeEntity[] = []
+    if (spmList.length > 0 || scmList.length > 0) {
+      // 查数据库，查出来spm和scm数组里面所有的值是什么
+      const queryBuilder = this.trackingNodeRepository.createQueryBuilder()
+      const level = [TrackingNodeLevel.LEVEL1, TrackingNodeLevel.LEVEL2, TrackingNodeLevel.LEVEL3, TrackingNodeLevel.LEVEL4]
+      const type = [TrackingNodeType.SPM, TrackingNodeType.SCM]
 
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 2; j++) {
-        const data = (j === 0 ? spmList : scmList)
-        if (!data[i]) continue
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 2; j++) {
+          const segments = (j === 0 ? spmList : scmList)
+          if (!segments[i]) continue
 
-        const where = {
-          type: type[j],
-          level: level[i],
-          code: data[i],
+          const where = {
+            type: type[j],
+            level: level[i],
+            code: segments[i],
+          }
+          if (segments[i - 1]) {
+            where['parentCode'] = segments[i - 1]
+          }
+          queryBuilder.orWhere(where)
         }
-        if (data[i - 1]) {
-          where['parentCode'] = data[i - 1]
-        }
-        queryBuilder.orWhere(where)
       }
+      res = await queryBuilder.getMany()
     }
-    const res = await queryBuilder.getMany()
     const dist = new Map()
     res.forEach(item => {
       dist.set(`${item.type}-${item.level}-${item.code}`, item)
@@ -287,10 +294,15 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
       const data: IPreEventLog = {
         ...event,
         ...scmSpmInfo,
-        ...utmInfo,
+        // utm 用 session 回填后的值覆盖，键名与 event_log 的 $utm_* 列对齐；
+        // 回填值缺失（undefined）时保留事件原始值，避免把已有值覆盖成空
+        $utm_content: utmInfo.utmContent ?? event.$utm_content,
+        $utm_medium: utmInfo.utmMedium ?? event.$utm_medium,
+        $utm_source: utmInfo.utmSource ?? event.$utm_source,
+        $utm_term: utmInfo.utmTerm ?? event.$utm_term,
+        $utm_campaign: utmInfo.utmCampaign ?? event.$utm_campaign,
         $session_id: sessionId,
       }
-      // TODO 这里字段名没有转下划线格式
       // 进入内存缓冲区，按条数（500）或时间窗口（5s）批量落库，先到先发
       this.eventBuffer.push(data)
       if (this.eventBuffer.length >= KafkaConsumerService.FLUSH_BATCH_SIZE) {
