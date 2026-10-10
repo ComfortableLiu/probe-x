@@ -189,7 +189,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         ...utmInfo,
         sessionId: uuidv4(),
         deviceId,
-        updatedAt: data.$service_time,
+        updatedAt: data.$service_time as string,
       }
       await this.redisService.set(deviceId, userData, 40 * 60)
       return {
@@ -219,7 +219,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         ...utmInfo,
         sessionId: uuidv4(),
         deviceId,
-        updatedAt: data.$service_time,
+        updatedAt: data.$service_time as string,
       }
       await this.redisService.set(deviceId, userData, 40 * 60)
       return {
@@ -235,7 +235,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         ...utmInfo,
         sessionId: uuidv4(),
         deviceId,
-        updatedAt: data.$service_time,
+        updatedAt: data.$service_time as string,
       }
       await this.redisService.set(deviceId, userData, 40 * 60)
       return {

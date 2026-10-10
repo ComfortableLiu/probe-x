@@ -2,21 +2,21 @@
  * 性能监控器
  */
 
-import type { PerformanceData, WebVitals } from './types';
-import { ConfigManager } from './config';
+import type { PerformanceData, WebVitals } from './types'
+import { ConfigManager } from './config'
 
 export class PerformanceMonitor {
-  private config: ConfigManager;
-  private performanceObservers: PerformanceObserver[] = [];
-  private webVitals: Partial<WebVitals> = {};
-  private isMonitoring: boolean = false;
-  private resourceTimings: PerformanceResourceTiming[] = [];
-  private navigationTiming?: PerformanceNavigationTiming;
+  private config: ConfigManager
+  private performanceObservers: PerformanceObserver[] = []
+  private webVitals: Partial<WebVitals> = {}
+  private isMonitoring: boolean = false
+  private resourceTimings: PerformanceResourceTiming[] = []
+  private navigationTiming?: PerformanceNavigationTiming
   // resourceTimings 只保留最近 N 条，避免长会话内存无限增长
-  private static readonly MAX_RESOURCE_TIMINGS = 500;
+  private static readonly MAX_RESOURCE_TIMINGS = 500
 
   constructor(config: ConfigManager) {
-    this.config = config;
+    this.config = config
   }
 
   /**
@@ -24,30 +24,30 @@ export class PerformanceMonitor {
    */
   init(): void {
     if (this.isMonitoring) {
-      return;
+      return
     }
 
-    this.isMonitoring = true;
+    this.isMonitoring = true
 
     // 监控导航时间
-    this.monitorNavigationTiming();
+    this.monitorNavigationTiming()
 
     // 监控Web Vitals
-    this.monitorWebVitals();
+    this.monitorWebVitals()
 
     // 监控资源加载
-    this.monitorResourceTiming();
+    this.monitorResourceTiming()
 
     // 监控长任务
-    this.monitorLongTasks();
+    this.monitorLongTasks()
 
     // 页面加载完成后收集性能数据
     if (document.readyState === 'complete') {
-      this.collectPerformanceData();
+      this.collectPerformanceData()
     } else {
       window.addEventListener('load', () => {
-        setTimeout(() => this.collectPerformanceData(), 0);
-      });
+        setTimeout(() => this.collectPerformanceData(), 0)
+      })
     }
   }
 
@@ -58,19 +58,19 @@ export class PerformanceMonitor {
     if ('PerformanceObserver' in window) {
       try {
         const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
+          const entries = list.getEntries()
           entries.forEach((entry) => {
             if (entry.entryType === 'navigation') {
-              this.navigationTiming = entry as PerformanceNavigationTiming;
-              this.calculateNavigationMetrics();
+              this.navigationTiming = entry as PerformanceNavigationTiming
+              this.calculateNavigationMetrics()
             }
-          });
-        });
+          })
+        })
 
-        observer.observe({ entryTypes: ['navigation'] });
-        this.performanceObservers.push(observer);
+        observer.observe({ entryTypes: ['navigation'] })
+        this.performanceObservers.push(observer)
       } catch (error) {
-        console.warn('Navigation timing monitoring not supported:', error);
+        console.warn('Navigation timing monitoring not supported:', error)
       }
     }
   }
@@ -82,31 +82,31 @@ export class PerformanceMonitor {
     if ('PerformanceObserver' in window) {
       // 监控LCP (Largest Contentful Paint)
       this.observeWebVital('largest-contentful-paint', (entry) => {
-        this.webVitals.LCP = entry.startTime;
-      });
+        this.webVitals.LCP = entry.startTime
+      })
 
       // 监控FID (First Input Delay)
       this.observeWebVital('first-input', (entry) => {
-        this.webVitals.FID = (entry as any).processingStart - entry.startTime;
-      });
+        this.webVitals.FID = (entry as any).processingStart - entry.startTime
+      })
 
       // 监控CLS (Cumulative Layout Shift)
       this.observeWebVital('layout-shift', (entry) => {
         if (!(entry as any).hadRecentInput) {
-          this.webVitals.CLS = (this.webVitals.CLS || 0) + (entry as any).value;
+          this.webVitals.CLS = (this.webVitals.CLS || 0) + (entry as any).value
         }
-      });
+      })
 
       // 监控FCP (First Contentful Paint)
       this.observeWebVital('paint', (entry) => {
         if (entry.name === 'first-contentful-paint') {
-          this.webVitals.FCP = entry.startTime;
+          this.webVitals.FCP = entry.startTime
         }
-      });
+      })
     }
 
     // 监控TTFB (Time to First Byte)
-    this.calculateTTFB();
+    this.calculateTTFB()
   }
 
   /**
@@ -115,14 +115,14 @@ export class PerformanceMonitor {
   private observeWebVital(entryType: string, callback: (entry: PerformanceEntry) => void): void {
     try {
       const observer = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        entries.forEach(callback);
-      });
+        const entries = list.getEntries()
+        entries.forEach(callback)
+      })
 
-      observer.observe({ entryTypes: [entryType] });
-      this.performanceObservers.push(observer);
+      observer.observe({ entryTypes: [entryType] })
+      this.performanceObservers.push(observer)
     } catch (error) {
-      console.warn(`${entryType} monitoring not supported:`, error);
+      console.warn(`${entryType} monitoring not supported:`, error)
     }
   }
 
@@ -133,24 +133,24 @@ export class PerformanceMonitor {
     if ('PerformanceObserver' in window) {
       try {
         const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries() as PerformanceResourceTiming[];
-          this.resourceTimings.push(...entries);
+          const entries = list.getEntries() as PerformanceResourceTiming[]
+          this.resourceTimings.push(...entries)
 
           // 只保留最近 MAX_RESOURCE_TIMINGS 条
           if (this.resourceTimings.length > PerformanceMonitor.MAX_RESOURCE_TIMINGS) {
-            this.resourceTimings.splice(0, this.resourceTimings.length - PerformanceMonitor.MAX_RESOURCE_TIMINGS);
+            this.resourceTimings.splice(0, this.resourceTimings.length - PerformanceMonitor.MAX_RESOURCE_TIMINGS)
           }
-          
+
           // 分析资源加载性能
           entries.forEach((entry) => {
-            this.analyzeResourceTiming(entry);
-          });
-        });
+            this.analyzeResourceTiming(entry)
+          })
+        })
 
-        observer.observe({ entryTypes: ['resource'] });
-        this.performanceObservers.push(observer);
+        observer.observe({ entryTypes: ['resource'] })
+        this.performanceObservers.push(observer)
       } catch (error) {
-        console.warn('Resource timing monitoring not supported:', error);
+        console.warn('Resource timing monitoring not supported:', error)
       }
     }
   }
@@ -162,16 +162,16 @@ export class PerformanceMonitor {
     if ('PerformanceObserver' in window) {
       try {
         const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
+          const entries = list.getEntries()
           entries.forEach((entry) => {
-            this.analyzeLongTask(entry);
-          });
-        });
+            this.analyzeLongTask(entry)
+          })
+        })
 
-        observer.observe({ entryTypes: ['longtask'] });
-        this.performanceObservers.push(observer);
+        observer.observe({ entryTypes: ['longtask'] })
+        this.performanceObservers.push(observer)
       } catch (error) {
-        console.warn('Long task monitoring not supported:', error);
+        console.warn('Long task monitoring not supported:', error)
       }
     }
   }
@@ -180,15 +180,15 @@ export class PerformanceMonitor {
    * 计算导航指标
    */
   private calculateNavigationMetrics(): void {
-    if (!this.navigationTiming) return;
+    if (!this.navigationTiming) return
 
-    const timing = this.navigationTiming;
-    
+    const timing = this.navigationTiming
+
     // 计算各个阶段的时间
     const metrics = {
       dns_lookup: timing.domainLookupEnd - timing.domainLookupStart,
       tcp_connection: timing.connectEnd - timing.connectStart,
-      ssl_handshake: timing.secureConnectionStart > 0 ? 
+      ssl_handshake: timing.secureConnectionStart > 0 ?
         timing.connectEnd - timing.secureConnectionStart : 0,
       request_time: timing.responseStart - timing.requestStart,
       response_time: timing.responseEnd - timing.responseStart,
@@ -196,12 +196,12 @@ export class PerformanceMonitor {
       dom_content_loaded: timing.domContentLoadedEventEnd - timing.domContentLoadedEventStart,
       load_event: timing.loadEventEnd - timing.loadEventStart,
       total_time: timing.loadEventEnd - timing.fetchStart,
-    };
+    }
 
     // 触发导航性能事件
     window.dispatchEvent(new CustomEvent('probe-x-navigation-performance', {
-      detail: { metrics, timing }
-    }));
+      detail: { metrics, timing },
+    }))
   }
 
   /**
@@ -209,7 +209,7 @@ export class PerformanceMonitor {
    */
   private calculateTTFB(): void {
     if (this.navigationTiming) {
-      this.webVitals.TTFB = this.navigationTiming.responseStart - this.navigationTiming.fetchStart;
+      this.webVitals.TTFB = this.navigationTiming.responseStart - this.navigationTiming.fetchStart
     }
   }
 
@@ -217,9 +217,9 @@ export class PerformanceMonitor {
    * 分析资源加载时间
    */
   private analyzeResourceTiming(entry: PerformanceResourceTiming): void {
-    const resourceType = this.getResourceType(entry.name);
-    const size = entry.transferSize || entry.encodedBodySize;
-    const duration = entry.duration;
+    const resourceType = this.getResourceType(entry.name)
+    const size = entry.transferSize || entry.encodedBodySize
+    const duration = entry.duration
 
     // 检查慢资源
     if (duration > 1000) { // 超过1秒
@@ -230,8 +230,8 @@ export class PerformanceMonitor {
           duration,
           size,
           timing: entry,
-        }
-      }));
+        },
+      }))
     }
 
     // 检查大资源
@@ -243,8 +243,8 @@ export class PerformanceMonitor {
           size,
           duration,
           timing: entry,
-        }
-      }));
+        },
+      }))
     }
   }
 
@@ -257,16 +257,16 @@ export class PerformanceMonitor {
         duration: entry.duration,
         startTime: entry.startTime,
         name: entry.name,
-      }
-    }));
+      },
+    }))
   }
 
   /**
    * 获取资源类型
    */
   private getResourceType(url: string): string {
-    const extension = url.split('.').pop()?.toLowerCase() || '';
-    
+    const extension = url.split('.').pop()?.toLowerCase() || ''
+
     const typeMap: Record<string, string> = {
       'js': 'script',
       'mjs': 'script',
@@ -286,29 +286,29 @@ export class PerformanceMonitor {
       'ogg': 'video',
       'mp3': 'audio',
       'wav': 'audio',
-    };
+    }
 
-    return typeMap[extension] || 'other';
+    return typeMap[extension] || 'other'
   }
 
   /**
    * 收集性能数据
    */
   private collectPerformanceData(): void {
-    const performanceData = this.getPerformanceData();
-    
+    const performanceData = this.getPerformanceData()
+
     window.dispatchEvent(new CustomEvent('probe-x-performance-data', {
-      detail: performanceData
-    }));
+      detail: performanceData,
+    }))
   }
 
   /**
    * 获取性能数据
    */
   getPerformanceData(): PerformanceData {
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const paint = performance.getEntriesByType('paint');
-    const memory = (performance as any).memory;
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+    const paint = performance.getEntriesByType('paint')
+    const memory = (performance as any).memory
 
     return {
       navigation: navigation ? {
@@ -337,14 +337,14 @@ export class PerformanceMonitor {
         jsHeapSizeLimit: memory.jsHeapSizeLimit,
       } : undefined,
       vitals: { ...this.webVitals },
-    };
+    }
   }
 
   /**
    * 获取Web Vitals
    */
   getWebVitals(): Partial<WebVitals> {
-    return { ...this.webVitals };
+    return { ...this.webVitals }
   }
 
   /**
@@ -357,7 +357,7 @@ export class PerformanceMonitor {
     slowResources: number;
     largeResources: number;
     byType: Record<string, { count: number; size: number; duration: number }>;
-  } {
+    } {
     const stats = {
       totalResources: this.resourceTimings.length,
       totalSize: 0,
@@ -365,29 +365,29 @@ export class PerformanceMonitor {
       slowResources: 0,
       largeResources: 0,
       byType: {} as Record<string, { count: number; size: number; duration: number }>,
-    };
+    }
 
     this.resourceTimings.forEach((resource) => {
-      const type = this.getResourceType(resource.name);
-      const size = resource.transferSize || resource.encodedBodySize;
-      const duration = resource.duration;
+      const type = this.getResourceType(resource.name)
+      const size = resource.transferSize || resource.encodedBodySize
+      const duration = resource.duration
 
-      stats.totalSize += size;
-      stats.totalDuration += duration;
+      stats.totalSize += size
+      stats.totalDuration += duration
 
-      if (duration > 1000) stats.slowResources++;
-      if (size > 1024 * 1024) stats.largeResources++;
+      if (duration > 1000) stats.slowResources++
+      if (size > 1024 * 1024) stats.largeResources++
 
       if (!stats.byType[type]) {
-        stats.byType[type] = { count: 0, size: 0, duration: 0 };
+        stats.byType[type] = { count: 0, size: 0, duration: 0 }
       }
 
-      stats.byType[type].count++;
-      stats.byType[type].size += size;
-      stats.byType[type].duration += duration;
-    });
+      stats.byType[type].count++
+      stats.byType[type].size += size
+      stats.byType[type].duration += duration
+    })
 
-    return stats;
+    return stats
   }
 
   /**
@@ -395,11 +395,11 @@ export class PerformanceMonitor {
    */
   getLoadTimeline(): Record<string, number> {
     if (!this.navigationTiming) {
-      return {};
+      return {}
     }
 
-    const timing = this.navigationTiming;
-    const start = timing.fetchStart;
+    const timing = this.navigationTiming
+    const start = timing.fetchStart
 
     return {
       navigation_start: 0,
@@ -417,7 +417,7 @@ export class PerformanceMonitor {
       dom_complete: timing.domComplete - start,
       load_event_start: timing.loadEventStart - start,
       load_event_end: timing.loadEventEnd - start,
-    };
+    }
   }
 
   /**
@@ -426,19 +426,19 @@ export class PerformanceMonitor {
   measure(name: string, startMark?: string, endMark?: string): number {
     try {
       if (startMark && endMark) {
-        performance.measure(name, startMark, endMark);
+        performance.measure(name, startMark, endMark)
       } else {
-        const entries = performance.getEntriesByName(name, 'measure');
+        const entries = performance.getEntriesByName(name, 'measure')
         if (entries.length > 0) {
-          return entries[entries.length - 1]?.duration || 0;
+          return entries[entries.length - 1]?.duration || 0
         }
       }
-      
-      const measureEntries = performance.getEntriesByName(name, 'measure');
-      return measureEntries.length > 0 ? (measureEntries[measureEntries.length - 1]?.duration || 0) : 0;
+
+      const measureEntries = performance.getEntriesByName(name, 'measure')
+      return measureEntries.length > 0 ? (measureEntries[measureEntries.length - 1]?.duration || 0) : 0
     } catch (error) {
-      console.warn('Performance measure failed:', error);
-      return 0;
+      console.warn('Performance measure failed:', error)
+      return 0
     }
   }
 
@@ -447,9 +447,9 @@ export class PerformanceMonitor {
    */
   mark(name: string): void {
     try {
-      performance.mark(name);
+      performance.mark(name)
     } catch (error) {
-      console.warn('Performance mark failed:', error);
+      console.warn('Performance mark failed:', error)
     }
   }
 
@@ -459,12 +459,12 @@ export class PerformanceMonitor {
   clearMarks(name?: string): void {
     try {
       if (name) {
-        performance.clearMarks(name);
+        performance.clearMarks(name)
       } else {
-        performance.clearMarks();
+        performance.clearMarks()
       }
     } catch (error) {
-      console.warn('Clear performance marks failed:', error);
+      console.warn('Clear performance marks failed:', error)
     }
   }
 
@@ -474,12 +474,12 @@ export class PerformanceMonitor {
   clearMeasures(name?: string): void {
     try {
       if (name) {
-        performance.clearMeasures(name);
+        performance.clearMeasures(name)
       } else {
-        performance.clearMeasures();
+        performance.clearMeasures()
       }
     } catch (error) {
-      console.warn('Clear performance measures failed:', error);
+      console.warn('Clear performance measures failed:', error)
     }
   }
 
@@ -487,16 +487,16 @@ export class PerformanceMonitor {
    * 获取内存使用情况
    */
   getMemoryUsage(): any {
-    const memory = (performance as any).memory;
+    const memory = (performance as any).memory
     if (memory) {
       return {
         used: memory.usedJSHeapSize,
         total: memory.totalJSHeapSize,
         limit: memory.jsHeapSizeLimit,
         usage_percentage: (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
-      };
+      }
     }
-    return null;
+    return null
   }
 
   /**
@@ -509,32 +509,32 @@ export class PerformanceMonitor {
     fcp?: number;
     ttfb?: number;
   }): { passed: boolean; violations: string[] } {
-    const violations: string[] = [];
-    
+    const violations: string[] = []
+
     if (budget.lcp && this.webVitals.LCP && this.webVitals.LCP > budget.lcp) {
-      violations.push(`LCP: ${this.webVitals.LCP}ms > ${budget.lcp}ms`);
+      violations.push(`LCP: ${this.webVitals.LCP}ms > ${budget.lcp}ms`)
     }
-    
+
     if (budget.fid && this.webVitals.FID && this.webVitals.FID > budget.fid) {
-      violations.push(`FID: ${this.webVitals.FID}ms > ${budget.fid}ms`);
+      violations.push(`FID: ${this.webVitals.FID}ms > ${budget.fid}ms`)
     }
-    
+
     if (budget.cls && this.webVitals.CLS && this.webVitals.CLS > budget.cls) {
-      violations.push(`CLS: ${this.webVitals.CLS} > ${budget.cls}`);
+      violations.push(`CLS: ${this.webVitals.CLS} > ${budget.cls}`)
     }
-    
+
     if (budget.fcp && this.webVitals.FCP && this.webVitals.FCP > budget.fcp) {
-      violations.push(`FCP: ${this.webVitals.FCP}ms > ${budget.fcp}ms`);
+      violations.push(`FCP: ${this.webVitals.FCP}ms > ${budget.fcp}ms`)
     }
-    
+
     if (budget.ttfb && this.webVitals.TTFB && this.webVitals.TTFB > budget.ttfb) {
-      violations.push(`TTFB: ${this.webVitals.TTFB}ms > ${budget.ttfb}ms`);
+      violations.push(`TTFB: ${this.webVitals.TTFB}ms > ${budget.ttfb}ms`)
     }
 
     return {
       passed: violations.length === 0,
       violations,
-    };
+    }
   }
 
   /**
@@ -542,13 +542,13 @@ export class PerformanceMonitor {
    */
   destroy(): void {
     this.performanceObservers.forEach((observer) => {
-      observer.disconnect();
-    });
-    this.performanceObservers = [];
-    
-    this.isMonitoring = false;
-    this.webVitals = {};
-    this.resourceTimings = [];
-    this.navigationTiming = undefined;
+      observer.disconnect()
+    })
+    this.performanceObservers = []
+
+    this.isMonitoring = false
+    this.webVitals = {}
+    this.resourceTimings = []
+    this.navigationTiming = undefined
   }
 }

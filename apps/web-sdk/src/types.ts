@@ -8,7 +8,7 @@ export interface ProbeXConfig {
   apiUrl?: string;
   appId?: string;
   debug?: boolean;
-  
+
   // 自动埋点配置
   autoTrack?: boolean;
   autoTrackPageView?: boolean;
@@ -17,7 +17,7 @@ export interface ProbeXConfig {
   autoTrackForm?: boolean;
   autoTrackHashChange?: boolean;
   autoTrackUnload?: boolean;
-  
+
   // 发送配置
   batchSize?: number;
   flushInterval?: number;
@@ -32,25 +32,32 @@ export interface ProbeXConfig {
    * - gif：直接使用 gif 图片请求上报，受 URL 长度限制
    */
   transport?: 'beacon' | 'fetch' | 'gif';
+  /**
+   * 是否允许上报方式自动降级，默认 true
+   * - true：gif/beacon 失败时自动降级使用对方的方式发送，再次失败降级到 fetch 链；
+   *   gif URL 超过最大长度限制（压缩后仍超限）时也降级到 beacon → fetch，保证数据完整上报
+   * - false：不做跨方式降级，失败进入重试逻辑；gif 超长时保持只发关键数据的裁剪行为
+   */
+  allowFallback?: boolean;
 
   // 存储配置
   storageType?: 'localStorage' | 'sessionStorage' | 'memory';
   maxStorageSize?: number;
   storagePrefix?: string;
-  
+
   // 过滤配置
   blacklistUrls?: (string | RegExp)[];
   whitelistUrls?: (string | RegExp)[];
   blacklistEvents?: string[];
   whitelistEvents?: string[];
-  
+
   // 采样配置
   sampling?: number;
-  
+
   // 用户配置
   userProperties?: UserProperties;
   globalProperties?: GlobalProperties;
-  
+
   // 功能开关
   enableHeartbeat?: boolean;
   heartbeatInterval?: number;
@@ -60,19 +67,19 @@ export interface ProbeXConfig {
   enableResourceTracking?: boolean;
   enableHeatmap?: boolean;
   enableSessionReplay?: boolean;
-  
+
   // 数据压缩
   enableCompression?: boolean;
   compressionType?: 'gzip' | 'lz4';
-  
+
   // 隐私配置
   respectDNT?: boolean; // Do Not Track
   anonymizeIP?: boolean;
   maskSensitiveData?: boolean;
-  
+
   // 插件配置
   plugins?: PluginConfig[];
-  
+
   // 自定义配置
   [key: string]: any;
 }
@@ -409,7 +416,7 @@ export interface GeoLocation {
 // 导出主要类的类型声明
 export declare class ProbeX {
   constructor(options?: ProbeXConfig);
-  
+
   // 基础方法
   init(): void;
   track(eventName: string, properties?: Record<string, any>, options?: TrackOptions): void;
@@ -420,7 +427,7 @@ export declare class ProbeX {
   use(plugin: Plugin, options?: any): void;
   flush(): Promise<void>;
   destroy(): void;
-  
+
   // 信息获取方法
   getUserAgent(): string;
   getPageInfo(): PageInfo;

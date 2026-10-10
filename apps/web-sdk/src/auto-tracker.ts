@@ -2,9 +2,9 @@
  * 自动埋点跟踪器
  */
 
-import type { ElementInfo, FormField, PerformanceData } from './types';
-import { ConfigManager } from './config';
-import { EventCollector } from './collector';
+import type { ElementInfo, FormField, PerformanceData } from './types'
+import { ConfigManager } from './config'
+import { EventCollector } from './collector'
 import { Utils } from './utils'
 
 interface EventListener {
@@ -15,25 +15,25 @@ interface EventListener {
 }
 
 export class AutoTracker {
-  private config: ConfigManager;
-  private collector: EventCollector;
-  private isTracking: boolean = false;
-  private listeners: EventListener[] = [];
-  private scrollTimer?: number;
-  private heartbeatTimer?: number;
-  private resizeTimer?: number;
-  private mutationObserver?: MutationObserver;
-  private intersectionObserver?: IntersectionObserver;
-  private performanceObserver?: PerformanceObserver;
-  private resourceObserver?: PerformanceObserver;
+  private config: ConfigManager
+  private collector: EventCollector
+  private isTracking: boolean = false
+  private listeners: EventListener[] = []
+  private scrollTimer?: number
+  private heartbeatTimer?: number
+  private resizeTimer?: number
+  private mutationObserver?: MutationObserver
+  private intersectionObserver?: IntersectionObserver
+  private performanceObserver?: PerformanceObserver
+  private resourceObserver?: PerformanceObserver
   // 保存被 patch 的原生实现，stop() 时还原
-  private originalFetch?: typeof window.fetch;
-  private originalXHROpen?: typeof XMLHttpRequest.prototype.open;
-  private originalXHRSend?: typeof XMLHttpRequest.prototype.send;
+  private originalFetch?: typeof window.fetch
+  private originalXHROpen?: typeof XMLHttpRequest.prototype.open
+  private originalXHRSend?: typeof XMLHttpRequest.prototype.send
 
   constructor(config: ConfigManager, collector: EventCollector) {
-    this.config = config;
-    this.collector = collector;
+    this.config = config
+    this.collector = collector
   }
 
   /**
@@ -41,72 +41,72 @@ export class AutoTracker {
    */
   start(): void {
     if (this.isTracking) {
-      console.warn('AutoTracker already started');
-      return;
+      console.warn('AutoTracker already started')
+      return
     }
 
-    this.isTracking = true;
+    this.isTracking = true
 
     // 点击事件跟踪
     if (this.config.isFeatureEnabled('click')) {
-      this.trackClicks();
+      this.trackClicks()
     }
 
     // 滚动事件跟踪
     if (this.config.isFeatureEnabled('scroll')) {
-      this.trackScroll();
+      this.trackScroll()
     }
 
     // 表单事件跟踪
     if (this.config.isFeatureEnabled('form')) {
-      this.trackForms();
+      this.trackForms()
     }
 
     // Hash变化跟踪
     if (this.config.isFeatureEnabled('hashChange')) {
-      this.trackHashChange();
+      this.trackHashChange()
     }
 
     // 页面卸载跟踪
     if (this.config.isFeatureEnabled('unload')) {
-      this.trackUnload();
+      this.trackUnload()
     }
 
     // 错误跟踪
     if (this.config.isFeatureEnabled('error')) {
-      this.trackErrors();
+      this.trackErrors()
     }
 
     // 性能跟踪
     if (this.config.isFeatureEnabled('performance')) {
-      this.trackPerformance();
+      this.trackPerformance()
     }
 
     // 网络请求跟踪
     if (this.config.isFeatureEnabled('network')) {
-      this.trackNetworkRequests();
+      this.trackNetworkRequests()
     }
 
     // 资源加载跟踪
     if (this.config.isFeatureEnabled('resource')) {
-      this.trackResourceLoading();
+      this.trackResourceLoading()
     }
 
     // 心跳跟踪
     if (this.config.isFeatureEnabled('heartbeat')) {
-      this.startHeartbeat();
+      this.startHeartbeat()
     }
 
     // DOM变化跟踪
-    this.trackDOMChanges();
+    this.trackDOMChanges()
 
     // 视口变化跟踪
-    this.trackViewportChanges();
+    this.trackViewportChanges()
 
     // 元素可见性跟踪
-    this.trackElementVisibility();
+    this.trackElementVisibility()
 
-    console.log('AutoTracker started');
+    console.log('AutoTracker started')
   }
 
   /**
@@ -114,58 +114,58 @@ export class AutoTracker {
    */
   stop(): void {
     if (!this.isTracking) {
-      return;
+      return
     }
 
-    this.isTracking = false;
+    this.isTracking = false
 
     // 移除所有事件监听器
     this.listeners.forEach(({ element, event, handler, options }) => {
-      element.removeEventListener(event, handler, options);
-    });
-    this.listeners = [];
+      element.removeEventListener(event, handler, options)
+    })
+    this.listeners = []
 
     // 清除定时器
     if (this.scrollTimer) {
-      clearTimeout(this.scrollTimer);
+      clearTimeout(this.scrollTimer)
     }
     if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
+      clearInterval(this.heartbeatTimer)
     }
     if (this.resizeTimer) {
-      clearTimeout(this.resizeTimer);
+      clearTimeout(this.resizeTimer)
     }
 
     // 断开观察器
     if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
+      this.mutationObserver.disconnect()
     }
     if (this.intersectionObserver) {
-      this.intersectionObserver.disconnect();
+      this.intersectionObserver.disconnect()
     }
     if (this.performanceObserver) {
-      this.performanceObserver.disconnect();
+      this.performanceObserver.disconnect()
     }
     if (this.resourceObserver) {
-      this.resourceObserver.disconnect();
-      this.resourceObserver = undefined;
+      this.resourceObserver.disconnect()
+      this.resourceObserver = undefined
     }
 
     // 还原被 patch 的 fetch / XMLHttpRequest
     if (this.originalFetch) {
-      window.fetch = this.originalFetch;
-      this.originalFetch = undefined;
+      window.fetch = this.originalFetch
+      this.originalFetch = undefined
     }
     if (this.originalXHROpen) {
-      XMLHttpRequest.prototype.open = this.originalXHROpen;
-      this.originalXHROpen = undefined;
+      XMLHttpRequest.prototype.open = this.originalXHROpen
+      this.originalXHROpen = undefined
     }
     if (this.originalXHRSend) {
-      XMLHttpRequest.prototype.send = this.originalXHRSend;
-      this.originalXHRSend = undefined;
+      XMLHttpRequest.prototype.send = this.originalXHRSend
+      this.originalXHRSend = undefined
     }
 
-    console.log('AutoTracker stopped');
+    console.log('AutoTracker stopped')
   }
 
   /**
@@ -173,10 +173,10 @@ export class AutoTracker {
    */
   private trackClicks(): void {
     const clickHandler = (event: Event) => {
-      const mouseEvent = event as MouseEvent;
-      const target = mouseEvent.target as Element;
-      const element = this.getElementInfo(target);
-      
+      const mouseEvent = event as MouseEvent
+      const target = mouseEvent.target as Element
+      const element = this.getElementInfo(target)
+
       const clickEvent = this.collector.collectEvent('click', {
         element_type: element.type,
         element_id: element.id,
@@ -202,29 +202,29 @@ export class AutoTracker {
         alt_key: mouseEvent.altKey,
         meta_key: mouseEvent.metaKey,
         timestamp: Date.now(),
-      });
+      })
 
       if (clickEvent) {
-        this.sendEvent(clickEvent);
+        this.sendEvent(clickEvent)
       }
-    };
+    }
 
-    document.addEventListener('click', clickHandler, true);
-    this.listeners.push({ element: document, event: 'click', handler: clickHandler, options: true });
+    document.addEventListener('click', clickHandler, true)
+    this.listeners.push({ element: document, event: 'click', handler: clickHandler, options: true })
   }
 
   /**
    * 跟踪滚动事件
    */
   private trackScroll(): void {
-    let lastScrollTime = 0;
-    
-    const scrollHandler = () => {
-      const now = Date.now();
-      if (now - lastScrollTime < 100) return; // 节流
-      lastScrollTime = now;
+    let lastScrollTime = 0
 
-      clearTimeout(this.scrollTimer);
+    const scrollHandler = () => {
+      const now = Date.now()
+      if (now - lastScrollTime < 100) return // 节流
+      lastScrollTime = now
+
+      clearTimeout(this.scrollTimer)
       this.scrollTimer = window.setTimeout(() => {
         const scrollEvent = this.collector.collectEvent('scroll', {
           scroll_x: window.pageXOffset || document.documentElement.scrollLeft,
@@ -236,16 +236,16 @@ export class AutoTracker {
           document_height: document.documentElement.scrollHeight,
           scroll_direction: this.getScrollDirection(),
           scroll_speed: this.getScrollSpeed(),
-        });
+        })
 
         if (scrollEvent) {
-          this.sendEvent(scrollEvent);
+          this.sendEvent(scrollEvent)
         }
-      }, 150); // 防抖
-    };
+      }, 150) // 防抖
+    }
 
-    window.addEventListener('scroll', scrollHandler, { passive: true });
-    this.listeners.push({ element: window, event: 'scroll', handler: scrollHandler, options: { passive: true } });
+    window.addEventListener('scroll', scrollHandler, { passive: true })
+    this.listeners.push({ element: window, event: 'scroll', handler: scrollHandler, options: { passive: true } })
   }
 
   /**
@@ -254,7 +254,7 @@ export class AutoTracker {
   private trackForms(): void {
     // 表单提交
     const submitHandler = (event: Event) => {
-      const form = event.target as HTMLFormElement;
+      const form = event.target as HTMLFormElement
       const formEvent = this.collector.collectEvent('form_submit', {
         form_id: form.id,
         form_class: form.className,
@@ -262,16 +262,16 @@ export class AutoTracker {
         form_method: form.method,
         form_fields: this.getFormFields(form),
         form_validation: this.validateForm(form),
-      });
+      })
 
       if (formEvent) {
-        this.sendEvent(formEvent);
+        this.sendEvent(formEvent)
       }
-    };
+    }
 
     // 表单字段变化
     const changeHandler = (event: Event) => {
-      const field = event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      const field = event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(field.tagName)) {
         const fieldEvent = this.collector.collectEvent('form_field_change', {
           field_type: (field as HTMLInputElement).type || field.tagName.toLowerCase(),
@@ -282,38 +282,38 @@ export class AutoTracker {
           field_placeholder: (field as HTMLInputElement).placeholder,
           form_id: (field.form && field.form.id) || null,
           validation_state: this.getFieldValidationState(field),
-        });
+        })
 
         if (fieldEvent) {
-          this.sendEvent(fieldEvent);
+          this.sendEvent(fieldEvent)
         }
       }
-    };
+    }
 
     // 表单字段焦点
     const focusHandler = (event: Event) => {
-      const field = event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      const field = event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(field.tagName)) {
         const focusEvent = this.collector.collectEvent('form_field_focus', {
           field_type: (field as HTMLInputElement).type || field.tagName.toLowerCase(),
           field_name: field.name,
           field_id: field.id,
           form_id: (field.form && field.form.id) || null,
-        });
+        })
 
         if (focusEvent) {
-          this.sendEvent(focusEvent);
+          this.sendEvent(focusEvent)
         }
       }
-    };
+    }
 
-    document.addEventListener('submit', submitHandler, true);
-    document.addEventListener('change', changeHandler, true);
-    document.addEventListener('focus', focusHandler, true);
-    
-    this.listeners.push({ element: document, event: 'submit', handler: submitHandler, options: true });
-    this.listeners.push({ element: document, event: 'change', handler: changeHandler, options: true });
-    this.listeners.push({ element: document, event: 'focus', handler: focusHandler, options: true });
+    document.addEventListener('submit', submitHandler, true)
+    document.addEventListener('change', changeHandler, true)
+    document.addEventListener('focus', focusHandler, true)
+
+    this.listeners.push({ element: document, event: 'submit', handler: submitHandler, options: true })
+    this.listeners.push({ element: document, event: 'change', handler: changeHandler, options: true })
+    this.listeners.push({ element: document, event: 'focus', handler: focusHandler, options: true })
   }
 
   /**
@@ -326,20 +326,20 @@ export class AutoTracker {
         new_hash: window.location.hash,
         page_url: window.location.href,
         page_path: window.location.pathname,
-      });
+      })
 
       if (hashEvent) {
-        this.sendEvent(hashEvent);
+        this.sendEvent(hashEvent)
       }
 
-      this.previousHash = window.location.hash;
-    };
+      this.previousHash = window.location.hash
+    }
 
-    window.addEventListener('hashchange', hashChangeHandler);
-    this.listeners.push({ element: window, event: 'hashchange', handler: hashChangeHandler });
+    window.addEventListener('hashchange', hashChangeHandler)
+    this.listeners.push({ element: window, event: 'hashchange', handler: hashChangeHandler })
   }
 
-  private previousHash: string = window.location.hash;
+  private previousHash: string = window.location.hash
 
   /**
    * 跟踪页面卸载
@@ -351,21 +351,21 @@ export class AutoTracker {
         page_path: window.location.pathname,
         session_duration: Date.now() - this.sessionStartTime,
         page_stay_time: Date.now() - this.pageStartTime,
-      });
+      })
 
       if (unloadEvent) {
-        this.sendEvent(unloadEvent);
+        this.sendEvent(unloadEvent)
       }
-    };
+    }
 
     // 仅监听 pagehide：beforeunload 与 pagehide 双挂会导致 page_unload 重复
-    window.addEventListener('pagehide', unloadHandler);
-    
-    this.listeners.push({ element: window, event: 'pagehide', handler: unloadHandler });
+    window.addEventListener('pagehide', unloadHandler)
+
+    this.listeners.push({ element: window, event: 'pagehide', handler: unloadHandler })
   }
 
-  private sessionStartTime: number = Date.now();
-  private pageStartTime: number = Date.now();
+  private sessionStartTime: number = Date.now()
+  private pageStartTime: number = Date.now()
 
   /**
    * 跟踪错误
@@ -381,12 +381,12 @@ export class AutoTracker {
         error_stack: event.error ? event.error.stack : null,
         user_agent: navigator.userAgent,
         page_url: window.location.href,
-      });
+      })
 
       if (errorEvent) {
-        this.sendEvent(errorEvent);
+        this.sendEvent(errorEvent)
       }
-    };
+    }
 
     // Promise错误
     const unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
@@ -394,16 +394,16 @@ export class AutoTracker {
         error_reason: String(event.reason),
         error_promise: event.promise.toString(),
         page_url: window.location.href,
-      });
+      })
 
       if (errorEvent) {
-        this.sendEvent(errorEvent);
+        this.sendEvent(errorEvent)
       }
-    };
+    }
 
     // 资源加载错误
     const resourceErrorHandler = (event: Event) => {
-      const target = event.target as HTMLElement;
+      const target = event.target as HTMLElement
       if (target && target instanceof HTMLElement) {
         const resourceEvent = this.collector.collectEvent('resource_error', {
           resource_type: target.tagName.toLowerCase(),
@@ -411,21 +411,21 @@ export class AutoTracker {
           resource_id: target.id,
           resource_class: target.className,
           page_url: window.location.href,
-        });
+        })
 
         if (resourceEvent) {
-          this.sendEvent(resourceEvent);
+          this.sendEvent(resourceEvent)
         }
       }
-    };
+    }
 
-    window.addEventListener('error', errorHandler);
-    window.addEventListener('unhandledrejection', unhandledRejectionHandler);
-    window.addEventListener('error', resourceErrorHandler, true);
-    
-    this.listeners.push({ element: window, event: 'error', handler: errorHandler as EventListenerOrEventListenerObject });
-    this.listeners.push({ element: window, event: 'unhandledrejection', handler: unhandledRejectionHandler as EventListenerOrEventListenerObject });
-    this.listeners.push({ element: window, event: 'error', handler: resourceErrorHandler, options: true });
+    window.addEventListener('error', errorHandler)
+    window.addEventListener('unhandledrejection', unhandledRejectionHandler)
+    window.addEventListener('error', resourceErrorHandler, true)
+
+    this.listeners.push({ element: window, event: 'error', handler: errorHandler as EventListenerOrEventListenerObject })
+    this.listeners.push({ element: window, event: 'unhandledrejection', handler: unhandledRejectionHandler as EventListenerOrEventListenerObject })
+    this.listeners.push({ element: window, event: 'error', handler: resourceErrorHandler, options: true })
   }
 
   /**
@@ -435,36 +435,36 @@ export class AutoTracker {
     // 页面加载性能
     const loadHandler = () => {
       setTimeout(() => {
-        const performanceData = this.getPerformanceData();
-        const performanceEvent = this.collector.collectEvent('page_performance', performanceData);
+        const performanceData = this.getPerformanceData()
+        const performanceEvent = this.collector.collectEvent('page_performance', performanceData)
 
         if (performanceEvent) {
-          this.sendEvent(performanceEvent);
+          this.sendEvent(performanceEvent)
         }
-      }, 0);
-    };
+      }, 0)
+    }
 
-    window.addEventListener('load', loadHandler);
-    this.listeners.push({ element: window, event: 'load', handler: loadHandler });
+    window.addEventListener('load', loadHandler)
+    this.listeners.push({ element: window, event: 'load', handler: loadHandler })
 
     // 使用PerformanceObserver监听性能指标
     if ('PerformanceObserver' in window) {
       try {
         this.performanceObserver = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
+          const entries = list.getEntries()
           entries.forEach((entry) => {
             if (entry.entryType === 'largest-contentful-paint') {
               this.collector.collectEvent('lcp_measurement', {
                 lcp_value: entry.startTime,
                 lcp_element: (entry as any).element?.tagName,
-              });
+              })
             }
-          });
-        });
+          })
+        })
 
-        this.performanceObserver.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+        this.performanceObserver.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] })
       } catch (error) {
-        console.warn('PerformanceObserver not supported:', error);
+        console.warn('PerformanceObserver not supported:', error)
       }
     }
   }
@@ -475,17 +475,17 @@ export class AutoTracker {
   private trackNetworkRequests(): void {
     // 拦截fetch请求
     if (typeof window.fetch !== 'undefined') {
-      const originalFetch = window.fetch;
-      this.originalFetch = originalFetch;
+      const originalFetch = window.fetch
+      this.originalFetch = originalFetch
       window.fetch = async (...args) => {
-        const startTime = Date.now();
-        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
-        const isOwnRequest = this.isOwnRequest(url);
-        
+        const startTime = Date.now()
+        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url
+        const isOwnRequest = this.isOwnRequest(url)
+
         try {
-          const response = await originalFetch(...args);
-          const duration = Date.now() - startTime;
-          
+          const response = await originalFetch(...args)
+          const duration = Date.now() - startTime
+
           if (!isOwnRequest) {
             this.collector.collectEvent('network_request', {
               url,
@@ -494,49 +494,49 @@ export class AutoTracker {
               duration,
               success: response.ok,
               response_size: response.headers.get('content-length') || 0,
-            });
+            })
           }
-          
-          return response;
+
+          return response
         } catch (error) {
-          const duration = Date.now() - startTime;
-          
+          const duration = Date.now() - startTime
+
           if (!isOwnRequest) {
             this.collector.collectEvent('network_error', {
               url,
               method: args[1]?.method || 'GET',
               error: (error as Error).message,
               duration,
-            });
+            })
           }
-          
-          throw error;
+
+          throw error
         }
-      };
+      }
     }
 
     // 拦截XMLHttpRequest
     if (typeof XMLHttpRequest !== 'undefined') {
-      const collector = this.collector; // 通过闭包保存collector引用
-      const isOwnRequest = (url: string) => this.isOwnRequest(url); // 通过闭包保存自请求判断
-      const originalOpen = XMLHttpRequest.prototype.open;
-      const originalSend = XMLHttpRequest.prototype.send;
-      this.originalXHROpen = originalOpen;
-      this.originalXHRSend = originalSend;
-      
+      const collector = this.collector // 通过闭包保存collector引用
+      const isOwnRequest = (url: string) => this.isOwnRequest(url) // 通过闭包保存自请求判断
+      const originalOpen = XMLHttpRequest.prototype.open
+      const originalSend = XMLHttpRequest.prototype.send
+      this.originalXHROpen = originalOpen
+      this.originalXHRSend = originalSend
+
       XMLHttpRequest.prototype.open = function(method: string, url: string, async: boolean = true, username?: string | null, password?: string | null) {
-        (this as any)._trackingData = { method, url, startTime: 0, isOwnRequest: isOwnRequest(url) };
-        return originalOpen.call(this, method, url, async, username, password);
-      };
-      
+        (this as any)._trackingData = { method, url, startTime: 0, isOwnRequest: isOwnRequest(url) }
+        return originalOpen.call(this, method, url, async, username, password)
+      }
+
       XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
-        const trackingData = (this as any)._trackingData;
+        const trackingData = (this as any)._trackingData
         if (trackingData && !trackingData.isOwnRequest) {
-          trackingData.startTime = Date.now();
-          
+          trackingData.startTime = Date.now()
+
           this.addEventListener('loadend', () => {
-            const duration = Date.now() - trackingData.startTime;
-            
+            const duration = Date.now() - trackingData.startTime
+
             if (this.status >= 200 && this.status < 400) {
               collector.collectEvent('network_request', {
                 url: trackingData.url,
@@ -545,7 +545,7 @@ export class AutoTracker {
                 duration,
                 success: true,
                 response_size: this.responseText?.length || 0,
-              });
+              })
             } else {
               collector.collectEvent('network_error', {
                 url: trackingData.url,
@@ -553,13 +553,13 @@ export class AutoTracker {
                 status: this.status,
                 duration,
                 error: this.statusText,
-              });
+              })
             }
-          });
+          })
         }
-        
-        return originalSend.call(this, body);
-      };
+
+        return originalSend.call(this, body)
+      }
     }
   }
 
@@ -571,10 +571,10 @@ export class AutoTracker {
     if ('PerformanceObserver' in window) {
       try {
         this.resourceObserver = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
+          const entries = list.getEntries()
           entries.forEach((entry) => {
             if (entry.entryType === 'resource') {
-              const resourceEntry = entry as PerformanceResourceTiming;
+              const resourceEntry = entry as PerformanceResourceTiming
               this.collector.collectEvent('resource_load', {
                 resource_name: resourceEntry.name,
                 resource_type: this.getResourceType(resourceEntry.name),
@@ -583,14 +583,14 @@ export class AutoTracker {
                 encoded_size: resourceEntry.encodedBodySize,
                 decoded_size: resourceEntry.decodedBodySize,
                 start_time: resourceEntry.startTime,
-              });
+              })
             }
-          });
-        });
+          })
+        })
 
-        this.resourceObserver.observe({ entryTypes: ['resource'] });
+        this.resourceObserver.observe({ entryTypes: ['resource'] })
       } catch (error) {
-        console.warn('Resource PerformanceObserver not supported:', error);
+        console.warn('Resource PerformanceObserver not supported:', error)
       }
     }
   }
@@ -599,8 +599,8 @@ export class AutoTracker {
    * 开始心跳
    */
   private startHeartbeat(): void {
-    const interval = this.config.get('heartbeatInterval', 30000);
-    
+    const interval = this.config.get('heartbeatInterval', 30000)
+
     this.heartbeatTimer = window.setInterval(() => {
       const heartbeatEvent = this.collector.collectEvent('heartbeat', {
         timestamp: Date.now(),
@@ -611,12 +611,12 @@ export class AutoTracker {
         online_status: navigator.onLine,
         battery_level: this.getBatteryLevel(),
         memory_usage: this.getMemoryUsage(),
-      });
+      })
 
       if (heartbeatEvent) {
-        this.sendEvent(heartbeatEvent);
+        this.sendEvent(heartbeatEvent)
       }
-    }, interval);
+    }, interval)
   }
 
   /**
@@ -625,19 +625,19 @@ export class AutoTracker {
   private trackDOMChanges(): void {
     if ('MutationObserver' in window) {
       this.mutationObserver = new MutationObserver((mutations) => {
-        const significantChanges = mutations.filter(mutation => 
-          mutation.type === 'childList' && 
-          (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
-        );
+        const significantChanges = mutations.filter(mutation =>
+          mutation.type === 'childList' &&
+          (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0),
+        )
 
         if (significantChanges.length > 0) {
           this.collector.collectEvent('dom_change', {
             mutations_count: significantChanges.length,
             added_nodes: significantChanges.reduce((sum, m) => sum + m.addedNodes.length, 0),
             removed_nodes: significantChanges.reduce((sum, m) => sum + m.removedNodes.length, 0),
-          });
+          })
         }
-      });
+      })
 
       const startObserving = () => {
         this.mutationObserver?.observe(document.body, {
@@ -645,16 +645,16 @@ export class AutoTracker {
           subtree: true,
           attributes: false,
           characterData: false,
-        });
-      };
+        })
+      }
 
       // document.body 可能尚未就绪（如在 <head> 中加载 SDK），延迟到 DOMContentLoaded 再 observe
       if (document.body) {
-        startObserving();
+        startObserving()
       } else {
-        const readyHandler = () => startObserving();
-        document.addEventListener('DOMContentLoaded', readyHandler);
-        this.listeners.push({ element: document, event: 'DOMContentLoaded', handler: readyHandler });
+        const readyHandler = () => startObserving()
+        document.addEventListener('DOMContentLoaded', readyHandler)
+        this.listeners.push({ element: document, event: 'DOMContentLoaded', handler: readyHandler })
       }
     }
   }
@@ -664,7 +664,7 @@ export class AutoTracker {
    */
   private trackViewportChanges(): void {
     const resizeHandler = () => {
-      clearTimeout(this.resizeTimer);
+      clearTimeout(this.resizeTimer)
       this.resizeTimer = window.setTimeout(() => {
         this.collector.collectEvent('viewport_change', {
           viewport_width: window.innerWidth,
@@ -672,12 +672,12 @@ export class AutoTracker {
           screen_width: screen.width,
           screen_height: screen.height,
           device_pixel_ratio: window.devicePixelRatio,
-        });
-      }, 300);
-    };
+        })
+      }, 300)
+    }
 
-    window.addEventListener('resize', resizeHandler);
-    this.listeners.push({ element: window, event: 'resize', handler: resizeHandler });
+    window.addEventListener('resize', resizeHandler)
+    this.listeners.push({ element: window, event: 'resize', handler: resizeHandler })
   }
 
   /**
@@ -687,7 +687,7 @@ export class AutoTracker {
     if ('IntersectionObserver' in window) {
       this.intersectionObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          const element = entry.target as HTMLElement;
+          const element = entry.target as HTMLElement
           this.collector.collectEvent('element_visibility', {
             element_id: element.id,
             element_class: Utils.getSafeClassName(element),
@@ -695,16 +695,16 @@ export class AutoTracker {
             is_visible: entry.isIntersecting,
             intersection_ratio: entry.intersectionRatio,
             element_selector: this.getElementSelector(element),
-          });
-        });
+          })
+        })
       }, {
         threshold: [0, 0.25, 0.5, 0.75, 1.0],
-      });
+      })
 
       // 观察重要元素
       document.querySelectorAll('[data-track-visibility]').forEach((element) => {
-        this.intersectionObserver!.observe(element);
-      });
+        this.intersectionObserver!.observe(element)
+      })
     }
   }
 
@@ -727,7 +727,7 @@ export class AutoTracker {
       tagName: element.tagName || null,
       xpath: this.getElementXPath(element),
       selector: this.getElementSelector(element),
-    };
+    }
   }
 
   /**
@@ -735,28 +735,28 @@ export class AutoTracker {
    */
   private getElementXPath(element: Element): string {
     if (element.id) {
-      return `//*[@id="${element.id}"]`;
+      return `//*[@id="${element.id}"]`
     }
-    
-    const parts: string[] = [];
-    let current: Element | null = element;
-    
+
+    const parts: string[] = []
+    let current: Element | null = element
+
     while (current && current.nodeType === Node.ELEMENT_NODE) {
-      let index = 1;
-      let sibling = current.previousElementSibling;
-      
+      let index = 1
+      let sibling = current.previousElementSibling
+
       while (sibling) {
         if (sibling.tagName === current.tagName) {
-          index++;
+          index++
         }
-        sibling = sibling.previousElementSibling;
+        sibling = sibling.previousElementSibling
       }
-      
-      parts.unshift(`${current.tagName.toLowerCase()}[${index}]`);
-      current = current.parentElement;
+
+      parts.unshift(`${current.tagName.toLowerCase()}[${index}]`)
+      current = current.parentElement
     }
-    
-    return '/' + parts.join('/');
+
+    return '/' + parts.join('/')
   }
 
   /**
@@ -764,44 +764,44 @@ export class AutoTracker {
    */
   private getElementSelector(element: Element): string {
     if (element.id) {
-      return `#${element.id}`;
+      return `#${element.id}`
     }
-    
-    const parts: string[] = [];
-    let current: Element | null = element;
-    
+
+    const parts: string[] = []
+    let current: Element | null = element
+
     while (current && current.parentElement && current !== document.body) {
-      let selector = current.tagName.toLowerCase();
+      let selector = current.tagName.toLowerCase()
 
       const className = Utils.getSafeClassName(current).trim()
       if (className) {
         selector += '.' + className.split(/\s+/).join('.')
       }
 
-      parts.unshift(selector);
-      current = current.parentElement;
+      parts.unshift(selector)
+      current = current.parentElement
     }
-    
-    return parts.join(' > ');
+
+    return parts.join(' > ')
   }
 
   /**
    * 获取表单字段
    */
   private getFormFields(form: HTMLFormElement): FormField[] {
-    const fields: FormField[] = [];
-    const formData = new FormData(form);
-    
+    const fields: FormField[] = []
+    const formData = new FormData(form)
+
     for (const [name, value] of formData.entries()) {
-      const field = form.querySelector(`[name="${name}"]`) as HTMLInputElement;
+      const field = form.querySelector(`[name="${name}"]`) as HTMLInputElement
       fields.push({
         name,
         value: this.maskFieldValue(field),
         type: field?.type || 'unknown',
-      });
+      })
     }
-    
-    return fields;
+
+    return fields
   }
 
   /**
@@ -809,41 +809,41 @@ export class AutoTracker {
    */
   private maskFieldValue(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
     if (!this.config.get('maskSensitiveData', true)) {
-      return field.value;
+      return field.value
     }
 
-    const sensitiveTypes = ['password', 'email', 'tel', 'credit-card'];
-    const sensitiveNames = ['password', 'pwd', 'email', 'phone', 'tel', 'credit', 'card', 'ssn'];
-    
-    const fieldType = (field as HTMLInputElement).type?.toLowerCase() || '';
-    const fieldName = field.name?.toLowerCase() || '';
-    
-    if (sensitiveTypes.includes(fieldType) || 
+    const sensitiveTypes = ['password', 'email', 'tel', 'credit-card']
+    const sensitiveNames = ['password', 'pwd', 'email', 'phone', 'tel', 'credit', 'card', 'ssn']
+
+    const fieldType = (field as HTMLInputElement).type?.toLowerCase() || ''
+    const fieldName = field.name?.toLowerCase() || ''
+
+    if (sensitiveTypes.includes(fieldType) ||
         sensitiveNames.some(name => fieldName.includes(name))) {
-      return '***';
+      return '***'
     }
-    
-    return field.value.substring(0, 100); // 限制长度
+
+    return field.value.substring(0, 100) // 限制长度
   }
 
   /**
    * 验证表单
    */
   private validateForm(form: HTMLFormElement): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    const inputs = form.querySelectorAll('input, select, textarea');
-    
+    const errors: string[] = []
+    const inputs = form.querySelectorAll('input, select, textarea')
+
     inputs.forEach((input) => {
-      const field = input as HTMLInputElement;
+      const field = input as HTMLInputElement
       if (!field.checkValidity()) {
-        errors.push(`${field.name || field.id}: ${field.validationMessage}`);
+        errors.push(`${field.name || field.id}: ${field.validationMessage}`)
       }
-    });
-    
+    })
+
     return {
       isValid: errors.length === 0,
       errors,
-    };
+    }
   }
 
   /**
@@ -851,72 +851,72 @@ export class AutoTracker {
    */
   private getFieldValidationState(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
     if (field.validity) {
-      if (field.validity.valid) return 'valid';
-      if (field.validity.valueMissing) return 'required';
-      if (field.validity.typeMismatch) return 'type_mismatch';
-      if (field.validity.patternMismatch) return 'pattern_mismatch';
-      if (field.validity.tooLong) return 'too_long';
-      if (field.validity.tooShort) return 'too_short';
-      if (field.validity.rangeOverflow) return 'range_overflow';
-      if (field.validity.rangeUnderflow) return 'range_underflow';
-      return 'invalid';
+      if (field.validity.valid) return 'valid'
+      if (field.validity.valueMissing) return 'required'
+      if (field.validity.typeMismatch) return 'type_mismatch'
+      if (field.validity.patternMismatch) return 'pattern_mismatch'
+      if (field.validity.tooLong) return 'too_long'
+      if (field.validity.tooShort) return 'too_short'
+      if (field.validity.rangeOverflow) return 'range_overflow'
+      if (field.validity.rangeUnderflow) return 'range_underflow'
+      return 'invalid'
     }
-    return 'unknown';
+    return 'unknown'
   }
 
   /**
    * 获取滚动百分比
    */
   private getScrollPercentage(): number {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    
-    if (documentHeight === 0) return 0;
-    
-    return Math.round((scrollTop / documentHeight) * 100);
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight
+
+    if (documentHeight === 0) return 0
+
+    return Math.round((scrollTop / documentHeight) * 100)
   }
 
   /**
    * 获取滚动方向
    */
   private getScrollDirection(): string {
-    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-    const direction = currentScrollY > (this.lastScrollY || 0) ? 'down' : 'up';
-    this.lastScrollY = currentScrollY;
-    return direction;
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop
+    const direction = currentScrollY > (this.lastScrollY || 0) ? 'down' : 'up'
+    this.lastScrollY = currentScrollY
+    return direction
   }
 
-  private lastScrollY: number = 0;
+  private lastScrollY: number = 0
 
   /**
    * 获取滚动速度
    */
   private getScrollSpeed(): number {
-    const now = Date.now();
-    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-    const timeDiff = now - (this.lastScrollTime || now);
-    const scrollDiff = Math.abs(currentScrollY - (this.lastScrollPosition || currentScrollY));
-    
-    this.lastScrollTime = now;
-    this.lastScrollPosition = currentScrollY;
-    
-    return timeDiff > 0 ? scrollDiff / timeDiff : 0;
+    const now = Date.now()
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop
+    const timeDiff = now - (this.lastScrollTime || now)
+    const scrollDiff = Math.abs(currentScrollY - (this.lastScrollPosition || currentScrollY))
+
+    this.lastScrollTime = now
+    this.lastScrollPosition = currentScrollY
+
+    return timeDiff > 0 ? scrollDiff / timeDiff : 0
   }
 
-  private lastScrollTime: number = 0;
-  private lastScrollPosition: number = 0;
+  private lastScrollTime: number = 0
+  private lastScrollPosition: number = 0
 
   /**
    * 获取性能数据
    */
   private getPerformanceData(): PerformanceData {
     if (!window.performance) {
-      return {} as PerformanceData;
+      return {} as PerformanceData
     }
 
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const paint = performance.getEntriesByType('paint');
-    const memory = (performance as any).memory;
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+    const paint = performance.getEntriesByType('paint')
+    const memory = (performance as any).memory
 
     return {
       navigation: navigation ? {
@@ -936,57 +936,57 @@ export class AutoTracker {
         totalJSHeapSize: memory.totalJSHeapSize,
         jsHeapSizeLimit: memory.jsHeapSizeLimit,
       } : undefined,
-    };
+    }
   }
 
   /**
    * 获取资源类型
    */
   private getResourceType(url: string): string {
-    const extension = url.split('.').pop()?.toLowerCase() || '';
-    
-    if (['js', 'mjs'].includes(extension)) return 'script';
-    if (['css'].includes(extension)) return 'stylesheet';
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) return 'image';
-    if (['woff', 'woff2', 'ttf', 'otf'].includes(extension)) return 'font';
-    if (['mp4', 'webm', 'ogg'].includes(extension)) return 'video';
-    if (['mp3', 'wav', 'ogg'].includes(extension)) return 'audio';
-    
-    return 'other';
+    const extension = url.split('.').pop()?.toLowerCase() || ''
+
+    if (['js', 'mjs'].includes(extension)) return 'script'
+    if (['css'].includes(extension)) return 'stylesheet'
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) return 'image'
+    if (['woff', 'woff2', 'ttf', 'otf'].includes(extension)) return 'font'
+    if (['mp4', 'webm', 'ogg'].includes(extension)) return 'video'
+    if (['mp3', 'wav', 'ogg'].includes(extension)) return 'audio'
+
+    return 'other'
   }
 
   /**
    * 获取电池电量
    */
   private getBatteryLevel(): number | null {
-    const battery = (navigator as any).battery;
-    return battery ? battery.level : null;
+    const battery = (navigator as any).battery
+    return battery ? battery.level : null
   }
 
   /**
    * 获取内存使用情况
    */
   private getMemoryUsage(): any {
-    const memory = (performance as any).memory;
+    const memory = (performance as any).memory
     return memory ? {
       used: memory.usedJSHeapSize,
       total: memory.totalJSHeapSize,
       limit: memory.jsHeapSizeLimit,
-    } : null;
+    } : null
   }
 
   /**
    * 判断是否为 SDK 自身的上报请求（避免上报请求触发 network_request 事件形成无限循环）
    */
   private isOwnRequest(url: string): boolean {
-    const apiUrl = this.config.get('apiUrl');
+    const apiUrl = this.config.get('apiUrl')
     if (!apiUrl || !url) {
-      return false;
+      return false
     }
 
     // gif 上报端点（sender.ts 中将 /report 替换为 /track.gif）
-    const gifUrl = apiUrl.replace(/\/report$/, '/track.gif');
-    return url.startsWith(apiUrl) || url.startsWith(gifUrl);
+    const gifUrl = apiUrl.replace(/\/report$/, '/track.gif')
+    return url.startsWith(apiUrl) || url.startsWith(gifUrl)
   }
 
   /**
@@ -994,6 +994,6 @@ export class AutoTracker {
    */
   private sendEvent(event: any): void {
     // 通过自定义事件通知
-    window.dispatchEvent(new CustomEvent('probe-x-event', { detail: event }));
+    window.dispatchEvent(new CustomEvent('probe-x-event', { detail: event }))
   }
 }

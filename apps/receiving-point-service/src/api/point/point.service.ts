@@ -134,7 +134,7 @@ export class PointService {
     )
     this.logger.log(
       `event received: $event_name=${event.$event_name}, $device_id=${event.$device_id}, ` +
-      `$log_time=${event.$log_time.toISOString()}, web_site=${event.$web_site}, $ip=${event.$ip}, $event_id=${event.$event_id}`,
+      `$log_time=${(event.$log_time as Date).toISOString()}, web_site=${event.$web_site}, $ip=${event.$ip}, $event_id=${event.$event_id}`,
     )
     return true
   }

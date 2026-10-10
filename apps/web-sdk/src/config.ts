@@ -2,22 +2,22 @@
  * 配置管理器
  */
 
-import type { ProbeXConfig, ValidationResult } from './types';
+import type { ProbeXConfig, ValidationResult } from './types'
 
 export class ConfigManager {
-  private config: ProbeXConfig;
+  private config: ProbeXConfig
 
   constructor(options: ProbeXConfig = {}) {
     this.config = {
       ...this.getDefaultConfig(),
       // 合并用户配置
       ...options,
-    };
+    }
 
     // 构造时校验配置，问题配置尽早暴露
-    const validation = this.validate();
+    const validation = this.validate()
     if (!validation.isValid) {
-      console.warn('ProbeX config validation warnings:', validation.errors);
+      console.warn('ProbeX config validation warnings:', validation.errors)
     }
   }
 
@@ -30,7 +30,7 @@ export class ConfigManager {
       apiUrl: 'http://localhost:3000/point/report',
       appId: '',
       debug: false,
-      
+
       // 自动埋点配置
       autoTrack: true,
       autoTrackPageView: true,
@@ -39,7 +39,7 @@ export class ConfigManager {
       autoTrackForm: true,
       autoTrackHashChange: true,
       autoTrackUnload: true,
-      
+
       // 发送配置
       batchSize: 10,
       flushInterval: 5000, // 5秒
@@ -47,25 +47,26 @@ export class ConfigManager {
       retryDelay: 1000, // 1秒
       sendTimeout: 10000, // 10秒
       transport: 'beacon', // 上报方式：beacon(信标)/fetch/gif
+      allowFallback: true, // 是否允许上报方式自动降级（gif ↔ beacon，再降级 fetch 链）
 
       // 存储配置
       storageType: 'localStorage',
       maxStorageSize: 1000,
       storagePrefix: 'probe_x_',
-      
+
       // 过滤配置
       blacklistUrls: [],
       whitelistUrls: [],
       blacklistEvents: [],
       whitelistEvents: [],
-      
+
       // 采样配置
       sampling: 1.0, // 采样率 0-1
-      
+
       // 用户配置
       userProperties: {},
       globalProperties: {},
-      
+
       // 功能开关
       enableHeartbeat: true,
       heartbeatInterval: 30000, // 30秒
@@ -75,69 +76,69 @@ export class ConfigManager {
       enableResourceTracking: false,
       enableHeatmap: false,
       enableSessionReplay: false,
-      
+
       // 数据压缩
       enableCompression: false,
       compressionType: 'gzip',
-      
+
       // 隐私配置
       respectDNT: true,
       anonymizeIP: false,
       maskSensitiveData: true,
-      
+
       // 插件配置
       plugins: [],
-    };
+    }
   }
 
   /**
    * 获取配置
    */
   get<T = any>(key: string, defaultValue?: T): T {
-    const keys = key.split('.');
-    let value: any = this.config;
-    
+    const keys = key.split('.')
+    let value: any = this.config
+
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
-        value = value[k];
+        value = value[k]
       } else {
-        return defaultValue as T;
+        return defaultValue as T
       }
     }
-    
-    return value as T;
+
+    return value as T
   }
 
   /**
    * 设置配置
    */
   set(key: string, value: any): void {
-    const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-    const keys = key.split('.');
-    const lastKey = keys.pop()!;
-    let target: any = this.config;
+    const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+    const keys = key.split('.')
+    const lastKey = keys.pop()!
+    let target: any = this.config
 
     for (const k of keys) {
       if (DANGEROUS_KEYS.has(k)) {
-        return;
+        return
       }
       if (!target[k] || typeof target[k] !== 'object') {
-        target[k] = {};
+        target[k] = {}
       }
-      target = target[k];
+      target = target[k]
     }
 
     if (DANGEROUS_KEYS.has(lastKey)) {
-      return;
+      return
     }
-    target[lastKey] = value;
+    target[lastKey] = value
   }
 
   /**
    * 获取所有配置
    */
   getAll(): ProbeXConfig {
-    return { ...this.config };
+    return { ...this.config }
   }
 
   /**
@@ -147,86 +148,91 @@ export class ConfigManager {
     this.config = {
       ...this.config,
       ...newConfig,
-    };
+    }
   }
 
   /**
    * 重置配置（恢复默认值）
    */
   reset(): void {
-    this.config = this.getDefaultConfig();
+    this.config = this.getDefaultConfig()
   }
 
   /**
    * 验证配置
    */
   validate(): ValidationResult {
-    const errors: string[] = [];
+    const errors: string[] = []
 
     if (!this.config.apiUrl) {
-      errors.push('apiUrl is required');
+      errors.push('apiUrl is required')
     }
 
     if (!this.config.appId) {
-      errors.push('appId is required');
+      errors.push('appId is required')
     }
 
     if (this.config.sampling !== undefined && (this.config.sampling < 0 || this.config.sampling > 1)) {
-      errors.push('sampling must be between 0 and 1');
+      errors.push('sampling must be between 0 and 1')
     }
 
     if (this.config.batchSize !== undefined && this.config.batchSize < 1) {
-      errors.push('batchSize must be greater than 0');
+      errors.push('batchSize must be greater than 0')
     }
 
     if (this.config.flushInterval !== undefined && this.config.flushInterval < 1000) {
-      errors.push('flushInterval must be at least 1000ms');
+      errors.push('flushInterval must be at least 1000ms')
     }
 
     if (this.config.maxRetries !== undefined && this.config.maxRetries < 0) {
-      errors.push('maxRetries must be non-negative');
+      errors.push('maxRetries must be non-negative')
     }
 
     if (this.config.retryDelay !== undefined && this.config.retryDelay < 0) {
-      errors.push('retryDelay must be non-negative');
+      errors.push('retryDelay must be non-negative')
     }
 
     if (this.config.sendTimeout !== undefined && this.config.sendTimeout < 1000) {
-      errors.push('sendTimeout must be at least 1000ms');
+      errors.push('sendTimeout must be at least 1000ms')
     }
 
     if (this.config.maxStorageSize !== undefined && this.config.maxStorageSize < 1) {
-      errors.push('maxStorageSize must be greater than 0');
+      errors.push('maxStorageSize must be greater than 0')
     }
 
     if (this.config.heartbeatInterval !== undefined && this.config.heartbeatInterval < 1000) {
-      errors.push('heartbeatInterval must be at least 1000ms');
+      errors.push('heartbeatInterval must be at least 1000ms')
     }
 
     // 验证URL格式
     if (this.config.apiUrl && !this.isValidUrl(this.config.apiUrl)) {
-      errors.push('apiUrl must be a valid URL');
+      errors.push('apiUrl must be a valid URL')
     }
 
     // 验证存储类型
     if (this.config.storageType && !['localStorage', 'sessionStorage', 'memory'].includes(this.config.storageType)) {
-      errors.push('storageType must be one of: localStorage, sessionStorage, memory');
+      errors.push('storageType must be one of: localStorage, sessionStorage, memory')
     }
 
     // 验证上报方式
     if (this.config.transport && !['beacon', 'fetch', 'gif'].includes(this.config.transport)) {
-      errors.push('transport must be one of: beacon, fetch, gif');
+      errors.push('transport must be one of: beacon, fetch, gif')
+    }
+
+    // 验证降级开关
+    if (this.config.allowFallback !== undefined && typeof this.config.allowFallback !== 'boolean') {
+      errors.push('allowFallback must be a boolean')
     }
 
     // 验证压缩类型
     if (this.config.compressionType && !['gzip', 'lz4'].includes(this.config.compressionType)) {
-      errors.push('compressionType must be one of: gzip, lz4');
+      errors.push('compressionType must be one of: gzip, lz4')
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-    };
+    }
   }
 
   /**
@@ -234,10 +240,10 @@ export class ConfigManager {
    */
   private isValidUrl(url: string): boolean {
     try {
-      new URL(url);
-      return true;
+      new URL(url)
+      return true
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -261,7 +267,7 @@ export class ConfigManager {
         height: window.innerHeight,
       },
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
+    }
   }
 
   /**
@@ -283,10 +289,10 @@ export class ConfigManager {
       'heatmap': 'enableHeatmap',
       'sessionReplay': 'enableSessionReplay',
       'heartbeat': 'enableHeartbeat',
-    };
+    }
 
-    const configKey = featureMap[feature];
-    return configKey ? this.get(configKey, false) : false;
+    const configKey = featureMap[feature]
+    return configKey ? this.get(configKey, false) : false
   }
 
   /**
@@ -294,19 +300,19 @@ export class ConfigManager {
    */
   shouldRespectDNT(): boolean {
     if (!this.get('respectDNT', true)) {
-      return false;
+      return false
     }
 
     // 检查Do Not Track设置
-    const dnt = navigator.doNotTrack || (window as any).doNotTrack || (navigator as any).msDoNotTrack;
-    return dnt === '1' || dnt === 'yes';
+    const dnt = navigator.doNotTrack || (window as any).doNotTrack || (navigator as any).msDoNotTrack
+    return dnt === '1' || dnt === 'yes'
   }
 
   /**
    * 获取存储键名
    */
   getStorageKey(key: string): string {
-    const prefix = this.get('storagePrefix', 'probe_x_');
-    return `${prefix}${key}`;
+    const prefix = this.get('storagePrefix', 'probe_x_')
+    return `${prefix}${key}`
   }
 }

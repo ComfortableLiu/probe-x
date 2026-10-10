@@ -1,5 +1,5 @@
 // 测试中的日期断言基于 UTC（如 utils.test.ts 的 formatDate），固定时区避免本地时区影响
-process.env.TZ = 'UTC';
+process.env.TZ = 'UTC'
 
 module.exports = {
   preset: 'ts-jest',
@@ -28,4 +28,4 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testTimeout: 10000,
-};
+}

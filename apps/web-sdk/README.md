@@ -111,6 +111,9 @@ const config: ProbeXConfig = {
   maxRetries: 3,                 // 最大重试次数
   retryDelay: 1000,              // 重试延迟（ms）
   sendTimeout: 10000,            // 发送超时（ms）
+  transport: 'beacon',           // 上报方式：'beacon' | 'fetch' | 'gif'
+  allowFallback: true,           // 允许上报方式自动降级：gif/beacon 失败时降级到对方方式，
+                                 // 再次失败降级到 fetch 链；gif URL 超长时也自动降级
 
   // === 存储 ===
   storageType: 'localStorage',   // 'localStorage' | 'sessionStorage' | 'memory'

@@ -29,9 +29,9 @@ export interface IEventBase {
   // UTM内容
   $utm_content: string
   // 日志记录时间，用户本地的时间
-  $log_time: Date
+  $log_time: Date | string
   // 服务端处理时间，服务器处理的时间
-  $service_time: Date
+  $service_time: Date | string
   // 网站域名
   $web_site: string
   // 页面路径

@@ -33,6 +33,13 @@ export interface ProbeXConfig {
    * - gif：直接使用 gif 图片请求上报，受 URL 长度限制
    */
   transport?: 'beacon' | 'fetch' | 'gif';
+  /**
+   * 是否允许上报方式自动降级，默认 true
+   * - true：gif/beacon 失败时自动降级使用对方的方式发送，再次失败降级到 fetch 链；
+   *   gif URL 超过最大长度限制（压缩后仍超限）时也降级到 beacon → fetch，保证数据完整上报
+   * - false：不做跨方式降级，失败进入重试逻辑；gif 超长时保持只发关键数据的裁剪行为
+   */
+  allowFallback?: boolean;
 
   // 存储配置
   storageType?: 'localStorage' | 'sessionStorage' | 'memory';
@@ -88,6 +95,7 @@ export interface UserProperties {
   avatar?: string;
   registration_date?: string;
   last_login?: string;
+
   [key: string]: any;
 }
 
@@ -97,6 +105,7 @@ export interface GlobalProperties {
   environment?: string;
   platform?: string;
   channel?: string;
+
   [key: string]: any;
 }
 
@@ -106,6 +115,7 @@ export interface TrackOptions {
   priority?: 'low' | 'normal' | 'high';
   compress?: boolean;
   encrypt?: boolean;
+
   [key: string]: any;
 }
 
@@ -371,10 +381,15 @@ export interface Plugin {
 // 存储接口
 export interface Storage {
   add(item: any): void;
+
   get(key: string): any;
+
   getAll(): any[];
+
   remove(key: string): void;
+
   clear(): void;
+
   size(): number;
 }
 
@@ -413,80 +428,132 @@ export declare class ProbeX {
 
   // 基础方法
   init(): void;
+
   track(eventName: string, properties?: Record<string, any>, options?: TrackOptions): void;
+
   setUser(userProperties: UserProperties): void;
+
   setGlobalProperties(globalProperties: GlobalProperties): void;
+
   setConfig(key: string, value: any): void;
+
   getConfig(key: string, defaultValue?: any): any;
+
   use(plugin: Plugin, options?: any): void;
+
   flush(): Promise<void>;
+
   destroy(): void;
 
   // 信息获取方法
   getUserAgent(): string;
+
   getPageInfo(): PageInfo;
+
   getScreenInfo(): ScreenInfo;
+
   getBrowserInfo(): BrowserInfo;
+
   getSession(): { id: string; startTime: number; duration: number };
+
   getPerformanceData(): PerformanceData;
 }
 
 export declare class ConfigManager {
   constructor(options?: ProbeXConfig);
+
   get(key: string, defaultValue?: any): any;
+
   set(key: string, value: any): void;
+
   getAll(): ProbeXConfig;
+
   update(newConfig: Partial<ProbeXConfig>): void;
+
   reset(): void;
+
   validate(): ValidationResult;
 }
 
 export declare class EventCollector {
   constructor(config: ConfigManager);
+
   collectEvent(eventName: string, properties?: Record<string, any>, options?: TrackOptions): ProbeXEvent | null;
+
   getAllEvents(): ProbeXEvent[];
+
   clearEvents(): void;
+
   getEventCount(): number;
 }
 
 export declare class DataSender {
   constructor(config: ConfigManager);
+
   send(event: ProbeXEvent): void;
+
   flush(): Promise<void>;
+
   getQueueLength(): number;
+
   clearQueue(): void;
+
   destroy(): void;
 }
 
 export declare class AutoTracker {
   constructor(config: ConfigManager, collector: EventCollector);
+
   start(): void;
+
   stop(): void;
 }
 
 export declare class Utils {
   static generateUUID(): string;
+
   static debounce<T extends (...args: any[]) => any>(func: T, wait: number, immediate?: boolean): T;
+
   static throttle<T extends (...args: any[]) => any>(func: T, limit: number): T;
+
   static deepClone<T>(obj: T): T;
+
   static getUrlParameter(name: string, url?: string): string | null;
+
   static getAllUrlParameters(url?: string): Record<string, string>;
+
   static isMobile(): boolean;
+
   static isIOS(): boolean;
+
   static isAndroid(): boolean;
+
   static getBrowserInfo(): BrowserInfo;
+
   static getOSInfo(): OSInfo;
+
   static formatDate(date: Date | number, format?: string): string;
+
   static getTimestamp(): number;
+
   static getISOString(): string;
+
   static isEmpty(obj: any): boolean;
+
   static safeGet(obj: any, path: string, defaultValue?: any): any;
+
   static randomString(length?: number, chars?: string): string;
+
   static isValidUrl(url: string): boolean;
+
   static isValidEmail(email: string): boolean;
+
   static isValidPhone(phone: string): boolean;
+
   static compress(str: string): string;
+
   static escapeHtml(str: string): string;
+
   static unescapeHtml(str: string): string;
 }
 

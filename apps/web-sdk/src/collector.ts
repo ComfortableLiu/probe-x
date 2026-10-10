@@ -2,44 +2,35 @@
  * 事件收集器
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import type { 
-  ProbeXEvent, 
-  PageInfo, 
-  UserInfo, 
-  DeviceInfo, 
-  SessionInfo, 
-  SDKInfo,
-  TrackOptions,
-  Storage
-} from './types';
-import { ConfigManager } from './config';
+import { v4 as uuidv4 } from 'uuid'
+import type { DeviceInfo, PageInfo, ProbeXEvent, SDKInfo, SessionInfo, Storage, TrackOptions, UserInfo } from './types'
+import { ConfigManager } from './config'
 
 export class EventCollector {
-  private config: ConfigManager;
-  private storage: Storage;
+  private config: ConfigManager
+  private storage: Storage
 
   constructor(config: ConfigManager) {
-    this.config = config;
-    this.storage = this.createStorage();
+    this.config = config
+    this.storage = this.createStorage()
   }
 
   /**
    * 创建存储实例
    */
   private createStorage(): Storage {
-    const storageType = this.config.get('storageType', 'localStorage') as 'localStorage' | 'sessionStorage' | 'memory';
-    const maxSize = this.config.get('maxStorageSize', 1000);
+    const storageType = this.config.get('storageType', 'localStorage') as 'localStorage' | 'sessionStorage' | 'memory'
+    const maxSize = this.config.get('maxStorageSize', 1000)
 
     switch (storageType) {
       case 'localStorage':
-        return new LocalStorage(maxSize, this.config);
+        return new LocalStorage(maxSize, this.config)
       case 'sessionStorage':
-        return new SessionStorage(maxSize, this.config);
+        return new SessionStorage(maxSize, this.config)
       case 'memory':
-        return new MemoryStorage(maxSize);
+        return new MemoryStorage(maxSize)
       default:
-        return new MemoryStorage(maxSize);
+        return new MemoryStorage(maxSize)
     }
   }
 
@@ -49,68 +40,68 @@ export class EventCollector {
   collectEvent(eventName: string, properties: Record<string, any> = {}, options: TrackOptions = {}): ProbeXEvent | null {
     // 检查DNT设置
     if (this.config.shouldRespectDNT()) {
-      return null;
+      return null
     }
 
     // 检查采样率
     if (!this.shouldSample()) {
-      return null;
+      return null
     }
 
     // 检查事件过滤
     if (!this.shouldTrackEvent(eventName)) {
-      return null;
+      return null
     }
 
     // 检查URL过滤
     if (!this.shouldTrackUrl()) {
-      return null;
+      return null
     }
 
-    const now = Date.now();
+    const now = Date.now()
     const event: ProbeXEvent = {
       // 基础信息
       id: uuidv4(),
       eventName,
       timestamp: now,
       logTime: new Date(now).toISOString(),
-      
+
       // 页面信息
       page: this.getPageInfo(),
-      
+
       // 用户信息
       user: this.getUserInfo(),
-      
+
       // 设备信息
       device: this.getDeviceInfo(),
-      
+
       // 事件属性
       properties: {
         ...this.config.get('globalProperties', {}),
         ...this.maskSensitiveData(properties),
       },
-      
+
       // 选项
       options: {
         ...options,
       },
-      
+
       // 会话信息
       session: this.getSessionInfo(),
-      
+
       // SDK信息
       sdk: this.getSDKInfo(),
-    };
+    }
 
     // 添加性能数据
     if (this.config.isFeatureEnabled('performance')) {
-      event.performance = this.getPerformanceData();
+      event.performance = this.getPerformanceData()
     }
 
     // 存储事件
-    this.storage.add(event);
+    this.storage.add(event)
 
-    return event;
+    return event
   }
 
   /**
@@ -133,7 +124,7 @@ export class EventCollector {
         y: window.pageYOffset || document.documentElement.scrollTop,
         percentage: this.getScrollPercentage(),
       },
-    };
+    }
   }
 
   /**
@@ -142,15 +133,15 @@ export class EventCollector {
   private getUserInfo(): UserInfo {
     return {
       ...this.config.get('userProperties', {}),
-    };
+    }
   }
 
   /**
    * 获取设备信息
    */
   private getDeviceInfo(): DeviceInfo {
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    const battery = (navigator as any).battery || (navigator as any).getBattery?.();
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+    const battery = (navigator as any).battery || (navigator as any).getBattery?.()
 
     return {
       userAgent: navigator.userAgent,
@@ -186,24 +177,24 @@ export class EventCollector {
         chargingTime: battery.chargingTime,
         dischargingTime: battery.dischargingTime,
       } : undefined,
-    };
+    }
   }
 
   /**
    * 获取会话信息
    */
   private getSessionInfo(): SessionInfo {
-    const sessionId = this.getSessionId();
-    const sessionStartTime = this.getSessionStartTime();
-    const now = Date.now();
-    
+    const sessionId = this.getSessionId()
+    const sessionStartTime = this.getSessionStartTime()
+    const now = Date.now()
+
     return {
       id: sessionId,
       startTime: new Date(parseInt(sessionStartTime)).toISOString(),
       duration: now - parseInt(sessionStartTime),
       pageViews: this.getSessionPageViews(),
       events: this.getSessionEventCount(),
-    };
+    }
   }
 
   /**
@@ -214,7 +205,7 @@ export class EventCollector {
       name: 'probe-x-web-sdk',
       version: '2.0.0',
       build: process.env.BUILD_VERSION || 'dev',
-    };
+    }
   }
 
   /**
@@ -222,12 +213,12 @@ export class EventCollector {
    */
   private getPerformanceData(): any {
     if (!window.performance) {
-      return null;
+      return null
     }
 
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const paint = performance.getEntriesByType('paint');
-    const memory = (performance as any).memory;
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+    const paint = performance.getEntriesByType('paint')
+    const memory = (performance as any).memory
 
     return {
       navigation: navigation ? {
@@ -247,20 +238,20 @@ export class EventCollector {
         totalJSHeapSize: memory.totalJSHeapSize,
         jsHeapSizeLimit: memory.jsHeapSizeLimit,
       } : null,
-    };
+    }
   }
 
   /**
    * 获取会话ID
    */
   private getSessionId(): string {
-    const sessionKey = this.config.getStorageKey('session_id');
-    
+    const sessionKey = this.config.getStorageKey('session_id')
+
     try {
-      return localStorage.getItem(sessionKey) || uuidv4();
+      return localStorage.getItem(sessionKey) || uuidv4()
     } catch {
       // localStorage 不可用（隐私模式/SSR），回退到内存
-      return uuidv4();
+      return uuidv4()
     }
   }
 
@@ -269,13 +260,13 @@ export class EventCollector {
    */
   private getSessionStartTime(): string {
     // 与 SessionManager 写入的 key 保持一致（session_start_time 为会话开始时间，session_time 是最后活动时间）
-    const sessionStartKey = this.config.getStorageKey('session_start_time');
-    
+    const sessionStartKey = this.config.getStorageKey('session_start_time')
+
     try {
-      return localStorage.getItem(sessionStartKey) || Date.now().toString();
+      return localStorage.getItem(sessionStartKey) || Date.now().toString()
     } catch {
       // localStorage 不可用
-      return Date.now().toString();
+      return Date.now().toString()
     }
   }
 
@@ -283,14 +274,14 @@ export class EventCollector {
    * 获取会话页面访问数
    */
   private getSessionPageViews(): number {
-    const key = this.config.getStorageKey('session_page_views');
-    
+    const key = this.config.getStorageKey('session_page_views')
+
     try {
-      const count = parseInt(localStorage.getItem(key) || '0');
-      return count;
+      const count = parseInt(localStorage.getItem(key) || '0')
+      return count
     } catch {
       // localStorage 不可用
-      return 0;
+      return 0
     }
   }
 
@@ -299,14 +290,14 @@ export class EventCollector {
    */
   private getSessionEventCount(): number {
     // 与 SessionManager 写入的 key 保持一致（session_events）
-    const key = this.config.getStorageKey('session_events');
-    
+    const key = this.config.getStorageKey('session_events')
+
     try {
-      const count = parseInt(localStorage.getItem(key) || '0');
-      return count + 1; // 包含当前事件
+      const count = parseInt(localStorage.getItem(key) || '0')
+      return count + 1 // 包含当前事件
     } catch {
       // localStorage 不可用
-      return 1; // 仅包含当前事件
+      return 1 // 仅包含当前事件
     }
   }
 
@@ -314,54 +305,54 @@ export class EventCollector {
    * 获取滚动百分比
    */
   private getScrollPercentage(): number {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    
-    if (documentHeight === 0) return 0;
-    
-    return Math.round((scrollTop / documentHeight) * 100);
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight
+
+    if (documentHeight === 0) return 0
+
+    return Math.round((scrollTop / documentHeight) * 100)
   }
 
   /**
    * 检查是否应该采样
    */
   private shouldSample(): boolean {
-    const sampling = this.config.get('sampling', 1.0);
-    return Math.random() < sampling;
+    const sampling = this.config.get('sampling', 1.0)
+    return Math.random() < sampling
   }
 
   /**
    * 检查是否应该跟踪事件
    */
   private shouldTrackEvent(eventName: string): boolean {
-    const blacklist = this.config.get('blacklistEvents', []) as string[];
-    const whitelist = this.config.get('whitelistEvents', []) as string[];
+    const blacklist = this.config.get('blacklistEvents', []) as string[]
+    const whitelist = this.config.get('whitelistEvents', []) as string[]
 
     // 如果在黑名单中，不跟踪
     if (blacklist.includes(eventName)) {
-      return false;
+      return false
     }
 
     // 如果白名单不为空且不在白名单中，不跟踪
     if (whitelist.length > 0 && !whitelist.includes(eventName)) {
-      return false;
+      return false
     }
 
-    return true;
+    return true
   }
 
   /**
    * 检查是否应该跟踪URL
    */
   private shouldTrackUrl(): boolean {
-    const currentUrl = window.location.href;
-    const blacklist = this.config.get('blacklistUrls', []);
-    const whitelist = this.config.get('whitelistUrls', []);
+    const currentUrl = window.location.href
+    const blacklist = this.config.get('blacklistUrls', [])
+    const whitelist = this.config.get('whitelistUrls', [])
 
     // 如果在黑名单中，不跟踪
     for (const pattern of blacklist) {
       if (this.matchUrl(currentUrl, pattern)) {
-        return false;
+        return false
       }
     }
 
@@ -369,13 +360,13 @@ export class EventCollector {
     if (whitelist.length > 0) {
       for (const pattern of whitelist) {
         if (this.matchUrl(currentUrl, pattern)) {
-          return true;
+          return true
         }
       }
-      return false;
+      return false
     }
 
-    return true;
+    return true
   }
 
   /**
@@ -383,12 +374,12 @@ export class EventCollector {
    */
   private matchUrl(url: string, pattern: string | RegExp): boolean {
     if (pattern instanceof RegExp) {
-      return pattern.test(url);
+      return pattern.test(url)
     }
     if (typeof pattern === 'string') {
-      return url.includes(pattern);
+      return url.includes(pattern)
     }
-    return false;
+    return false
   }
 
   /**
@@ -396,42 +387,42 @@ export class EventCollector {
    */
   private maskSensitiveData(data: Record<string, any>): Record<string, any> {
     if (!this.config.get('maskSensitiveData', true)) {
-      return data;
+      return data
     }
 
-    const sensitiveKeys = ['password', 'pwd', 'token', 'secret', 'key', 'auth', 'credit', 'card', 'ssn', 'phone', 'email'];
-    const masked = { ...data };
+    const sensitiveKeys = ['password', 'pwd', 'token', 'secret', 'key', 'auth', 'credit', 'card', 'ssn', 'phone', 'email']
+    const masked = { ...data }
 
     Object.keys(masked).forEach(key => {
       if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
         if (typeof masked[key] === 'string') {
-          masked[key] = '***';
+          masked[key] = '***'
         }
       }
-    });
+    })
 
-    return masked;
+    return masked
   }
 
   /**
    * 获取所有事件
    */
   getAllEvents(): ProbeXEvent[] {
-    return this.storage.getAll();
+    return this.storage.getAll()
   }
 
   /**
    * 清空事件
    */
   clearEvents(): void {
-    this.storage.clear();
+    this.storage.clear()
   }
 
   /**
    * 获取事件数量
    */
   getEventCount(): number {
-    return this.storage.size();
+    return this.storage.size()
   }
 }
 
@@ -439,67 +430,67 @@ export class EventCollector {
  * 本地存储
  */
 class LocalStorage implements Storage {
-  private maxSize: number;
-  private key: string;
+  private maxSize: number
+  private key: string
 
   constructor(maxSize: number, config: ConfigManager) {
-    this.maxSize = maxSize;
-    this.key = config.getStorageKey('events');
+    this.maxSize = maxSize
+    this.key = config.getStorageKey('events')
   }
 
   add(event: ProbeXEvent): void {
-    const events = this.getAll();
-    events.push(event);
-    
+    const events = this.getAll()
+    events.push(event)
+
     if (events.length > this.maxSize) {
-      events.splice(0, events.length - this.maxSize);
+      events.splice(0, events.length - this.maxSize)
     }
-    
+
     try {
-      localStorage.setItem(this.key, JSON.stringify(events));
+      localStorage.setItem(this.key, JSON.stringify(events))
     } catch (error) {
-      console.error('LocalStorage error:', error);
+      console.error('LocalStorage error:', error)
     }
   }
 
   get(key: string): any {
     try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      const data = localStorage.getItem(key)
+      return data ? JSON.parse(data) : null
     } catch (error) {
-      console.error('LocalStorage error:', error);
-      return null;
+      console.error('LocalStorage error:', error)
+      return null
     }
   }
 
   getAll(): ProbeXEvent[] {
     try {
-      const data = localStorage.getItem(this.key);
-      return data ? JSON.parse(data) : [];
+      const data = localStorage.getItem(this.key)
+      return data ? JSON.parse(data) : []
     } catch (error) {
-      console.error('LocalStorage error:', error);
-      return [];
+      console.error('LocalStorage error:', error)
+      return []
     }
   }
 
   remove(key: string): void {
     try {
-      localStorage.removeItem(key);
+      localStorage.removeItem(key)
     } catch (error) {
-      console.error('LocalStorage error:', error);
+      console.error('LocalStorage error:', error)
     }
   }
 
   clear(): void {
     try {
-      localStorage.removeItem(this.key);
+      localStorage.removeItem(this.key)
     } catch (error) {
-      console.error('LocalStorage error:', error);
+      console.error('LocalStorage error:', error)
     }
   }
 
   size(): number {
-    return this.getAll().length;
+    return this.getAll().length
   }
 }
 
@@ -507,67 +498,67 @@ class LocalStorage implements Storage {
  * 会话存储
  */
 class SessionStorage implements Storage {
-  private maxSize: number;
-  private key: string;
+  private maxSize: number
+  private key: string
 
   constructor(maxSize: number, config: ConfigManager) {
-    this.maxSize = maxSize;
-    this.key = config.getStorageKey('events');
+    this.maxSize = maxSize
+    this.key = config.getStorageKey('events')
   }
 
   add(event: ProbeXEvent): void {
-    const events = this.getAll();
-    events.push(event);
-    
+    const events = this.getAll()
+    events.push(event)
+
     if (events.length > this.maxSize) {
-      events.splice(0, events.length - this.maxSize);
+      events.splice(0, events.length - this.maxSize)
     }
-    
+
     try {
-      sessionStorage.setItem(this.key, JSON.stringify(events));
+      sessionStorage.setItem(this.key, JSON.stringify(events))
     } catch (error) {
-      console.error('SessionStorage error:', error);
+      console.error('SessionStorage error:', error)
     }
   }
 
   get(key: string): any {
     try {
-      const data = sessionStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      const data = sessionStorage.getItem(key)
+      return data ? JSON.parse(data) : null
     } catch (error) {
-      console.error('SessionStorage error:', error);
-      return null;
+      console.error('SessionStorage error:', error)
+      return null
     }
   }
 
   getAll(): ProbeXEvent[] {
     try {
-      const data = sessionStorage.getItem(this.key);
-      return data ? JSON.parse(data) : [];
+      const data = sessionStorage.getItem(this.key)
+      return data ? JSON.parse(data) : []
     } catch (error) {
-      console.error('SessionStorage error:', error);
-      return [];
+      console.error('SessionStorage error:', error)
+      return []
     }
   }
 
   remove(key: string): void {
     try {
-      sessionStorage.removeItem(key);
+      sessionStorage.removeItem(key)
     } catch (error) {
-      console.error('SessionStorage error:', error);
+      console.error('SessionStorage error:', error)
     }
   }
 
   clear(): void {
     try {
-      sessionStorage.removeItem(this.key);
+      sessionStorage.removeItem(this.key)
     } catch (error) {
-      console.error('SessionStorage error:', error);
+      console.error('SessionStorage error:', error)
     }
   }
 
   size(): number {
-    return this.getAll().length;
+    return this.getAll().length
   }
 }
 
@@ -575,40 +566,40 @@ class SessionStorage implements Storage {
  * 内存存储
  */
 class MemoryStorage implements Storage {
-  private maxSize: number;
-  private events: ProbeXEvent[] = [];
-  private data: Map<string, any> = new Map();
+  private maxSize: number
+  private events: ProbeXEvent[] = []
+  private data: Map<string, any> = new Map()
 
   constructor(maxSize: number) {
-    this.maxSize = maxSize;
+    this.maxSize = maxSize
   }
 
   add(event: ProbeXEvent): void {
-    this.events.push(event);
-    
+    this.events.push(event)
+
     if (this.events.length > this.maxSize) {
-      this.events.splice(0, this.events.length - this.maxSize);
+      this.events.splice(0, this.events.length - this.maxSize)
     }
   }
 
   get(key: string): any {
-    return this.data.get(key);
+    return this.data.get(key)
   }
 
   getAll(): ProbeXEvent[] {
-    return [...this.events];
+    return [...this.events]
   }
 
   remove(key: string): void {
-    this.data.delete(key);
+    this.data.delete(key)
   }
 
   clear(): void {
-    this.events = [];
-    this.data.clear();
+    this.events = []
+    this.data.clear()
   }
 
   size(): number {
-    return this.events.length;
+    return this.events.length
   }
 }
