@@ -66,4 +66,10 @@ export interface IEventBase {
   $page_id: string
   // 上一个页面id
   $source_page_id: string
+  // 目标页面id（归因事件的落地页，即自身 $page_id）
+  $target_page_id?: string
+  // 是否是归因事件（携带 SPM/SCM 的落地 page_view）
+  $is_attribution_event?: boolean
+  // 扩展归因参数（JSON 字符串）
+  $ex_attribution_params?: string
 }

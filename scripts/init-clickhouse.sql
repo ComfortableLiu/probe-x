@@ -1,5 +1,9 @@
 -- Probe-X ClickHouse 数据库初始化脚本
 -- 此脚本在 ClickHouse 容器首次启动时自动执行
+--
+-- 注意：本脚本均为 CREATE TABLE IF NOT EXISTS，已存在旧版表结构的环境不会自动迁移。
+-- 旧版宽表/KV 表（如含 source_page_id / attribution_index 列的旧版 event_attribution，
+-- 以及重构前的 event_log / final_event_log）需手动 DROP 后重建（表内无生产数据）。
 
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS probe_x;
@@ -9,6 +13,12 @@ USE probe_x;
 
 -- ==================== 原始事件日志表 ====================
 -- 存储从埋点接收服务写入的原始事件数据
+-- 分区说明：PARTITION BY toDate($service_time) 按天分区，分析查询绝大多数按
+-- 「某一天/某几天」过滤（toDate($service_time) 或 $service_time BETWEEN），
+-- 按天分区可直接做分区级裁剪，TTL 到期也可整天 DROP PARTITION
+-- 索引说明：ORDER BY 排序键即主键稀疏索引（$service_time 在首位，日期范围查询
+-- 直接走主键），跳数索引只补高频等值过滤字段；$service_time 不再建 minmax
+-- （主键首列已天然具备 minmax 裁剪，建了是冗余）
 -- 去重说明：ORDER BY 排序键 ($service_time, $session_id, $event_name) 与去重键 $event_id 不兼容
 -- （SDK 重试会产生新的 $service_time，无法用 ReplacingMergeTree 按排序键合并去重），
 -- 因此保持 MergeTree，端到端幂等依赖消费端 preliminary-data-processing-service 的
@@ -16,16 +26,16 @@ USE probe_x;
 CREATE TABLE IF NOT EXISTS event_log (
     -- 事件基础信息
     `$event_id` String DEFAULT '' COMMENT '事件唯一标识（SDK 生成的 uuid，端到端幂等去重键）',
-    `$event_name` String COMMENT '事件名称（如 page_view, click, route_change）',
+    `$event_name` LowCardinality(String) COMMENT '事件名称（如 page_view, click, route_change）',
     `$log_time` DateTime64(3) COMMENT '客户端日志时间',
     `$service_time` DateTime64(3) COMMENT '服务端接收时间',
 
     -- 网络信息
     `$ip` String DEFAULT '' COMMENT '客户端 IP 地址',
-    `$web_site` String DEFAULT '' COMMENT '网站域名',
+    `$web_site` LowCardinality(String) DEFAULT '' COMMENT '网站域名',
 
     -- 页面信息
-    `$web_pathname` String DEFAULT '' COMMENT '页面路径',
+    `$web_pathname` LowCardinality(String) DEFAULT '' COMMENT '页面路径',
     `$web_params` String DEFAULT '' COMMENT '页面参数',
     `$page_id` String DEFAULT '' COMMENT '页面唯一标识',
     `$source_page_id` String DEFAULT '' COMMENT '来源页面标识',
@@ -34,8 +44,8 @@ CREATE TABLE IF NOT EXISTS event_log (
     -- 设备信息
     `$device_id` String DEFAULT '' COMMENT '设备唯一标识',
     `$uid` UInt64 DEFAULT 0 COMMENT '用户ID',
-    `$device` String DEFAULT '' COMMENT '设备类型（desktop/mobile/tablet）',
-    `$language` String DEFAULT '' COMMENT '浏览器语言',
+    `$device` LowCardinality(String) DEFAULT '' COMMENT '设备类型（desktop/mobile/tablet）',
+    `$language` LowCardinality(String) DEFAULT '' COMMENT '浏览器语言',
     `$ua` String DEFAULT '' COMMENT 'User-Agent',
     `$screen_width` UInt32 DEFAULT 0 COMMENT '屏幕宽度',
     `$screen_height` UInt32 DEFAULT 0 COMMENT '屏幕高度',
@@ -60,8 +70,8 @@ CREATE TABLE IF NOT EXISTS event_log (
 
     -- SPM 参数（超级位置模型）
     `$spm` String DEFAULT '' COMMENT 'SPM 完整编码',
-    `$spm_a` String DEFAULT '' COMMENT 'SPM 第一层',
-    `$spm_b` String DEFAULT '' COMMENT 'SPM 第二层',
+    `$spm_a` LowCardinality(String) DEFAULT '' COMMENT 'SPM 第一层',
+    `$spm_b` LowCardinality(String) DEFAULT '' COMMENT 'SPM 第二层',
     `$spm_c` String DEFAULT '' COMMENT 'SPM 第三层',
     `$spm_d` String DEFAULT '' COMMENT 'SPM 第四层',
     `$spm_a_description` String DEFAULT '' COMMENT 'SPM 第一层描述',
@@ -71,8 +81,8 @@ CREATE TABLE IF NOT EXISTS event_log (
 
     -- SCM 参数（超级来源模型）
     `$scm` String DEFAULT '' COMMENT 'SCM 完整编码',
-    `$scm_a` String DEFAULT '' COMMENT 'SCM 第一层',
-    `$scm_b` String DEFAULT '' COMMENT 'SCM 第二层',
+    `$scm_a` LowCardinality(String) DEFAULT '' COMMENT 'SCM 第一层',
+    `$scm_b` LowCardinality(String) DEFAULT '' COMMENT 'SCM 第二层',
     `$scm_c` String DEFAULT '' COMMENT 'SCM 第三层',
     `$scm_d` String DEFAULT '' COMMENT 'SCM 第四层',
     `$scm_a_description` String DEFAULT '' COMMENT 'SCM 第一层描述',
@@ -87,14 +97,13 @@ CREATE TABLE IF NOT EXISTS event_log (
     `$is_attribution_event` Bool DEFAULT false COMMENT '是否是归因事件',
     `$ex_attribution_params` String DEFAULT '' COMMENT '扩展归因参数（JSON格式）',
 
-    -- 索引
-    INDEX idx_event_name `$event_name` TYPE bloom_filter GRANULARITY 1,
+    -- 跳数索引（主键稀疏索引之外的补充，只覆盖高频等值过滤字段）
+    INDEX idx_event_name `$event_name` TYPE set(100) GRANULARITY 1,
     INDEX idx_session_id `$session_id` TYPE bloom_filter GRANULARITY 1,
     INDEX idx_device_id `$device_id` TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_page_id `$page_id` TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_service_time `$service_time` TYPE minmax GRANULARITY 1
+    INDEX idx_page_id `$page_id` TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
-PARTITION BY toYYYYMM(`$service_time`)
+PARTITION BY toDate(`$service_time`)
 ORDER BY (`$service_time`, `$session_id`, `$event_name`)
 TTL `$service_time` + INTERVAL 365 DAY
 SETTINGS index_granularity = 8192;
@@ -106,16 +115,16 @@ SETTINGS index_granularity = 8192;
 CREATE TABLE IF NOT EXISTS final_event_log (
     -- 事件基础信息
     `$event_id` String DEFAULT '' COMMENT '事件唯一标识（继承自 event_log，端到端幂等去重键）',
-    `$event_name` String COMMENT '事件名称',
+    `$event_name` LowCardinality(String) COMMENT '事件名称',
     `$log_time` DateTime64(3) COMMENT '客户端日志时间',
     `$service_time` DateTime64(3) COMMENT '服务端接收时间',
 
     -- 网络信息
     `$ip` String DEFAULT '' COMMENT '客户端 IP 地址',
-    `$web_site` String DEFAULT '' COMMENT '网站域名',
+    `$web_site` LowCardinality(String) DEFAULT '' COMMENT '网站域名',
 
     -- 页面信息
-    `$web_pathname` String DEFAULT '' COMMENT '页面路径',
+    `$web_pathname` LowCardinality(String) DEFAULT '' COMMENT '页面路径',
     `$web_params` String DEFAULT '' COMMENT '页面参数',
     `$page_id` String DEFAULT '' COMMENT '页面唯一标识',
     `$source_page_id` String DEFAULT '' COMMENT '来源页面标识',
@@ -124,8 +133,8 @@ CREATE TABLE IF NOT EXISTS final_event_log (
     -- 设备信息
     `$device_id` String DEFAULT '' COMMENT '设备唯一标识',
     `$uid` UInt64 DEFAULT 0 COMMENT '用户ID',
-    `$device` String DEFAULT '' COMMENT '设备类型',
-    `$language` String DEFAULT '' COMMENT '浏览器语言',
+    `$device` LowCardinality(String) DEFAULT '' COMMENT '设备类型',
+    `$language` LowCardinality(String) DEFAULT '' COMMENT '浏览器语言',
     `$ua` String DEFAULT '' COMMENT 'User-Agent',
     `$screen_width` UInt32 DEFAULT 0 COMMENT '屏幕宽度',
     `$screen_height` UInt32 DEFAULT 0 COMMENT '屏幕高度',
@@ -150,8 +159,8 @@ CREATE TABLE IF NOT EXISTS final_event_log (
 
     -- SPM 参数
     `$spm` String DEFAULT '' COMMENT 'SPM 完整编码',
-    `$spm_a` String DEFAULT '' COMMENT 'SPM 第一层',
-    `$spm_b` String DEFAULT '' COMMENT 'SPM 第二层',
+    `$spm_a` LowCardinality(String) DEFAULT '' COMMENT 'SPM 第一层',
+    `$spm_b` LowCardinality(String) DEFAULT '' COMMENT 'SPM 第二层',
     `$spm_c` String DEFAULT '' COMMENT 'SPM 第三层',
     `$spm_d` String DEFAULT '' COMMENT 'SPM 第四层',
     `$spm_a_description` String DEFAULT '' COMMENT 'SPM 第一层描述',
@@ -161,8 +170,8 @@ CREATE TABLE IF NOT EXISTS final_event_log (
 
     -- SCM 参数
     `$scm` String DEFAULT '' COMMENT 'SCM 完整编码',
-    `$scm_a` String DEFAULT '' COMMENT 'SCM 第一层',
-    `$scm_b` String DEFAULT '' COMMENT 'SCM 第二层',
+    `$scm_a` LowCardinality(String) DEFAULT '' COMMENT 'SCM 第一层',
+    `$scm_b` LowCardinality(String) DEFAULT '' COMMENT 'SCM 第二层',
     `$scm_c` String DEFAULT '' COMMENT 'SCM 第三层',
     `$scm_d` String DEFAULT '' COMMENT 'SCM 第四层',
     `$scm_a_description` String DEFAULT '' COMMENT 'SCM 第一层描述',
@@ -177,56 +186,37 @@ CREATE TABLE IF NOT EXISTS final_event_log (
     `$is_attribution_event` Bool DEFAULT false COMMENT '是否是归因事件',
     `$ex_attribution_params` String DEFAULT '' COMMENT '扩展归因参数',
 
-    -- 索引
-    INDEX idx_event_name `$event_name` TYPE bloom_filter GRANULARITY 1,
+    -- 跳数索引
+    INDEX idx_event_name `$event_name` TYPE set(100) GRANULARITY 1,
     INDEX idx_session_id `$session_id` TYPE bloom_filter GRANULARITY 1,
     INDEX idx_device_id `$device_id` TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_page_id `$page_id` TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_service_time `$service_time` TYPE minmax GRANULARITY 1
+    INDEX idx_page_id `$page_id` TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
-PARTITION BY toYYYYMM(`$service_time`)
+PARTITION BY toDate(`$service_time`)
 ORDER BY (`$service_time`, `$session_id`, `$event_name`)
 TTL `$service_time` + INTERVAL 730 DAY
 SETTINGS index_granularity = 8192;
 
 -- ==================== 事件归因表 ====================
--- 存储事件的归因数据（SPM/SCM 归因链路）
+-- 事件归因 KV 子表（动态归因属性存储），由 final-data-cleaning-service 写入。
+-- 与 libs/shared-types/src/lib/types/clickhouse/entity/Attribution.ts 保持一致。
+-- 只存归因事件（final_event_log.$is_attribution_event = true）的扩展归因参数
+-- （$ex_attribution_params 解析后的键值对）；SPM/SCM 标准字段已是 final_event_log 的列，
+-- 不再写入本表。通过 event_id 与 final_event_log.$event_id 精确关联，
+-- 归因链由查询侧按 session 内时间前缀动态拼装。
+-- event_time 在排序键第二位，主键稀疏索引天然具备 minmax 裁剪，不再单独建跳数索引
 CREATE TABLE IF NOT EXISTS event_attribution (
-    -- 归因基础信息
-    `$page_id` String COMMENT '页面标识',
-    `$service_time` DateTime64(3) COMMENT '服务端时间',
-    `$attribution_index` UInt32 COMMENT '归因序号（在归因链路中的位置）',
-
-    -- SPM 归因参数
-    `$spm` String DEFAULT '' COMMENT 'SPM 完整编码',
-    `$spm_a` String DEFAULT '' COMMENT 'SPM 第一层',
-    `$spm_b` String DEFAULT '' COMMENT 'SPM 第二层',
-    `$spm_c` String DEFAULT '' COMMENT 'SPM 第三层',
-    `$spm_d` String DEFAULT '' COMMENT 'SPM 第四层',
-    `$spm_a_description` String DEFAULT '' COMMENT 'SPM 第一层描述',
-    `$spm_b_description` String DEFAULT '' COMMENT 'SPM 第二层描述',
-    `$spm_c_description` String DEFAULT '' COMMENT 'SPM 第三层描述',
-    `$spm_d_description` String DEFAULT '' COMMENT 'SPM 第四层描述',
-
-    -- SCM 归因参数
-    `$scm` String DEFAULT '' COMMENT 'SCM 完整编码',
-    `$scm_a` String DEFAULT '' COMMENT 'SCM 第一层',
-    `$scm_b` String DEFAULT '' COMMENT 'SCM 第二层',
-    `$scm_c` String DEFAULT '' COMMENT 'SCM 第三层',
-    `$scm_d` String DEFAULT '' COMMENT 'SCM 第四层',
-    `$scm_a_description` String DEFAULT '' COMMENT 'SCM 第一层描述',
-    `$scm_b_description` String DEFAULT '' COMMENT 'SCM 第二层描述',
-    `$scm_c_description` String DEFAULT '' COMMENT 'SCM 第三层描述',
-    `$scm_d_description` String DEFAULT '' COMMENT 'SCM 第四层描述',
-
-    -- 索引
-    INDEX idx_page_id `$page_id` TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_service_time `$service_time` TYPE minmax GRANULARITY 1
+    `event_id` String COMMENT '归因事件的 $event_id，用于与 final_event_log 精确关联',
+    `session_id` String COMMENT '会话唯一标识，对应 final_event_log.$session_id',
+    `attr_key` LowCardinality(String) COMMENT '归因属性名（camelCase，保留 $ 前缀）',
+    `attr_value` String COMMENT '归因属性值',
+    `event_time` DateTime64(3) COMMENT '归因事件的 $service_time，用于分区对齐，对应 final_event_log.$service_time'
 ) ENGINE = MergeTree()
-PARTITION BY toYYYYMM(`$service_time`)
-ORDER BY (`$service_time`, `$page_id`, `$attribution_index`)
-TTL `$service_time` + INTERVAL 730 DAY
-SETTINGS index_granularity = 8192;
+PARTITION BY toDate(event_time)
+ORDER BY (session_id, event_time, attr_key)
+TTL event_time + INTERVAL 730 DAY
+SETTINGS index_granularity = 8192
+COMMENT '事件归因KV子表（动态归因属性存储）';
 
 -- ==================== 创建物化视图（可选） ====================
 -- 按天聚合的事件统计物化视图

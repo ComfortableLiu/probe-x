@@ -84,8 +84,9 @@ describe('gRPC 传输层 + 数据完整性', () => {
       const finalEvents = mockCH.getTableData('final_event_log')
       expect(finalEvents).toHaveLength(5)
 
+      // 该场景的归因事件无扩展参数，不产生 KV 行（event_attribution 仍会执行空写入）
       const attributions = mockCH.getTableData('event_attribution')
-      expect(attributions.length).toBeGreaterThan(0)
+      expect(attributions).toHaveLength(0)
     })
 
     it('进度更新应包含正确的节点标识', async () => {
@@ -246,13 +247,18 @@ describe('gRPC 传输层 + 数据完整性', () => {
         expect(finalEvents[i].$session_id).toBe(events[i].$session_id)
       }
 
-      // 验证 event_attribution 包含正确的归因数据
+      // 验证 event_attribution：只有 list → detail 的归因事件携带扩展参数
       const attributions = mockCH.getTableData('event_attribution')
-      expect(attributions.length).toBeGreaterThan(0)
+      expect(attributions).toHaveLength(2)
 
-      // 验证归因数据覆盖 2 个目标页面
-      const sourcePages = new Set(attributions.map((a: any) => a.source_page_id))
-      expect(sourcePages.size).toBe(2)
+      // KV 行通过 event_id 与归因事件精确关联
+      const detailEvent = events.find(
+        e => e.$is_attribution_event && e.$target_page_id === 'page-product-detail',
+      )!
+      attributions.forEach((a: any) => {
+        expect(a.event_id).toBe(detailEvent.$event_id)
+        expect(a.session_id).toBe('session-e2e')
+      })
     })
 
     it('大量事件的完整链路性能测试', async () => {

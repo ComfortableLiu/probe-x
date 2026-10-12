@@ -108,12 +108,15 @@ describe('多节点分布式清洗', () => {
       const attr1 = ch1.getTableData('event_attribution')
       const attr2 = ch2.getTableData('event_attribution')
 
-      const sourcePages1 = new Set(attr1.map((a: any) => a.source_page_id))
-      const sourcePages2 = new Set(attr2.map((a: any) => a.source_page_id))
-
-      expect(sourcePages1.has('page-product-list')).toBe(true)
-      expect(sourcePages2.has('page-landing')).toBe(true)
-      expect(sourcePages1.has('page-landing')).toBe(false)
+      // 节点 1 的场景（home → list）归因事件无扩展参数，不产生 KV 行
+      expect(attr1).toHaveLength(0)
+      // 节点 2 的场景（扩展归因参数）应产生 4 条 KV 行，且都属于 session-node2
+      expect(attr2).toHaveLength(4)
+      attr2.forEach((a: any) => {
+        expect(a.session_id).toBe('session-node2')
+      })
+      const keys2 = new Set(attr2.map((a: any) => a.attr_key))
+      expect(keys2.has('$campaignId')).toBe(true)
     })
 
     it('3 个节点同时处理不同的清洗场景', async () => {

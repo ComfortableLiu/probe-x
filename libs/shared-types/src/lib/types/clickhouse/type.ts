@@ -21,13 +21,3 @@ export interface IEventScmInfo {
   $scm_c_description: string
   $scm_d_description: string
 }
-
-// 每一个归因参数
-export interface IAttributionItem extends IEventSpmInfo, IEventScmInfo {
-  serviceTime: Date
-}
-
-/**
- * 绑定页面的全归因参数
- */
-export type IAttributionInfo = IAttributionItem[]

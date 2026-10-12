@@ -57,18 +57,9 @@ describe('单节点完整清洗流程', () => {
       expect(finalEvents[0].$event_name).toBe('page_view')
       expect(finalEvents[0].$session_id).toBe(sessionId)
 
-      // 验证 event_attribution 写入
+      // 验证 event_attribution 写入：该场景的归因事件无扩展参数，不产生 KV 行
       const attributions = mockCH.getTableData('event_attribution')
-      expect(attributions.length).toBeGreaterThan(0)
-
-      // 验证归因数据包含正确的 source_page_id
-      const sourcePages = new Set(attributions.map((a: any) => a.source_page_id))
-      expect(sourcePages.has('page-product-list')).toBe(true)
-
-      // 验证归因 KV 包含 SPM 字段（underlineToCamel 保留 $ 前缀）
-      const keys = new Set(attributions.map((a: any) => a.attr_key))
-      expect(keys.has('$spmA')).toBe(true)
-      expect(keys.has('$spmB')).toBe(true)
+      expect(attributions).toHaveLength(0)
 
       // 验证 insert 被调用了 2 次（final_event_log + event_attribution）
       expect(mockCH.insertLog).toHaveLength(2)
@@ -78,7 +69,7 @@ describe('单节点完整清洗流程', () => {
   })
 
   describe('场景2：多级导航（home → list → detail）', () => {
-    it('应生成 2 个页面的归因数据，且 detail 包含扩展参数', async () => {
+    it('只有携带扩展参数的归因事件产生 KV 行，且只含自己的扩展参数', async () => {
       const sessionId = 'session-test-002'
       const events = createMultiPageNavigationScenario(sessionId)
       mockCH.seedEventLog(events)
@@ -89,22 +80,25 @@ describe('单节点完整清洗流程', () => {
       const finalEvents = mockCH.getTableData('final_event_log')
       expect(finalEvents.length).toBe(events.length)
 
-      // 验证归因数据
+      // 验证归因数据：只有 list → detail 的归因事件携带扩展参数（$product_id / $product_name）
       const attributions = mockCH.getTableData('event_attribution')
+      expect(attributions).toHaveLength(2)
 
-      // 应有 page-product-list 和 page-product-detail 两个页面的归因
-      const sourcePages = new Set(attributions.map((a: any) => a.source_page_id))
-      expect(sourcePages.size).toBe(2)
-      expect(sourcePages.has('page-product-list')).toBe(true)
-      expect(sourcePages.has('page-product-detail')).toBe(true)
+      const detailEvent = events.find(
+        e => e.$is_attribution_event && e.$target_page_id === 'page-product-detail',
+      )!
+      attributions.forEach((a: any) => {
+        expect(a.event_id).toBe(detailEvent.$event_id)
+        expect(a.session_id).toBe(sessionId)
+      })
 
-      // detail 的归因应包含扩展参数
-      const detailKV = attributions.filter((a: any) => a.source_page_id === 'page-product-detail')
-      const detailKeys = detailKV.map((a: any) => a.attr_key)
+      const detailKeys = attributions.map((a: any) => a.attr_key)
       expect(detailKeys).toContain('$productId')
       expect(detailKeys).toContain('$productName')
+      // SPM/SCM 标准字段不写入 KV 子表
+      expect(detailKeys).not.toContain('$spmA')
 
-      const productKV = detailKV.find((a: any) => a.attr_key === '$productId')
+      const productKV = attributions.find((a: any) => a.attr_key === '$productId')
       expect(productKV?.attr_value).toBe('prod-001')
     })
   })
@@ -126,7 +120,7 @@ describe('单节点完整清洗流程', () => {
   })
 
   describe('场景4：回退导航', () => {
-    it('两个目标页面都应有归因数据', async () => {
+    it('两个归因事件应各自产生自己的 KV 行（互不累积）', async () => {
       const sessionId = 'session-test-004'
       const events = createBackAndForthScenario(sessionId)
       mockCH.seedEventLog(events)
@@ -134,11 +128,16 @@ describe('单节点完整清洗流程', () => {
       await executeCleaning(sessionId)
 
       const attributions = mockCH.getTableData('event_attribution')
-      const sourcePages = new Set(attributions.map((a: any) => a.source_page_id))
+      expect(attributions).toHaveLength(2)
 
-      expect(sourcePages.size).toBe(2)
-      expect(sourcePages.has('page-product-list')).toBe(true)
-      expect(sourcePages.has('page-product-detail')).toBe(true)
+      const attrEvents = events.filter(e => e.$is_attribution_event)
+      expect(attrEvents).toHaveLength(2)
+      attrEvents.forEach(event => {
+        const kvs = attributions.filter((a: any) => a.event_id === event.$event_id)
+        expect(kvs).toHaveLength(1)
+        expect(kvs[0].attr_key).toBe('$navPosition')
+        expect(kvs[0].session_id).toBe(sessionId)
+      })
     })
   })
 
@@ -151,9 +150,13 @@ describe('单节点完整清洗流程', () => {
       await executeCleaning(sessionId)
 
       const attributions = mockCH.getTableData('event_attribution')
-      const landingKV = attributions.filter((a: any) => a.source_page_id === 'page-landing')
-      const keys = landingKV.map((a: any) => a.attr_key)
+      expect(attributions).toHaveLength(4)
 
+      // 全部 KV 行归属同一个归因事件
+      const eventIds = new Set(attributions.map((a: any) => a.event_id))
+      expect(eventIds.size).toBe(1)
+
+      const keys = attributions.map((a: any) => a.attr_key)
       expect(keys).toContain('$campaignId')
       expect(keys).toContain('$adGroup')
       expect(keys).toContain('$creativeId')

@@ -158,7 +158,6 @@ describe('Phase 2: 真实数据端到端测试', () => {
 
       // 真实数据中大概率没有 $is_attribution_event，所以归因数据可能为空
       console.log(`  Attribution results: ${result.attributions.length} KV entries`)
-      console.log(`  Attribution map size: ${result.attributionDataMap.size}`)
     })
 
     it('应将清洗结果写入 final_event_log', async () => {

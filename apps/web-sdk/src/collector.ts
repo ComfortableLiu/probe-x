@@ -5,14 +5,17 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { DeviceInfo, PageInfo, ProbeXEvent, SDKInfo, SessionInfo, Storage, TrackOptions, UserInfo } from './types'
 import { ConfigManager } from './config'
+import { PageTracker } from './page-tracker'
 
 export class EventCollector {
   private config: ConfigManager
   private storage: Storage
+  private pageTracker: PageTracker
 
   constructor(config: ConfigManager) {
     this.config = config
     this.storage = this.createStorage()
+    this.pageTracker = new PageTracker()
   }
 
   /**
@@ -59,6 +62,14 @@ export class EventCollector {
     }
 
     const now = Date.now()
+    const eventProperties: Record<string, any> = {
+      ...this.config.get('globalProperties', {}),
+      ...this.maskSensitiveData(properties),
+    }
+
+    // 注入页面追踪与归因字段（$page_id/$source_page_id/$is_attribution_event 等）
+    this.applyPageTracking(eventName, eventProperties)
+
     const event: ProbeXEvent = {
       // 基础信息
       id: uuidv4(),
@@ -76,10 +87,7 @@ export class EventCollector {
       device: this.getDeviceInfo(),
 
       // 事件属性
-      properties: {
-        ...this.config.get('globalProperties', {}),
-        ...this.maskSensitiveData(properties),
-      },
+      properties: eventProperties,
 
       // 选项
       options: {
@@ -380,6 +388,93 @@ export class EventCollector {
       return url.includes(pattern)
     }
     return false
+  }
+
+  /**
+   * 注入页面追踪与归因字段
+   * - page_view 事件先轮换页面浏览 id（每次页面浏览生成一个新 $page_id）
+   * - 每个事件（不只是 page_view）都携带当前 $page_id 与 $source_page_id；
+   *   业务显式传入同名字段时不覆盖，以业务为准
+   * - page_view 且携带非空 $spm/$scm 时标记为归因事件：
+   *   $is_attribution_event = true，$target_page_id = 本次 $page_id；
+   *   其他事件不加 $is_attribution_event（服务端列默认 false）
+   * - $ex_attribution_params 序列化为 JSON 字符串（服务端列为 String），非法/空值不出字段
+   *
+   * 在 maskSensitiveData 之后执行：这些 key 不含敏感词不会被脱敏，
+   * 但后注入可以保证注入值一定是原始值
+   */
+  private applyPageTracking(eventName: string, properties: Record<string, any>): void {
+    if (eventName === 'page_view') {
+      this.pageTracker.rotate()
+    }
+
+    if (properties.$page_id === undefined) {
+      properties.$page_id = this.pageTracker.getPageId()
+    }
+    if (properties.$source_page_id === undefined) {
+      properties.$source_page_id = this.pageTracker.getSourcePageId()
+    }
+
+    if (eventName === 'page_view' && (this.hasText(properties.$spm) || this.hasText(properties.$scm))) {
+      if (properties.$is_attribution_event === undefined) {
+        properties.$is_attribution_event = true
+      }
+      if (properties.$target_page_id === undefined) {
+        properties.$target_page_id = properties.$page_id
+      }
+    }
+
+    this.serializeAttributionParams(properties)
+  }
+
+  /**
+   * 判断点位值是否非空（空串/纯空白串/null/undefined 视为空）
+   */
+  private hasText(value: any): boolean {
+    if (typeof value === 'string') {
+      return value.trim().length > 0
+    }
+    return value !== undefined && value !== null
+  }
+
+  /**
+   * 序列化 $ex_attribution_params：业务传对象，发送前统一转成 JSON 字符串；
+   * 已是字符串的原样透传；空值/非法值（无法序列化、空对象、非对象原始类型）移除该字段
+   */
+  private serializeAttributionParams(properties: Record<string, any>): void {
+    if (!('$ex_attribution_params' in properties)) {
+      return
+    }
+
+    const value = properties.$ex_attribution_params
+
+    if (value === undefined || value === null || value === '') {
+      delete properties.$ex_attribution_params
+      return
+    }
+
+    if (typeof value === 'string') {
+      return
+    }
+
+    if (typeof value === 'object') {
+      try {
+        const serialized = JSON.stringify(value)
+        // 空对象/空数组序列化后没有归因信息，视为空值不上报
+        if (!serialized || serialized === '{}' || serialized === '[]') {
+          delete properties.$ex_attribution_params
+          return
+        }
+        properties.$ex_attribution_params = serialized
+      } catch {
+        // 循环引用等无法序列化的值不上报
+        delete properties.$ex_attribution_params
+      }
+      return
+    }
+
+    // number/boolean 等其他原始类型不是合法的归因参数
+    delete properties.$ex_attribution_params
   }
 
   /**

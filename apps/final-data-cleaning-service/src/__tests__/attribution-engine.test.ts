@@ -1,18 +1,19 @@
 /**
  * 归因引擎单元测试
- * 
+ *
  * 测试核心归因算法（computeAttribution）的各种场景：
- * - 单级页面导航归因
- * - 多级页面导航归因（累积传递）
- * - 回退导航场景
- * - 无归因事件场景
- * - 扩展归因参数
+ * - 归因事件的扩展参数 KV 展开
+ * - 无扩展参数的事件不产生 KV 行
+ * - 非法 JSON / 对象形式入参的容错
+ * - 多事件独立性（无链式累积、无同目标覆盖）
  * - 多 Session 隔离
  * - 空事件列表
- * 
+ *
  * 已知行为：
- * - attr_key 经 underlineToCamel 转换后保留 $ 前缀：$spm_a → $spmA
- * - 归因数组在 Map 中通过浅拷贝传递：多级导航时，各页面拥有独立的归因数组副本
+ * - attr_key 经 underlineToCamel 转换后保留 $ 前缀：$product_id → $productId
+ * - KV 子表只存归因事件自身 $ex_attribution_params 的动态归因属性，
+ *   归因链由查询侧按 session 内时间前缀动态拼装
+ * - SPM/SCM 标准字段已是 final_event_log 的列，不写入 KV 子表
  */
 
 import { computeAttribution } from '../lib/attribution-engine'
@@ -24,9 +25,9 @@ import {
   createNoAttributionScenario,
   createExAttributionScenario,
   createMultiSessionScenario,
+  createHighVolumeScenario,
   createBaseEvent,
   createAttributionEvent,
-  createPageViewEvent,
 } from './fixtures/event-factory'
 
 describe('归因引擎 - 核心算法', () => {
@@ -39,7 +40,6 @@ describe('归因引擎 - 核心算法', () => {
       const result = computeAttribution([])
       expect(result.finalEvents).toHaveLength(0)
       expect(result.attributions).toHaveLength(0)
-      expect(result.attributionDataMap.size).toBe(0)
     })
 
     it('无归因事件应返回空归因数据，但事件透传', () => {
@@ -48,156 +48,225 @@ describe('归因引擎 - 核心算法', () => {
 
       expect(result.finalEvents).toHaveLength(3)
       expect(result.attributions).toHaveLength(0)
-      expect(result.attributionDataMap.size).toBe(0)
     })
 
-    it('单个归因事件（home → list）应生成 1 条归因记录', () => {
+    it('无扩展参数的归因事件不产生 KV 行，事件透传', () => {
       const events = createHomepageToListScenario()
       const result = computeAttribution(events)
 
       expect(result.finalEvents).toHaveLength(5)
-      expect(result.attributionDataMap.size).toBe(1)
-      expect(result.attributionDataMap.has('page-product-list')).toBe(true)
-
-      const listAttr = result.attributionDataMap.get('page-product-list')!
-      expect(listAttr).toHaveLength(1)
-      expect(listAttr[0].$spm_a).toBe('a001')
-      expect(listAttr[0].$spm_b).toBe('b002')
-      expect(listAttr[0].$spm_a_description).toBe('首页')
-      expect(listAttr[0].$spm_b_description).toBe('导航')
+      expect(result.attributions).toHaveLength(0)
     })
 
-    it('单归因事件的 KV 展开后应包含正确的字段和格式', () => {
-      const events = createHomepageToListScenario()
+    it('有扩展参数的归因事件只展开自己的扩展参数为 KV 行', () => {
+      const events = createMultiPageNavigationScenario()
       const result = computeAttribution(events)
 
-      const kvList = result.attributions
-      expect(kvList.length).toBeGreaterThan(0)
+      // 两个归因事件中只有 list → detail 携带扩展参数（$product_id / $product_name）
+      const detailEvent = events.find(
+        e => e.$is_attribution_event && e.$target_page_id === 'page-product-detail',
+      )!
 
-      // underlineToCamel 转换保留 $ 前缀
-      const keys = kvList.map(kv => kv.attr_key)
-      expect(keys).toContain('$spmA')
-      expect(keys).toContain('$spmB')
-      expect(keys).toContain('$scmA')
-      expect(keys).toContain('serviceTime')
-
-      // source_page_id 是目标页面
-      kvList.forEach(kv => {
-        expect(kv.source_page_id).toBe('page-product-list')
+      expect(result.attributions).toHaveLength(2)
+      result.attributions.forEach(kv => {
+        expect(kv.event_id).toBe(detailEvent.$event_id)
+        expect(kv.session_id).toBe(detailEvent.$session_id)
+        expect(kv.event_time).toBe(detailEvent.$service_time)
       })
-    })
-  })
 
-  describe('多级页面导航（累积归因传递）', () => {
-    it('home → list → detail 应产生 2 个目标页面的归因 key', () => {
-      const events = createMultiPageNavigationScenario()
-      const result = computeAttribution(events)
-
-      expect(result.finalEvents.length).toBeGreaterThan(0)
-      expect(result.attributionDataMap.size).toBe(2)
-      expect(result.attributionDataMap.has('page-product-list')).toBe(true)
-      expect(result.attributionDataMap.has('page-product-detail')).toBe(true)
-    })
-
-    it('数组引用独立：多级导航中各页面拥有独立的归因数组', () => {
-      // 修复后：get 取出数组时做浅拷贝，避免多级导航共享同一引用
-      // 第 1 个归因事件：home→list，get('page-home')→[]，拷贝→[]，push→[A]，set('page-product-list', [A])
-      // 第 2 个归因事件：list→detail，get('page-product-list')→[A]，拷贝→[A']，push→[A',B]，
-      //   set('page-product-detail', [A',B])
-      // 此时 page-product-list=[A]，page-product-detail=[A',B]，互不干扰
-      const events = createMultiPageNavigationScenario()
-      const result = computeAttribution(events)
-
-      const listAttr = result.attributionDataMap.get('page-product-list')!
-      const detailAttr = result.attributionDataMap.get('page-product-detail')!
-
-      // list 只有自己的 1 条归因
-      expect(listAttr).toHaveLength(1)
-      // detail 有累积的 + 自己的共 2 条归因
-      expect(detailAttr).toHaveLength(2)
-
-      // 它们是不同的数组引用
-      expect(listAttr).not.toBe(detailAttr)
-
-      // list 的归因是 home→list
-      expect(listAttr[0].$spm_b_description).toBe('导航')
-      // detail 的第一条是 home→list 的累积，第二条是 list→detail
-      expect(detailAttr[0].$spm_b_description).toBe('导航')
-      expect(detailAttr[1].$spm_b_description).toBe('商品卡片')
-    })
-
-    it('detail 的 KV 应包含扩展归因参数（$product_id → $productId）', () => {
-      const events = createMultiPageNavigationScenario()
-      const result = computeAttribution(events)
-
-      const detailKV = result.attributions.filter(
-        kv => kv.source_page_id === 'page-product-detail'
-      )
-      const keys = detailKV.map(kv => kv.attr_key)
+      const keys = result.attributions.map(kv => kv.attr_key)
       expect(keys).toContain('$productId')
       expect(keys).toContain('$productName')
 
-      const productIdKV = detailKV.find(kv => kv.attr_key === '$productId')
+      const productIdKV = result.attributions.find(kv => kv.attr_key === '$productId')
       expect(productIdKV?.attr_value).toBe('prod-001')
     })
   })
 
-  describe('回退导航场景', () => {
-    it('home → list，然后 home → detail：两个目标页面都应有归因数据', () => {
-      const events = createBackAndForthScenario()
-      const result = computeAttribution(events)
-
-      expect(result.attributionDataMap.size).toBe(2)
-
-      // home→list：get('page-home')→[]，push→[A]，set('page-product-list', [A])
-      const listAttr = result.attributionDataMap.get('page-product-list')!
-      expect(listAttr).toHaveLength(1)
-      expect(listAttr[0].$spm_b_description).toBe('导航')
-
-      // home→detail：get('page-home')→[]（home 不在 Map 中），push→[B]，
-      //   set('page-product-detail', [B])
-      const detailAttr = result.attributionDataMap.get('page-product-detail')!
-      expect(detailAttr).toHaveLength(1)
-      expect(detailAttr[0].$spm_b_description).toBe('推荐位')
-    })
-  })
-
-  describe('扩展归因参数', () => {
-    it('$ex_attribution_params 中的自定义字段应被包含在归因数据中', () => {
+  describe('KV 行内容约束', () => {
+    it('SPM/SCM 标准字段不写入 KV 子表', () => {
       const events = createExAttributionScenario()
       const result = computeAttribution(events)
 
-      expect(result.attributionDataMap.size).toBe(1)
-      expect(result.attributionDataMap.has('page-landing')).toBe(true)
+      const keys = result.attributions.map(kv => kv.attr_key)
+      expect(keys).not.toContain('$spm')
+      expect(keys).not.toContain('$spmA')
+      expect(keys).not.toContain('$scm')
+      expect(keys).not.toContain('$scmA')
+    })
 
-      const landingKV = result.attributions.filter(
-        kv => kv.source_page_id === 'page-landing'
-      )
-      const keys = landingKV.map(kv => kv.attr_key)
+    it('serviceTime 不应泄漏为 attr 行', () => {
+      const events = createExAttributionScenario()
+      const result = computeAttribution(events)
 
+      const keys = result.attributions.map(kv => kv.attr_key)
+      expect(keys).not.toContain('serviceTime')
+    })
+
+    it('$session_id 不应泄漏到扩展参数的 KV 中（只出现在 session_id 列上）', () => {
+      const events = createExAttributionScenario()
+      const result = computeAttribution(events)
+
+      const keys = result.attributions.map(kv => kv.attr_key)
+      expect(keys).not.toContain('$sessionId')
+      result.attributions.forEach(kv => {
+        expect(kv.session_id).toBe('session-001')
+      })
+    })
+
+    it('所有值统一 String() 转换', () => {
+      const events = createHighVolumeScenario('session-hv', 10)
+      const result = computeAttribution(events)
+
+      expect(result.attributions.length).toBeGreaterThan(0)
+      result.attributions.forEach(kv => {
+        expect(typeof kv.attr_value).toBe('string')
+      })
+      // 工厂里 $event_index 是 number，展开后应是字符串
+      const first = result.attributions.find(kv => kv.attr_key === '$eventIndex')
+      expect(first).toBeDefined()
+      expect(first!.attr_value).toBe('0')
+    })
+
+    it('attr_key 应为 underlineToCamel 转换后的格式（保留 $ 前缀）', () => {
+      const events = createExAttributionScenario()
+      const result = computeAttribution(events)
+
+      const keys = new Set(result.attributions.map(kv => kv.attr_key))
       expect(keys).toContain('$campaignId')
       expect(keys).toContain('$adGroup')
       expect(keys).toContain('$creativeId')
       expect(keys).toContain('$landingSource')
-
-      const campaignKV = landingKV.find(kv => kv.attr_key === '$campaignId')
-      expect(campaignKV?.attr_value).toBe('camp-2026-summer')
+      expect(keys).not.toContain('$campaign_id')
     })
 
-    it('$session_id 不应泄漏到 $ex_attribution_params 的 KV 中', () => {
+    it('每个 KV 项应包含完整的必需字段', () => {
       const events = createExAttributionScenario()
       const result = computeAttribution(events)
 
-      const landingKV = result.attributions.filter(
-        kv => kv.source_page_id === 'page-landing'
-      )
-      const keys = landingKV.map(kv => kv.attr_key)
-      expect(keys).not.toContain('$sessionId')
+      expect(result.attributions.length).toBeGreaterThan(0)
+      result.attributions.forEach(kv => {
+        expect(typeof kv.event_id).toBe('string')
+        expect(typeof kv.session_id).toBe('string')
+        expect(typeof kv.attr_key).toBe('string')
+        expect(typeof kv.attr_value).toBe('string')
+        expect(kv.event_time).toBeInstanceOf(Date)
+      })
+    })
+  })
+
+  describe('$ex_attribution_params 解析容错', () => {
+    it('非法 JSON 字符串应被容忍，不产生 KV 行', () => {
+      const event = createBaseEvent({
+        $is_attribution_event: true,
+        $target_page_id: 'page-x',
+        $ex_attribution_params: '{invalid json',
+      })
+      const result = computeAttribution([event])
+      expect(result.attributions).toHaveLength(0)
+    })
+
+    it('空字符串 / 空对象 JSON 不产生 KV 行', () => {
+      const emptyStr = createBaseEvent({
+        $is_attribution_event: true,
+        $target_page_id: 'page-x',
+        $ex_attribution_params: '',
+      })
+      const emptyObj = createBaseEvent({
+        $is_attribution_event: true,
+        $target_page_id: 'page-y',
+        $ex_attribution_params: '{}',
+      })
+      const result = computeAttribution([emptyStr, emptyObj])
+      expect(result.attributions).toHaveLength(0)
+    })
+
+    it('上游传入的已是对象时直接使用', () => {
+      const event = createBaseEvent({
+        $is_attribution_event: true,
+        $target_page_id: 'page-x',
+        $ex_attribution_params: { $campaign_id: 'camp-obj' },
+      })
+      const result = computeAttribution([event])
+
+      expect(result.attributions).toHaveLength(1)
+      expect(result.attributions[0].attr_key).toBe('$campaignId')
+      expect(result.attributions[0].attr_value).toBe('camp-obj')
+      expect(result.attributions[0].event_id).toBe(event.$event_id)
+      expect(result.attributions[0].session_id).toBe(event.$session_id)
+    })
+
+    it('JSON 字符串（与 ClickHouse 实际存储一致）应被正确解析', () => {
+      const event = createAttributionEvent('page-home', 'page-landing', {}, {}, {
+        $campaign_id: 'camp-2026-summer',
+      })
+      // 工厂应以 JSON 字符串形式存储（与 ClickHouse 实际存储一致）
+      expect(typeof (event as any).$ex_attribution_params).toBe('string')
+
+      const result = computeAttribution([event])
+      expect(result.attributions).toHaveLength(1)
+      expect(result.attributions[0].attr_key).toBe('$campaignId')
+      expect(result.attributions[0].attr_value).toBe('camp-2026-summer')
+    })
+
+    it('非归因事件（$is_attribution_event = false）即使携带扩展参数也不产生 KV 行', () => {
+      const event = createBaseEvent({
+        $is_attribution_event: false,
+        $target_page_id: 'page-x',
+        $ex_attribution_params: JSON.stringify({ $campaign_id: 'camp-x' }),
+      })
+      const result = computeAttribution([event])
+      expect(result.attributions).toHaveLength(0)
+    })
+  })
+
+  describe('多事件独立性（无链式累积 / 无同目标覆盖）', () => {
+    it('同目标页的多个归因事件各自产生自己的 KV 行（按 event_id 区分）', () => {
+      const e1 = createAttributionEvent('page-a', 'page-x', {}, {}, { $nav_position: 'top-menu' })
+      const e2 = createAttributionEvent('page-b', 'page-x', {}, {}, { $nav_position: 'recommend' })
+      const result = computeAttribution([e1, e2])
+
+      expect(result.attributions).toHaveLength(2)
+
+      const kv1 = result.attributions.find(kv => kv.event_id === e1.$event_id)!
+      const kv2 = result.attributions.find(kv => kv.event_id === e2.$event_id)!
+      expect(kv1.attr_key).toBe('$navPosition')
+      expect(kv1.attr_value).toBe('top-menu')
+      expect(kv2.attr_value).toBe('recommend')
+    })
+
+    it('回退导航：两个归因事件各自产生自己的 KV 行，互不累积', () => {
+      const events = createBackAndForthScenario()
+      const result = computeAttribution(events)
+
+      const attrEvents = events.filter(e => e.$is_attribution_event)
+      expect(attrEvents).toHaveLength(2)
+      expect(result.attributions).toHaveLength(2)
+
+      attrEvents.forEach(event => {
+        const kvs = result.attributions.filter(kv => kv.event_id === event.$event_id)
+        expect(kvs).toHaveLength(1)
+        expect(kvs[0].attr_key).toBe('$navPosition')
+        expect(kvs[0].session_id).toBe(event.$session_id)
+        expect(kvs[0].event_time).toBe(event.$service_time)
+      })
+    })
+
+    it('多级导航：归因事件之间不传递扩展参数', () => {
+      const events = createMultiPageNavigationScenario()
+      const result = computeAttribution(events)
+
+      // home → list 事件无扩展参数，不产生行；
+      // list → detail 只产生自己的 $productId/$productName，不含任何来自其他事件的参数
+      const keys = new Set(result.attributions.map(kv => kv.attr_key))
+      expect(keys.size).toBe(2)
+      expect(keys.has('$productId')).toBe(true)
+      expect(keys.has('$productName')).toBe(true)
     })
   })
 
   describe('多 Session 隔离', () => {
-    it('不同 session 分别计算归因时数据应正确分离', () => {
+    it('不同 session 分别计算归因时，KV 行携带各自的 session_id', () => {
       const events = createMultiSessionScenario()
 
       const sessionAEvents = events.filter(e => e.$session_id === 'session-A')
@@ -206,95 +275,36 @@ describe('归因引擎 - 核心算法', () => {
       const resultA = computeAttribution(sessionAEvents)
       const resultB = computeAttribution(sessionBEvents)
 
-      expect(resultA.attributionDataMap.size).toBe(1)
-      expect(resultA.attributionDataMap.has('page-product-list')).toBe(true)
-      const listAttr = resultA.attributionDataMap.get('page-product-list')!
-      expect(listAttr[0].$spm_a_description).toBe('首页-A')
+      expect(resultA.attributions).toHaveLength(1)
+      resultA.attributions.forEach(kv => {
+        expect(kv.session_id).toBe('session-A')
+        expect(kv.attr_key).toBe('$campaignId')
+        expect(kv.attr_value).toBe('camp-A')
+      })
 
-      expect(resultB.attributionDataMap.size).toBe(1)
-      expect(resultB.attributionDataMap.has('page-product-detail')).toBe(true)
-      const detailAttr = resultB.attributionDataMap.get('page-product-detail')!
-      expect(detailAttr[0].$spm_a_description).toBe('首页-B')
-    })
-  })
-
-  describe('归因 KV 结构验证', () => {
-    it('每个 KV 项应包含完整的必需字段', () => {
-      const events = createHomepageToListScenario()
-      const result = computeAttribution(events)
-
-      result.attributions.forEach(kv => {
-        expect(kv).toHaveProperty('source_page_id')
-        expect(kv).toHaveProperty('attribution_index')
-        expect(kv).toHaveProperty('attr_key')
-        expect(kv).toHaveProperty('attr_value')
-        expect(kv).toHaveProperty('event_time')
-
-        expect(typeof kv.source_page_id).toBe('string')
-        expect(typeof kv.attribution_index).toBe('number')
-        expect(typeof kv.attr_key).toBe('string')
-        expect(kv.event_time).toBeInstanceOf(Date)
+      expect(resultB.attributions).toHaveLength(1)
+      resultB.attributions.forEach(kv => {
+        expect(kv.session_id).toBe('session-B')
+        expect(kv.attr_key).toBe('$campaignId')
+        expect(kv.attr_value).toBe('camp-B')
       })
     })
-
-    it('attr_key 应为 underlineToCamel 转换后的格式（保留 $ 前缀）', () => {
-      const events = createHomepageToListScenario()
-      const result = computeAttribution(events)
-
-      const keys = new Set(result.attributions.map(kv => kv.attr_key))
-      expect(keys).toContain('$spmA')
-      expect(keys).toContain('$spmADescription')
-      expect(keys).not.toContain('$spm_a')
-      expect(keys).not.toContain('spm_a')
-    })
-
-    it('多归因项时 attribution_index 应递增', () => {
-      const events = createMultiPageNavigationScenario()
-      const result = computeAttribution(events)
-
-      // page-product-detail 有 2 条归因项（累积传递）
-      const detailKV = result.attributions.filter(
-        kv => kv.source_page_id === 'page-product-detail'
-      )
-      const indices = new Set(detailKV.map(kv => kv.attribution_index))
-      expect(indices.has(0)).toBe(true)
-      expect(indices.has(1)).toBe(true)
-    })
   })
 
-  describe('修复验证', () => {
-    it('数组引用独立：多级导航中各页面拥有独立的归因数组', () => {
-      const events = createMultiPageNavigationScenario()
-      const result = computeAttribution(events)
-
-      const listArr = result.attributionDataMap.get('page-product-list')
-      const detailArr = result.attributionDataMap.get('page-product-detail')
-
-      // 它们是不同的数组引用
-      expect(listArr).not.toBe(detailArr)
-
-      // list 只有 1 条自己的归因
-      expect(listArr).toHaveLength(1)
-      // detail 有累积的 + 自己的共 2 条归因
-      expect(detailArr).toHaveLength(2)
-
-      const listKV = result.attributions.filter(kv => kv.source_page_id === 'page-product-list')
-      const detailKV = result.attributions.filter(kv => kv.source_page_id === 'page-product-detail')
-
-      // KV 展开后每个归因项产生多条 KV 记录（每个字段一条）
-      // 按 attribution_index 去重计算归因项数
-      const listIndices = new Set(listKV.map(kv => kv.attribution_index))
-      const detailIndices = new Set(detailKV.map(kv => kv.attribution_index))
-
-      // list 有 1 个归因项，detail 有 2 个归因项
-      expect(listIndices.size).toBe(1)
-      expect(detailIndices.size).toBe(2)
-    })
-
+  describe('透传与进度', () => {
     it('eventList 透传验证：finalEvents 应与输入完全一致', () => {
       const events = createMultiPageNavigationScenario()
       const result = computeAttribution(events)
       expect(result.finalEvents).toBe(events) // 同一引用
+    })
+
+    it('onProgress 应逐事件回调', () => {
+      const events = createNoAttributionScenario()
+      const calls: Array<[number, number]> = []
+      computeAttribution(events, (processed, total) => calls.push([processed, total]))
+
+      expect(calls).toHaveLength(events.length)
+      expect(calls[calls.length - 1]).toEqual([events.length, events.length])
     })
   })
 })

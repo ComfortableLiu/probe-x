@@ -25,6 +25,7 @@ export function createBaseEvent(overrides: Record<string, any> = {}): IPreEventL
   const now = new Date(new Date('2026-06-01T10:00:00Z').getTime() + eventCounter * 1000)
 
   return {
+    $event_id: `event-${String(eventCounter).padStart(4, '0')}`,
     $event_name: 'page_view',
     $log_time: now,
     $service_time: now,
@@ -109,13 +110,14 @@ export function createClickEvent(
 }
 
 /**
- * 创建一个归因事件（路由跳转，会触发归因计算）
- * 
+ * 创建一个归因事件（携带 SPM/SCM 的落地 page_view，会触发归因计算）
+ *
  * @param sourcePageId 源页面 ID（$page_id，当前所在页面）
  * @param targetPageId 目标页面 ID（$target_page_id，即将跳转的页面）
  * @param spmOverrides SPM 参数覆盖
  * @param scmOverrides SCM 参数覆盖
- * @param exAttributionParams 扩展归因参数（注意：$session_id 如果在此处传，会被提升到顶层）
+ * @param exAttributionParams 扩展归因参数（会以 JSON 字符串形式写入 $ex_attribution_params，
+ *   与 ClickHouse 实际存储一致；注意：$session_id 如果在此处传，会被提升到顶层）
  */
 export function createAttributionEvent(
   sourcePageId: string,
@@ -135,12 +137,12 @@ export function createAttributionEvent(
   }
 
   return createBaseEvent({
-    $event_name: 'route_change',
+    $event_name: 'page_view',
     $spm: 'a001.b002.c002.d002',
     $scm: 'a001.b002.c002.d002',
     ...spmOverrides,
     ...scmOverrides,
-    ...(cleanExParams ? { $ex_attribution_params: cleanExParams } : {}),
+    ...(cleanExParams ? { $ex_attribution_params: JSON.stringify(cleanExParams) } : {}),
     // 关键字段放在最后，防止被 spread 覆盖
     $page_id: sourcePageId,
     $source_page_id: sourcePageId,
@@ -172,15 +174,12 @@ export function createHomepageToListScenario(sessionId: string = 'session-001'):
 }
 
 /**
- * 场景：用户从首页 → 商品列表 → 商品详情（多级归因传递）
- * 
- * 注意归因算法的累积行为：
- * - 第 1 个归因事件（home → list）：page-product-list 获得 1 条归因项
- * - 第 2 个归因事件（list → detail）：因为 page-product-list 已在 Map 中，
- *   取出其累积数据（1条）+ 新推入 1 条 = page-product-list 有 2 条归因项，
- *   然后以 page-product-detail 为 key 存入（包含这 2 条）
- *   
- * 这是算法设计的预期行为（累积归因传递）。
+ * 场景：用户从首页 → 商品列表 → 商品详情
+ *
+ * 注意新归因引擎的行为（无跨页面链式累积）：
+ * - 第 1 个归因事件（home → list）：无扩展参数，不产生 KV 行
+ * - 第 2 个归因事件（list → detail）：只产生自己的扩展参数
+ *   （$product_id / $product_name）KV 行，不携带任何来自其他事件的归因数据
  */
 export function createMultiPageNavigationScenario(sessionId: string = 'session-001'): IPreEventLog[] {
   resetEventCounter()
@@ -209,11 +208,10 @@ export function createMultiPageNavigationScenario(sessionId: string = 'session-0
 }
 
 /**
- * 场景：用户回退到首页再导航到其他页面（测试归因参数更新）
- * 
+ * 场景：用户回退到首页再导航到其他页面
+ *
  * 路径：home → list → 回退 home → detail
- * 注意：home 从未作为 target_page_id 被 set 到 Map 中，
- * 所以第二次导航时 attributionDataMap.get('page-home') 返回 []
+ * 两个归因事件各自携带不同的扩展参数，验证每个归因事件只产生自己的 KV 行
  */
 export function createBackAndForthScenario(sessionId: string = 'session-001'): IPreEventLog[] {
   resetEventCounter()
@@ -224,13 +222,13 @@ export function createBackAndForthScenario(sessionId: string = 'session-001'): I
     createAttributionEvent('page-home', 'page-product-list', {
       $spm_a: 'a001', $spm_b: 'b002', $spm_c: 'c002', $spm_d: 'd002',
       $spm_a_description: '首页', $spm_b_description: '导航', $spm_c_description: '商品列表', $spm_d_description: '入口',
-    }, {}, { $session_id: sessionId }),
+    }, {}, { $nav_position: 'top-menu', $session_id: sessionId }),
     createPageViewEvent('page-product-list', 'page-home', { $session_id: sessionId }),
     // 归因：首页 → 商品详情（回退后重新导航）
     createAttributionEvent('page-home', 'page-product-detail', {
       $spm_a: 'a001', $spm_b: 'b004', $spm_c: 'c004', $spm_d: 'd004',
       $spm_a_description: '首页', $spm_b_description: '推荐位', $spm_c_description: '商品详情', $spm_d_description: '直达',
-    }, {}, { $session_id: sessionId }),
+    }, {}, { $nav_position: 'recommend', $session_id: sessionId }),
     createPageViewEvent('page-product-detail', 'page-home', { $session_id: sessionId }),
   ]
 }
@@ -276,13 +274,13 @@ export function createMultiSessionScenario(): IPreEventLog[] {
     createAttributionEvent('page-home', 'page-product-list', {
       $spm_a: 'a001', $spm_b: 'b002', $spm_c: 'c002', $spm_d: 'd002',
       $spm_a_description: '首页-A', $spm_b_description: '导航-A', $spm_c_description: '列表-A', $spm_d_description: '入口-A',
-    }, {}, { $session_id: 'session-A' }),
+    }, {}, { $campaign_id: 'camp-A', $session_id: 'session-A' }),
     // Session B: 首页 → 详情
     createPageViewEvent('page-home', '', { $session_id: 'session-B' }),
     createAttributionEvent('page-home', 'page-product-detail', {
       $spm_a: 'a002', $spm_b: 'b003', $spm_c: 'c003', $spm_d: 'd003',
       $spm_a_description: '首页-B', $spm_b_description: '推荐-B', $spm_c_description: '详情-B', $spm_d_description: '直达-B',
-    }, {}, { $session_id: 'session-B' }),
+    }, {}, { $campaign_id: 'camp-B', $session_id: 'session-B' }),
   ]
 }
 

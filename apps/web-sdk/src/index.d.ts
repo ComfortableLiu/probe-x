@@ -119,6 +119,25 @@ export interface TrackOptions {
   [key: string]: any;
 }
 
+// 归因相关保留字段（事件 properties 内，$ 前缀）
+// $page_id/$source_page_id 由 SDK 自动注入每个事件；业务显式传入同名字段时以业务为准
+export interface AttributionEventProperties {
+  /** 本次页面浏览实例 id：每次 page_view 生成一个新 uuid */
+  $page_id?: string;
+  /** 上一次 page_view 的 $page_id，首个页面为 '' */
+  $source_page_id?: string;
+  /** 归因事件的目标页面 id（= 归因事件自己的 $page_id），仅归因事件携带 */
+  $target_page_id?: string;
+  /** 是否归因事件：page_view 且携带非空 $spm/$scm 时由 SDK 置 true，其他事件不带该字段 */
+  $is_attribution_event?: boolean;
+  /** 扩展归因参数：业务传对象，SDK 发送前 JSON 序列化为字符串；非法/空值不上报 */
+  $ex_attribution_params?: string | Record<string, any>;
+  /** SPM 站内点位编码 */
+  $spm?: string;
+  /** SCM 站外/流量来源点位编码 */
+  $scm?: string;
+}
+
 // 事件接口
 export interface ProbeXEvent {
   id: string;
@@ -128,7 +147,7 @@ export interface ProbeXEvent {
   page: PageInfo;
   user: UserInfo;
   device: DeviceInfo;
-  properties: Record<string, any>;
+  properties: AttributionEventProperties & Record<string, any>;
   options: TrackOptions;
   session: SessionInfo;
   sdk: SDKInfo;

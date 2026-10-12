@@ -1,4 +1,6 @@
-import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
+import {
+  ServiceResourcesModule,
+} from '@probe-x/shared-utils/src/lib/backend-common/modules/service-resources/service-resources.module'
 import { Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import {
@@ -9,7 +11,6 @@ import {
   RedisModule,
   RedisService,
   ResponseInterceptor,
-  // SignatureInterceptor, // 已移除：HMAC签名需要客户端持有密钥，本质上不安全，后续应使用服务端签名方案
 } from "@probe-x/shared-utils/src/lib/backend-common"
 import { EventModule } from "@src/api/event/event.module"
 import { UserModule } from "@src/api/user/user.module"

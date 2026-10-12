@@ -299,24 +299,30 @@ function buildConversionEventFilter(targetEventInfo: IEventAnalysisInfo, params:
   return conditions.length > 0 ? conditions.join(' AND ') : ''
 }
 
-/** 构建归因权重逻辑（基于 conv_rows CTE 预计算的窗口函数列，避免在聚合参数中使用相关子查询） */
+/** 构建归因权重逻辑（基于 linked CTE 展开的触点行计算，每个转化内部权重归一、总和为 1）
+ * 可用列：hop_index（触点在该转化前缀中的序号，从 1 开始）、prefix_len（前缀长度 n）、
+ * hop_time/conv_time（触点时间/转化时间）、decay_sum（仅 TIME_DECAY，前缀内所有触点衰减值之和）
+ */
 function buildAttributionWeightLogic(model: AttributionModelEnum): string {
-  // 可用列：idx（attribution_index）、tp_count（该转化的归因行数）、last_idx（最大归因序号）
-  // 注意：event_attribution 的 event_time 与转化事件的 $service_time 一致（见表结构注释），
-  // 时间衰减公式中 dateDiff(event_time, 转化时间) 恒为 0，衰减项恒为 1，退化为 1/tp_count
   switch (model) {
     case AttributionModelEnum.FIRST_TOUCH:
-      return `if(idx = 0, 1, 0)`
+      // 首次触点：前缀中序号为 1 的触点拿全部权重
+      return `if(hop_index = 1, 1, 0)`
     case AttributionModelEnum.LAST_TOUCH:
-      return `if(idx = last_idx, 1, 0)`
+      // 末次触点：前缀中最后一个触点拿全部权重
+      return `if(hop_index = prefix_len, 1, 0)`
     case AttributionModelEnum.LINEAR:
-      return `1 / tp_count`
+      // 线性：前缀内所有触点均分
+      return `1 / prefix_len`
     case AttributionModelEnum.POSITION:
-      // 位置归因模型：第一个和最后一个触摸点各占40%，中间点均分剩余20%
-      return `multiIf(tp_count = 1, 1.0, tp_count = 2, 0.5, idx = 0 OR idx = last_idx, 0.4, 0.2 / (tp_count - 2))`
+      // 位置归因：首/末触点各占 40%，中间触点均分剩余 20%；n=1 时唯一触点拿 100%，n=2 时各 50%
+      return `multiIf(prefix_len = 1, 1.0, prefix_len = 2, 0.5, hop_index = 1 OR hop_index = prefix_len, 0.4, 0.2 / (prefix_len - 2))`
     case AttributionModelEnum.TIME_DECAY:
-      // 见上方注释：当前数据模型下衰减项恒为 1，等价于线性均分
-      return `1 / tp_count`
+      // 时间衰减：pow(0.5, 距转化秒数 / 604800)，半衰期 7 天（604800 秒）——触点每比转化早 7 天权重减半。
+      // 7 天是营销归因的业界常用默认半衰期（覆盖大多数转化决策周期，与主流分析平台默认值一致），如需调整可后续参数化。
+      // 触点时间与转化时间是真实两列（不再退化为线性）；decay_sum 在 linked 中按转化预计算
+      // （前缀内所有触点衰减值之和），二者相除完成转化内归一
+      return `pow(0.5, dateDiff('second', hop_time, conv_time) / 604800) / decay_sum`
     default:
       throw new Error(`不支持的归因模型：${model}`)
   }
@@ -428,14 +434,21 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const allDimensions = [...new Set([...attributionEventDimension])].filter(Boolean)
     const dimensionFields = allDimensions.map(field => wrapFieldWithBacktick(field))
 
-    // 7. 核心归因计算逻辑
-    // 注意：event_attribution 是 KV 子表（每个转化事件有多行 attr_key/attr_value），
-    // 且 source_page_id 是页面 id 而非转化事件唯一标识，直接 JOIN 主表会发生行扇出导致贡献度超过 100%。
-    // 因此：
-    // 1. conv_rows/conv_attr 先按转化事件（source_page_id + event_time）聚合，将每个转化的权重归一化（总和为 1），
-    //    权重计算使用窗口函数列（ClickHouse 不支持聚合参数中的相关子查询）
-    // 2. linked 按（触点事件, 维度, 转化）去重——同一个转化对同一触点事件只计一次，与触点事件实例数无关
-    // 3. 触点事件的总次数/用户数在 event_stats 中单独统计（与转化关联解耦）
+    // 7. 核心归因计算逻辑（完全基于 final_event_log，不读 event_attribution KV 子表——
+    // KV 子表只存动态扩展归因参数，归因数学全部在主表上完成）
+    // 一个转化的触点 = 同一 $session_id 内、$service_time <= 转化时间的归因事件
+    // （$is_attribution_event = true、携带 SPM/SCM 的落地 page_view），按时间升序从 1 编号，
+    // 归因模型在该前缀上分配权重，每个转化内部权重归一（总和为 1）。
+    // ClickHouse 24.3 标准 JOIN 只支持等值 + ASOF 单不等式，无法直接表达
+    // 「同 session 且时间不晚于转化」的关联，因此走数组路线：
+    // 1. conv：转化事件集（$event_id / $session_id / $service_time）
+    // 2. hop_rows → hop_sessions：触点事件按 session 聚合，arraySort 保证 tuple 按触点时间升序
+    // 3. linked：conv ⋈ hop_sessions（session 等值 JOIN），arrayFilter 取「时间 <= 转化时间」的前缀，
+    //    再 ARRAY JOIN + arrayEnumerate 展开成（转化, 触点, 序号 i, 前缀长度 n）行；
+    //    空前缀的转化自然不出现（其权重为 0，贡献给「未关联」，符合归因语义）
+    // 4. conv_agg：按（触点事件 + 维度）SUM(权重) 得到 conversion_metric
+    // 5. event_stats：触点事件的总次数/去重用户数（与转化关联解耦，沿用既有实现）
+    // conv 与 hop_rows 都排除空 $session_id：空 session 会在等值 JOIN 中互相命中，导致跨用户串触点
     const weightLogic = buildAttributionWeightLogic(attributionModel)
     const conversionMetricAggFunc = getMetricAggregationFunc(targetEventInfo.metrics)
 
@@ -465,6 +478,21 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const dimensionOuterSelect = dimensionFields.length > 0
       ? dimensionFields.map(field => `e.${field}`).join(', ') + ','
       : ''
+    // hop_rows 为单表 CTE（无表别名），维度列原样选取
+    const dimensionHopSelect = dimensionFields.length > 0
+      ? dimensionFields.join(', ') + ','
+      : ''
+    // 触点 tuple 结构固定为 (hop_time, hop_event_name, 维度1, 维度2, ...)，
+    // linked 展开时按下标取回维度列（hop.1=触点时间、hop.2=触点事件名、hop.3 起为各维度）
+    const hopTupleElements = ['hop_time', 'hop_event_name', ...dimensionFields].join(', ')
+    const dimensionTupleSelect = dimensionFields.length > 0
+      ? dimensionFields.map((field, i) => `hop.${i + 3} AS ${field}`).join(', ') + ','
+      : ''
+    // TIME_DECAY 的归一分母：该转化前缀内所有触点衰减值之和（仅时间衰减模型需要，随 linked 逐行带出。
+    // lambda 中引用的 conv_time 是本行已物化的外层列，ClickHouse 允许在 arrayFilter/arraySum 的 lambda 中捕获）
+    const decaySumSelect = attributionModel === AttributionModelEnum.TIME_DECAY
+      ? `,\n        arraySum(x -> pow(0.5, dateDiff('second', x.1, conv_time) / 604800), prefix) AS decay_sum`
+      : ''
 
     // 8. 主表与动态排序子句（外层查询有 e/c 两个表，字段需带 e. 前缀避免歧义）
     const mainTable = '`probe_x`.`final_event_log` f'
@@ -475,46 +503,66 @@ export function generateAttributionAnalysisSql(params: IAttributionAnalysisReq):
     const tidExpr = `if(f.${wrapFieldWithBacktick('$event_id')} != '', f.${wrapFieldWithBacktick('$event_id')}, concat(f.${wrapFieldWithBacktick('$page_id')}, '|', toString(f.${wrapFieldWithBacktick('$service_time')}), '|', toString(f.${wrapFieldWithBacktick('$uid')})))`
 
     // 9. 拼接最终SQL
-    // conv_rows 通过（source_page_id + 精确时间戳）JOIN 主表，把归因行限定到「目标转化事件」——
-    // 归因表里混有多种转化事件的归因数据，不过滤会导致分子包含非目标转化，贡献度超过 100%
-    const sql = `WITH conv_rows AS (
+    // 触点限定在与转化分析相同的时间范围内是已知取舍：范围外的前置触点不参与归因
+    // （避免为追溯历史触点放大扫描范围；如需更长回溯窗口，应通过扩大 timeRange 实现）
+    const sql = `WITH conv AS (
       SELECT
-        a.${wrapFieldWithBacktick('source_page_id')} AS spid,
-        a.${wrapFieldWithBacktick('event_time')} AS et,
-        a.${wrapFieldWithBacktick('attribution_index')} AS idx,
-        COUNT(*) OVER (PARTITION BY a.${wrapFieldWithBacktick('source_page_id')}, a.${wrapFieldWithBacktick('event_time')}) AS tp_count,
-        MAX(a.${wrapFieldWithBacktick('attribution_index')}) OVER (PARTITION BY a.${wrapFieldWithBacktick('source_page_id')}, a.${wrapFieldWithBacktick('event_time')}) AS last_idx
-      FROM \`probe_x\`.\`event_attribution\` a
-      JOIN \`probe_x\`.\`final_event_log\` c
-        ON c.${wrapFieldWithBacktick('$source_page_id')} = a.${wrapFieldWithBacktick('source_page_id')}
-        AND c.${wrapFieldWithBacktick('$service_time')} = a.${wrapFieldWithBacktick('event_time')}
+        ${wrapFieldWithBacktick('$event_id')} AS conv_event_id,
+        ${wrapFieldWithBacktick('$session_id')} AS session_id,
+        ${wrapFieldWithBacktick('$service_time')} AS conv_time
+      FROM \`probe_x\`.\`final_event_log\`
       WHERE ${timeFilter}
-      ${conversionEventFilter ? `AND ${conversionEventFilter}` : ''}
-      ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''}
+        AND ${wrapFieldWithBacktick('$session_id')} != ''
+        ${conversionEventFilter ? `AND ${conversionEventFilter}` : ''}
+        ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''}
     ),
-    conv_attr AS (
-      SELECT spid, et, SUM(${weightLogic}) AS w
-      FROM conv_rows
-      GROUP BY spid, et
+    hop_rows AS (
+      SELECT
+        ${dimensionHopSelect}
+        ${wrapFieldWithBacktick('$session_id')} AS session_id,
+        ${wrapFieldWithBacktick('$service_time')} AS hop_time,
+        ${wrapFieldWithBacktick('$event_name')} AS hop_event_name
+      FROM \`probe_x\`.\`final_event_log\`
+      WHERE ${timeFilter}
+        AND ${wrapFieldWithBacktick('$is_attribution_event')} = true
+        AND ${wrapFieldWithBacktick('$session_id')} != ''
+        AND ${attributionEventFilter}
+        ${globalFilterConditions ? `AND ${globalFilterConditions}` : ''}
+    ),
+    hop_sessions AS (
+      SELECT
+        session_id,
+        arraySort(x -> x.1, groupArray((${hopTupleElements}))) AS hops
+      FROM hop_rows
+      GROUP BY session_id
     ),
     linked AS (
-      SELECT DISTINCT
-        f.${wrapFieldWithBacktick('$event_name')} AS ${wrapFieldWithBacktick('$event_name')},
-        ${dimensionSelect}
-        ca.spid AS spid,
-        ca.et AS et,
-        ca.w AS w
-      FROM ${mainTable}
-      JOIN conv_attr ca
-        ON f.${wrapFieldWithBacktick('$source_page_id')} = ca.spid
-        AND toDate(f.${wrapFieldWithBacktick('$service_time')}) = toDate(ca.et)
-      ${whereClause}
+      SELECT
+        conv_event_id,
+        hop.2 AS ${wrapFieldWithBacktick('$event_name')},
+        ${dimensionTupleSelect}
+        idx AS hop_index,
+        length(prefix) AS prefix_len,
+        hop.1 AS hop_time,
+        conv_time${decaySumSelect}
+      FROM (
+        SELECT
+          c.conv_event_id AS conv_event_id,
+          c.conv_time AS conv_time,
+          arrayFilter(x -> x.1 <= c.conv_time, h.hops) AS prefix
+        FROM conv c
+        INNER JOIN hop_sessions h
+          ON h.session_id = c.session_id
+      )
+      ARRAY JOIN
+        prefix AS hop,
+        arrayEnumerate(prefix) AS idx
     ),
     conv_agg AS (
       SELECT
         ${wrapFieldWithBacktick('$event_name')},
         ${dimensionGroupBy}
-        SUM(w) AS conversion_metric
+        SUM(${weightLogic}) AS conversion_metric
       FROM linked
       GROUP BY ${dimensionGroupBy} ${wrapFieldWithBacktick('$event_name')}
     ),

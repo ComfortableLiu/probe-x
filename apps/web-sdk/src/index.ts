@@ -105,14 +105,17 @@ class ProbeX {
         this.performanceMonitor.init()
       }
 
-      // 发送页面访问事件
-      this.track('page_view', {
-        page_title: document.title,
-        page_url: window.location.href,
-        page_path: window.location.pathname,
-        referrer: document.referrer,
-        session_start: true,
-      })
+      // 发送页面访问事件（走 collectEvent 的 page_view 路径，页面浏览 id 随之轮换）
+      // autoTrackPageView 为 false 时由业务手动 trackPageView 上报，避免重复
+      if (this.config.get('autoTrackPageView', true)) {
+        this.track('page_view', {
+          page_title: document.title,
+          page_url: window.location.href,
+          page_path: window.location.pathname,
+          referrer: document.referrer,
+          session_start: true,
+        })
+      }
 
       // 注册默认监听器，把自动埋点事件转发给 DataSender
       window.addEventListener('probe-x-event', this.handleAutoTrackEvent)
