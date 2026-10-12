@@ -31,7 +31,7 @@ export interface IDataAnalysisUtmState {
   data?: IUtmAnalysisRes
   // 本次查询使用的参数快照：图表/表格据此渲染，避免配置项变更后结果区实时跟随
   querySnapshot?: IUtmAnalysisReq
-  // UTM 取值选项，取值筛选器下拉与表格别名展示都用它
+  // UTM 取值条目池：由 resolveOptions 按需累积（下拉不再全量预加载），供筛选回显与结果别名展示
   utmOptions?: IUtmOptionItem[]
 }
 

@@ -15,8 +15,12 @@ import { UserEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/
 import {
   IQueryUtmListReq,
   IQueryUtmListRes,
+  IQueryUtmOptionsReq,
   IQueryUtmOptionsRes,
+  IResolveUtmOptionsReq,
+  IResolveUtmOptionsRes,
   IUtmItem,
+  IUtmOptionItem,
   IUtmStatCursorRes,
   IUtmStatIncrementReq,
   IUtmStatSyncReq,
@@ -151,37 +155,109 @@ export class UtmService implements OnModuleInit {
   }
 
   /**
-   * UTM 取值选项
+   * UTM 取值选项（分页）
    *
-   * UTM 分析的取值筛选器用：只含有效条目，一次性返回不分页。
+   * UTM 分析的取值筛选器用：只含有效条目，支持下拉框联网分页加载；
+   * keyword 同时模糊匹配取值和别名（OR 关系）。
    * 别名一并给出，前端下拉里直接展示「别名（原始取值）」
    */
-  async getOptions(dimension?: UtmDimension): Promise<IQueryUtmOptionsRes> {
+  async getOptions(params: IQueryUtmOptionsReq): Promise<IQueryUtmOptionsRes> {
+    const {
+      dimension,
+      keyword,
+      page = 1,
+      pageSize = 50,
+    } = params
+
     const query = this.utmItemRepo.createQueryBuilder('utm')
-      .select([
-        'utm.id as id',
-        'utm.dimension as dimension',
-        'utm.value as value',
-        'utm.alias as alias',
-        'utm.eventCount as eventCount',
-      ])
       .where('utm.isDeleted = :isDeleted', { isDeleted: 0 })
-      // 投放量大的排前面，方便在下拉里先看到主力取值
-      .orderBy('utm.eventCount', 'DESC')
-      .addOrderBy('utm.value', 'ASC')
 
     if (dimension) {
       query.andWhere('utm.dimension = :dimension', { dimension })
     }
+    if (keyword) {
+      query.andWhere('(utm.value LIKE :keyword OR utm.alias LIKE :keyword)', { keyword: `%${keyword}%` })
+    }
 
-    const rows = await query.getRawMany()
-    return rows.map(row => ({
-      id: Number(row.id),
-      dimension: row.dimension,
-      value: row.value,
-      alias: row.alias || undefined,
-      eventCount: Number(row.eventCount ?? 0),
-    }))
+    const total = await query.getCount()
+
+    query.select([
+      'utm.id as id',
+      'utm.dimension as dimension',
+      'utm.value as value',
+      'utm.alias as alias',
+      'utm.eventCount as eventCount',
+    ])
+      // 投放量大的排前面，方便在下拉里先看到主力取值
+      .orderBy('utm.eventCount', 'DESC')
+      .addOrderBy('utm.value', 'ASC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+
+    try {
+      const rows = await query.getRawMany()
+      return {
+        total,
+        page,
+        pageSize,
+        data: rows.map(row => this.toOptionItem(row)),
+      }
+    } catch (e) {
+      this.logger.error('查询 UTM 取值选项失败', e)
+      throw new BusinessException('查询失败')
+    }
+  }
+
+  /**
+   * 批量精确解析 UTM 取值
+   *
+   * 前端对「URL 回显的选中值」和「查询结果行中出现的值」批量换别名用：
+   * 按 (维度, 取值) 精确匹配有效条目，命中的返回别名等完整信息
+   */
+  async resolveOptions(req: IResolveUtmOptionsReq): Promise<IResolveUtmOptionsRes> {
+    // 去重 + 过滤空取值
+    const seen = new Set<string>()
+    const items: { dimension: UtmDimension; value: string }[] = []
+    for (const item of req?.items || []) {
+      if (!item?.dimension || !item.value) continue
+      const key = this.buildKey(item.dimension, item.value)
+      if (seen.has(key)) continue
+      seen.add(key)
+      items.push({ dimension: item.dimension, value: item.value })
+    }
+
+    if (!items.length) return []
+    if (items.length > 500) {
+      throw new BusinessException('一次最多解析 500 条 UTM 取值')
+    }
+
+    const conditions = items.map((_, i) => `(utm.dimension = :dimension${i} AND utm.value = :value${i})`)
+    const parameters: Record<string, string> = {}
+    items.forEach((item, i) => {
+      parameters[`dimension${i}`] = item.dimension
+      parameters[`value${i}`] = item.value
+    })
+
+    try {
+      const rows = await this.utmItemRepo.createQueryBuilder('utm')
+        .select([
+          'utm.id as id',
+          'utm.dimension as dimension',
+          'utm.value as value',
+          'utm.alias as alias',
+          'utm.eventCount as eventCount',
+        ])
+        .where('utm.isDeleted = :isDeleted', { isDeleted: 0 })
+        .andWhere(`(${conditions.join(' OR ')})`, parameters)
+        // 与取值选项保持同一排序，便于前端对结果做稳定对照
+        .orderBy('utm.eventCount', 'DESC')
+        .addOrderBy('utm.value', 'ASC')
+        .getRawMany()
+      return rows.map(row => this.toOptionItem(row))
+    } catch (e) {
+      this.logger.error('批量解析 UTM 取值失败', e)
+      throw new BusinessException('查询失败')
+    }
   }
 
   /**
@@ -649,6 +725,16 @@ export class UtmService implements OnModuleInit {
     }
   }
 
+  private toOptionItem(raw: Record<string, any>): IUtmOptionItem {
+    return {
+      id: Number(raw.id),
+      dimension: raw.dimension,
+      value: raw.value,
+      alias: raw.alias || undefined,
+      eventCount: Number(raw.eventCount ?? 0),
+    }
+  }
+
   /**
    * DATE 列 -> YYYY-MM-DD
    * 驱动可能给字符串也可能给本地零点的 Date，统一取本地日历日
@@ -691,7 +777,7 @@ export class UtmService implements OnModuleInit {
   }
 
   private buildKey(dimension: UtmDimension, value: string): string {
-    return `${dimension} ${value}`
+    return `${dimension}\x00${value}`
   }
 
   private chunk<T>(list: T[], size: number): T[][] {

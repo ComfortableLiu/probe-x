@@ -148,7 +148,7 @@ export interface IUtmStatCursorRes {
 
 /**
  * UTM 取值选项
- * UTM 分析的取值筛选器用，只含有效条目，一次性返回不分页
+ * UTM 分析的取值筛选器用，只含有效条目
  */
 export interface IUtmOptionItem {
   id: number
@@ -164,10 +164,26 @@ export interface IUtmOptionItem {
 
 /**
  * 查询 UTM 取值选项
+ * 支持下拉框联网分页加载；keyword 同时模糊匹配取值和别名（OR 关系）
  */
-export interface IQueryUtmOptionsReq {
+export interface IQueryUtmOptionsReq extends Partial<IPageQuery> {
   // 维度，不传返回全部维度
   dimension?: UtmDimension
+  // 模糊搜索关键字，同时 LIKE 匹配 value 和 alias
+  keyword?: string
 }
 
-export type IQueryUtmOptionsRes = IUtmOptionItem[]
+export type IQueryUtmOptionsRes = IPageResult<IUtmOptionItem>
+
+/**
+ * 批量精确解析 UTM 取值
+ * 前端对「URL 回显的选中值」和「查询结果行中出现的值」批量解析别名用
+ */
+export interface IResolveUtmOptionsReq {
+  items: {
+    dimension: UtmDimension
+    value: string
+  }[]
+}
+
+export type IResolveUtmOptionsRes = IUtmOptionItem[]

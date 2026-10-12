@@ -4,9 +4,12 @@ import {
   IDeleteUtmReq,
   IQueryUtmListReq,
   IQueryUtmListRes,
+  IQueryUtmOptionsReq,
   IQueryUtmOptionsRes,
   IRecalcUtmReq,
   IRecalcUtmRes,
+  IResolveUtmOptionsReq,
+  IResolveUtmOptionsRes,
   IRestoreUtmReq,
   IRestoreUtmRes,
   IUtmStatCursorRes,
@@ -52,11 +55,32 @@ export class UtmController {
 
   /**
    * UTM 取值选项（UTM 分析的取值筛选器用）
-   * 只返回有效条目，带别名，一次性返回不分页
+   * 只返回有效条目，带别名；支持下拉框联网分页加载和模糊搜索
    */
   @Get('options')
-  async getOptions(@Query('dimension') dimension?: UtmDimension): Promise<IQueryUtmOptionsRes> {
-    return await this.utmService.getOptions(dimension)
+  async getOptions(
+    @Query('dimension') dimension?: UtmDimension,
+    @Query('keyword') keyword?: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ): Promise<IQueryUtmOptionsRes> {
+    const params: IQueryUtmOptionsReq = {
+      dimension,
+      keyword,
+      page: page || 1,
+      // 限制每页最多100条数据
+      pageSize: Math.min(pageSize || 50, 100),
+    }
+    return await this.utmService.getOptions(params)
+  }
+
+  /**
+   * 批量精确解析 UTM 取值
+   * 前端对「URL 回显的选中值」和「查询结果行中出现的值」批量解析别名用
+   */
+  @Post('options/resolve')
+  async resolveOptions(@Body() body: IResolveUtmOptionsReq): Promise<IResolveUtmOptionsRes> {
+    return await this.utmService.resolveOptions(body)
   }
 
   /**

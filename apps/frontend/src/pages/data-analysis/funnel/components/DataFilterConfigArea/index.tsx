@@ -6,6 +6,7 @@ import { Refresh, Search, Save } from "@icon-park/react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
+import { useEnterSubmit } from "@pages/data-analysis/components/EnterSubmit"
 import GlobalFilter from "@pages/data-analysis/components/GlobalFilter"
 import DimensionSelector from "@pages/data-analysis/components/DimensionSelector"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
@@ -56,6 +57,9 @@ function DataFilterConfigArea() {
     dispatch.dataAnalysisFunnelModel.submitQuery()
   }, [dispatch.dataAnalysisFunnelModel])
 
+  // 回车提交查询
+  const enterSubmitProps = useEnterSubmit(submit)
+
   // 保存模板（更新看板）
   const handleSaveTemplate = useCallback(async () => {
     // 先检查填写项
@@ -68,7 +72,7 @@ function DataFilterConfigArea() {
   }, [dispatch.dataAnalysisFunnelModel])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} {...enterSubmitProps}>
 
       {/* 漏斗类型 */}
       <DataFilterConfigAreaItem

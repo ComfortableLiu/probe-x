@@ -10,6 +10,7 @@ import TimeRangeSelector from "../../../components/TimeRangeSelector"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
+import { useEnterSubmit } from "@pages/data-analysis/components/EnterSubmit"
 import SaveAsDashboardPopup from "@pages/data-analysis/components/SaveAsDashboardPopup"
 import { AnalysisType } from "@pages/data-analysis/dashboard-config/type"
 import { getDashboard } from "@pages/data-analysis/dashboard-config/services"
@@ -54,6 +55,9 @@ function DataFilterConfigArea() {
     dispatch.dataAnalysisEventModel.submitQuery()
   }, [dispatch.dataAnalysisEventModel])
 
+  // 回车提交查询
+  const enterSubmitProps = useEnterSubmit(submit)
+
   // 保存模板（更新看板）
   const handleSaveTemplate = useCallback(async () => {
     // 先检查填写项
@@ -66,7 +70,7 @@ function DataFilterConfigArea() {
   }, [dispatch.dataAnalysisEventModel])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} {...enterSubmitProps}>
 
       {/* 事件部分 */}
       <DataFilterConfigAreaItem

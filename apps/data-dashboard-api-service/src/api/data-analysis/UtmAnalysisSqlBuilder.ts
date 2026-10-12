@@ -50,6 +50,11 @@ const MAX_GROUP_ROWS = 1000
 const MAX_UTM_FILTER_VALUES = 500
 
 /**
+ * 单个维度上正则筛选表达式的长度上限
+ */
+const MAX_UTM_FILTER_PATTERN_LENGTH = 200
+
+/**
  * UTM 维度 → ClickHouse 列名
  */
 const UTM_DIMENSION_COLUMN: Record<UtmDimension, string> = {
@@ -447,12 +452,36 @@ function buildWhereClause(
     )
   })
 
-  // 4. UTM 取值筛选
+  // 4. UTM 取值筛选（EXACT 走 IN，REGEX 走 match() 正则）
   const utmFilters = (params.utmFilters || []).filter(
-    (filter): filter is IUtmValueFilter =>
-      !!filter && UTM_DIMENSIONS.includes(filter.dimension) && Array.isArray(filter.values) && filter.values.length > 0,
+    (filter): filter is IUtmValueFilter => {
+      if (!filter || !UTM_DIMENSIONS.includes(filter.dimension)) return false
+      if (filter.matchType === 'REGEX') {
+        return typeof filter.pattern === 'string' && filter.pattern.trim() !== ''
+      }
+      return Array.isArray(filter.values) && filter.values.length > 0
+    },
   )
   utmFilters.forEach(filter => {
+    const column = wrapFieldWithBacktick(UTM_DIMENSION_COLUMN[filter.dimension])
+    // 正则匹配：ClickHouse match() 是 RE2 语法、对取值做部分匹配（不锚定），
+    // RE2 不支持前瞻/后顾/后向引用；这里先用 JS RegExp 做一次预校验，尽早给出友好错误
+    if (filter.matchType === 'REGEX') {
+      const pattern = (filter.pattern || '').trim()
+      if (pattern.length > MAX_UTM_FILTER_PATTERN_LENGTH) {
+        throw new Error(`正则表达式不能超过${MAX_UTM_FILTER_PATTERN_LENGTH}个字符`)
+      }
+      try {
+        // eslint-disable-next-line no-new
+        new RegExp(pattern)
+      } catch {
+        throw new Error(`正则表达式不合法：${pattern}`)
+      }
+      const paramKey = generateParamKey(`utm_filter_regex_${sanitizeParamName(filter.dimension)}`, indexRef)
+      sqlParams[paramKey] = pattern
+      clauses.push(`match(${column}, {${paramKey}:String})`)
+      return
+    }
     const values = filter.values.filter(item => typeof item === 'string' && item !== '')
     if (!values.length) return
     if (values.length > MAX_UTM_FILTER_VALUES) {
@@ -460,7 +489,7 @@ function buildWhereClause(
     }
     clauses.push(
       buildInClause(
-        wrapFieldWithBacktick(UTM_DIMENSION_COLUMN[filter.dimension]),
+        column,
         values,
         `utm_filter_${sanitizeParamName(filter.dimension)}`,
         sqlParams,

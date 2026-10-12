@@ -2,6 +2,9 @@ import { UtmDimension } from "../../entity"
 import { Metrics } from "./event"
 import { IAttributionAnalysisFilter } from "./common"
 
+// UTM 取值筛选的匹配方式：EXACT 精确匹配（默认）；REGEX 正则匹配
+export type UtmValueMatchType = 'EXACT' | 'REGEX'
+
 /**
  * UTM 取值筛选
  * 取值来自 UTM 管理维护的条目，前端下拉里带别名展示
@@ -9,8 +12,12 @@ import { IAttributionAnalysisFilter } from "./common"
 export interface IUtmValueFilter {
   // UTM 维度
   dimension: UtmDimension
-  // 限定的取值列表，命中任一即算
+  // 限定的取值列表，命中任一即算（matchType 缺省或为 EXACT 时使用）
   values: string[]
+  // 匹配方式，缺省按 EXACT
+  matchType?: UtmValueMatchType
+  // 正则表达式（matchType 为 REGEX 时必填），ClickHouse match() RE2 语法、部分匹配
+  pattern?: string
 }
 
 /**

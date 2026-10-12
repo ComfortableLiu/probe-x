@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import DataFilterConfigArea from "./components/DataFilterConfigArea"
 import UtmTrendChart from "./components/UtmTrendChart"
 import UtmDataTable from "./components/UtmDataTable"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import * as styles from "./styles.module.scss"
-import { message, Spin } from "antd"
-import { useLoading, useModel, useQuery, useRouter } from "@/hooks"
+import { message } from "antd"
+import { useModel, useQuery, useRouter } from "@/hooks"
 import { IDataAnalysisUtmState, IQuery } from "./type"
 import dayjs from "dayjs"
 import DownloadPopup from "../components/DownloadPopup"
@@ -70,14 +70,6 @@ function UtmAnalysis() {
     }
   }, [timeRange])
 
-  useEffect(() => {
-    dispatch.dataAnalysisUtmModel.init()
-  }, [dispatch.dataAnalysisUtmModel])
-
-  const loading = useLoading()
-
-  const pageLoading = useMemo(() => loading.dataAnalysisUtmModel.init, [loading.dataAnalysisUtmModel.init])
-
   const queryDownloadTask = useCallback(async (taskId: string) => {
     try {
       const res = await dispatch.dataAnalysisUtmModel.queryDownloadTask({ taskId })
@@ -133,35 +125,33 @@ function UtmAnalysis() {
   }, [dispatch.dataAnalysisUtmModel])
 
   return (
-    <Spin spinning={pageLoading}>
-      <div className={styles.container}>
-        <DataAnalysisHeader
-          title="UTM 分析"
-          updateTime={updateTime}
-          download={download}
-          onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
-          guidePath="/guide/data-analysis/utm"
-        />
-        <DataFilterConfigArea />
-        <div className={styles.hr} />
-        <UtmTrendChart />
-        <div className={styles.hr} />
-        <UtmDataTable />
-        <DownloadPopup
-          downloadUrl={downloadUrl}
-          onClose={() => setShowDownloadPopup(false)}
-          show={showDownloadPopup}
-        />
-        <SaveAsDashboardPopup
-          analysisType={AnalysisType.UTM}
-          open={showSaveAsDashboardPopup}
-          onClose={() => setShowSaveAsDashboardPopup(false)}
-          onSuccess={() => {
-            message.success('看板已创建，可在首页查看')
-          }}
-        />
-      </div>
-    </Spin>
+    <div className={styles.container}>
+      <DataAnalysisHeader
+        title="UTM 分析"
+        updateTime={updateTime}
+        download={download}
+        onSaveAsDashboard={!dashboardId ? handleSaveAsDashboard : undefined}
+        guidePath="/guide/data-analysis/utm"
+      />
+      <DataFilterConfigArea />
+      <div className={styles.hr} />
+      <UtmTrendChart />
+      <div className={styles.hr} />
+      <UtmDataTable />
+      <DownloadPopup
+        downloadUrl={downloadUrl}
+        onClose={() => setShowDownloadPopup(false)}
+        show={showDownloadPopup}
+      />
+      <SaveAsDashboardPopup
+        analysisType={AnalysisType.UTM}
+        open={showSaveAsDashboardPopup}
+        onClose={() => setShowSaveAsDashboardPopup(false)}
+        onSuccess={() => {
+          message.success('看板已创建，可在首页查看')
+        }}
+      />
+    </div>
   )
 }
 

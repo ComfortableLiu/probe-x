@@ -6,6 +6,7 @@ import { Refresh, Search, Save } from "@icon-park/react"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import DataFilterConfigAreaItem from "@pages/data-analysis/components/DataFilterConfigAreaItem"
+import { useEnterSubmit } from "@pages/data-analysis/components/EnterSubmit"
 import TimeRangeSelector from "@pages/data-analysis/components/TimeRangeSelector"
 import EventSelector from "./components/EventSelector"
 import CenterEvent from "./components/CenterEvent"
@@ -54,6 +55,9 @@ function DataFilterConfigArea() {
     dispatch.dataAnalysisUserPathModel.submitQuery()
   }, [dispatch.dataAnalysisUserPathModel])
 
+  // 回车提交查询
+  const enterSubmitProps = useEnterSubmit(submit)
+
   // 保存模板（更新看板）
   const handleSaveTemplate = useCallback(async () => {
     // 先检查填写项
@@ -66,7 +70,7 @@ function DataFilterConfigArea() {
   }, [dispatch.dataAnalysisUserPathModel])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} {...enterSubmitProps}>
       {/* 事件选择 */}
       <DataFilterConfigAreaItem
         title="事件选择"

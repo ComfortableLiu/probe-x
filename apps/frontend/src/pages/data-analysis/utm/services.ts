@@ -4,7 +4,10 @@ import {
   IUtmAnalysisRes,
   IQueryDownloadTaskReq,
   IQueryDownloadTaskRes,
+  IQueryUtmOptionsReq,
   IQueryUtmOptionsRes,
+  IResolveUtmOptionsReq,
+  IResolveUtmOptionsRes,
   ISubmitDownloadTaskRes,
 } from "@probe-x/shared-types/src"
 
@@ -35,10 +38,20 @@ export function queryDownloadTask(data: IQueryDownloadTaskReq) {
   })
 }
 
-// 查询 UTM 取值选项（取值筛选器下拉与别名展示用）
-export function queryUtmOptions() {
+// 分页查询 UTM 取值选项（取值筛选器下拉用：联网分页 + keyword 模糊匹配 value/alias）
+export function queryUtmOptions(params: IQueryUtmOptionsReq) {
   return request<IQueryUtmOptionsRes>({
     url: "/utm/options",
     method: "get",
+    params,
+  })
+}
+
+// 批量精确解析 UTM 取值（URL 回显的选中值、查询结果行里的值，按需补别名用）
+export function resolveUtmOptions(data: IResolveUtmOptionsReq) {
+  return request<IResolveUtmOptionsRes>({
+    url: "/utm/options/resolve",
+    method: "post",
+    data,
   })
 }

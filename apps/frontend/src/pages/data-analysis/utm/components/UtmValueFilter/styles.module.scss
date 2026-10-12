@@ -19,4 +19,9 @@
     align-items: center;
     gap: 8px;
   }
+
+  .helpIcon {
+    color: var(--text-color-secondary, #8c8c8c);
+    cursor: help;
+  }
 }
