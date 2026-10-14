@@ -7,6 +7,34 @@ import dayjs from "dayjs"
 import { v4 as uuidv4 } from 'uuid'
 import { createHash } from 'crypto'
 
+// 单条消息的 Kafka 位点，用于按分区跟踪消费进度
+interface EventMeta {
+  topic: string
+  partition: number
+  offset: number
+}
+
+// 内存缓冲区元素：补全后的事件 + 位点
+interface BufferedEvent {
+  event: IPreEventLog
+  meta: EventMeta
+}
+
+// offset 提交能力，由 controller 从 KafkaContext 注入（context.getConsumer().commitOffsets）
+type OffsetCommitter = (offsets: { topic: string; partition: number; offset: string }[]) => Promise<void>
+
+// 单个分区的消费进度
+interface PartitionProgress {
+  topic: string
+  partition: number
+  // 已完成但尚未连成连续前缀的 offset（连成前缀后逐个移除）
+  completed: Set<number>
+  // 下一个待完成的 offset，之前的 offset 均已完成
+  nextOffset: number
+  // 上次已提交到 Kafka 的位点，避免重复提交
+  committed: number | null
+}
+
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnApplicationShutdown {
   // 批量聚合阈值：达到条数立即 flush
@@ -15,10 +43,14 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
   private static readonly FLUSH_INTERVAL_MS = 5000
 
   // 待写入 event_log 的内存缓冲区
-  private eventBuffer: IPreEventLog[] = []
+  private eventBuffer: BufferedEvent[] = []
   private flushTimer: NodeJS.Timeout | null = null
   // 正在进行的 flush，避免并发 flush 和退出时丢数据
   private pendingFlush: Promise<void> | null = null
+  // 按 ${topic}:${partition} 记录各 offset 完成状态与已提交位点
+  private partitionProgress = new Map<string, PartitionProgress>()
+  // 最近一次消费传入的提交能力（同一 consumer，可提交任意分区的位点）
+  private offsetCommitter: OffsetCommitter | null = null
 
   constructor(
     private readonly clickhouseService: ClickHouseService,
@@ -58,7 +90,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
   }
 
   /**
-   * 把缓冲区数据批量写入 event_log，失败时数据放回缓冲区等待下次重试
+   * 把缓冲区数据批量写入 event_log，失败时数据放回缓冲区等待下次重试；
+   * 写入成功后推进各分区连续完成前缀并提交 offset
    */
   private flushEventLog(): Promise<void> {
     if (this.pendingFlush) {
@@ -69,8 +102,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
     }
     const batch = this.eventBuffer
     this.eventBuffer = []
-    this.pendingFlush = this.clickhouseService.insert('event_log', batch)
-      .then(() => undefined)
+    this.pendingFlush = this.flushBatch(batch)
       .catch((e) => {
         // 写回缓冲区头部，保证数据不丢、顺序不乱
         this.eventBuffer = batch.concat(this.eventBuffer)
@@ -80,6 +112,98 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         this.pendingFlush = null
       })
     return this.pendingFlush
+  }
+
+  /**
+   * 单批次落库：先逐条 SET NX 去重（已存在则丢弃该条，其 offset 仍计完成），
+   * 插入成功后推进各分区连续完成前缀并提交；失败时 DEL 本次新占用的去重键，不提交 offset
+   */
+  private async flushBatch(batch: BufferedEvent[]): Promise<void> {
+    // 端到端幂等：SDK 重试 / Kafka 重投产生的重复事件只插入一次，
+    // 去重判定在落库前完成；SET NX EX 86400 已存在则丢弃
+    // $event_id 缺失（旧 SDK/兜底未覆盖）时用 deviceId+eventName+logTime 哈希兜底
+    const acquiredKeys: string[] = []
+    const newEvents: IPreEventLog[] = []
+    try {
+      for (const { event } of batch) {
+        const dedupId = event.$event_id || createHash('md5')
+          .update(`${event.$device_id}|${event.$event_name}|${event.$log_time}`)
+          .digest('hex')
+        const dedupKey = `dedup:event:${dedupId}`
+        const isNewEvent = await this.redisService.setNx(dedupKey, '1', 86400)
+        if (isNewEvent) {
+          acquiredKeys.push(dedupKey)
+          newEvents.push(event)
+        } else {
+          console.debug(`重复事件跳过: ${dedupId} (${event.$event_name})`)
+        }
+      }
+      if (newEvents.length > 0) {
+        await this.clickhouseService.insert('event_log', newEvents)
+      }
+    } catch (e) {
+      // 失败时释放本次新占用的去重键，避免重投被误判重复；批次由调用方回缓冲头部
+      await this.releaseDedupKeys(acquiredKeys)
+      throw e
+    }
+
+    // 落库成功：批内所有 offset（含被去重丢弃的）都计为完成，并提交有推进的分区位点
+    for (const { meta } of batch) {
+      this.markOffsetCompleted(meta)
+    }
+    for (const progress of this.partitionProgress.values()) {
+      await this.commitProgress(progress)
+    }
+  }
+
+  // 释放去重键，单个失败仅打日志（残留键有过期时间，最坏情况是重投被去重丢弃）
+  private async releaseDedupKeys(keys: string[]) {
+    for (const key of keys) {
+      await this.redisService.del(key).catch((e) => {
+        console.error(`释放去重键失败 (${key}):`, e)
+      })
+    }
+  }
+
+  // 记录某条消息完成并推进所在分区的连续已完成前缀，返回有推进的分区进度（无推进返回 null）
+  private markOffsetCompleted(meta: EventMeta): PartitionProgress | null {
+    const key = `${meta.topic}:${meta.partition}`
+    let progress = this.partitionProgress.get(key)
+    if (!progress) {
+      progress = {
+        topic: meta.topic,
+        partition: meta.partition,
+        completed: new Set(),
+        nextOffset: meta.offset,
+        committed: null,
+      }
+      this.partitionProgress.set(key, progress)
+    }
+    // 早于连续前缀的重投不影响推进
+    if (meta.offset >= progress.nextOffset) {
+      progress.completed.add(meta.offset)
+    }
+    const before = progress.nextOffset
+    while (progress.completed.delete(progress.nextOffset)) {
+      progress.nextOffset++
+    }
+    return progress.nextOffset > before ? progress : null
+  }
+
+  // 提交分区推进后的位点（Kafka 提交语义为「下一条待消费 offset」）；
+  // 提交失败仅打日志（committed 不推进），后续 flush 会重试
+  private async commitProgress(progress: PartitionProgress) {
+    if (!this.offsetCommitter || progress.committed === progress.nextOffset) return
+    try {
+      await this.offsetCommitter([{
+        topic: progress.topic,
+        partition: progress.partition,
+        offset: String(progress.nextOffset),
+      }])
+      progress.committed = progress.nextOffset
+    } catch (e) {
+      console.error(`提交 offset 失败 (${progress.topic}:${progress.partition}@${progress.nextOffset}):`, e)
+    }
   }
 
   /**
@@ -265,22 +389,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
   /**
    * 补充各种信息
    * TODO 可以优化，多线程，但是需要保证同 deviceId 的顺序
-   * @param event
+   * @param event 原始事件
+   * @param meta 消息的 Kafka 位点（topic/partition/offset）
+   * @param commitOffsets offset 提交能力（绑定 KafkaContext 的 consumer）
    */
-  async handleEvent(event: IEventLog) {
+  async handleEvent(event: IEventLog, meta: EventMeta, commitOffsets: OffsetCommitter) {
+    this.offsetCommitter = commitOffsets
     try {
-      // 端到端幂等：SDK 重试 / Kafka 重投产生的重复事件只处理一次，
-      // 去重判定在进入缓冲区前完成；SET NX EX 86400 已存在则跳过
-      // $event_id 缺失（旧 SDK/兜底未覆盖）时用 deviceId+eventName+logTime 哈希兜底
-      const dedupId = event.$event_id || createHash('md5')
-        .update(`${event.$device_id}|${event.$event_name}|${event.$log_time}`)
-        .digest('hex')
-      const isNewEvent = await this.redisService.setNx(`dedup:event:${dedupId}`, '1', 86400)
-      if (!isNewEvent) {
-        console.debug(`重复事件跳过: ${dedupId} (${event.$event_name})`)
-        return
-      }
-
       const res = await Promise.all([
         this.splitSessionAndUtm(event),
         this.completeSpmAndScm(event),
@@ -303,18 +418,19 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         $utm_campaign: utmInfo.utmCampaign ?? event.$utm_campaign,
         $session_id: sessionId,
       }
-      // 进入内存缓冲区，按条数（500）或时间窗口（5s）批量落库，先到先发
-      this.eventBuffer.push(data)
+      // 进入内存缓冲区，按条数（500）或时间窗口（5s）批量落库，先到先发；
+      // offset 只在落库成功后才提交，崩溃时缓冲区数据随 Kafka 重投恢复，由落库前去重保证幂等
+      this.eventBuffer.push({ event: data, meta })
       if (this.eventBuffer.length >= KafkaConsumerService.FLUSH_BATCH_SIZE) {
         await this.flushEventLog()
       }
       // TODO 通知在线清洗服务，一期不实现
     } catch (e) {
-      // 可重试错误（连接/超时类）rethrow，让 Kafka 重投
+      // 可重试错误（连接/超时类）rethrow，不推进 offset，让 Kafka 重投
       if (this.isRetryableError(e)) {
         throw e
       }
-      // 脏数据：记录 error_log 后正常返回，offset 正常提交，不阻塞后续消息
+      // 脏数据：记录 error_log 后把该 offset 标记为已完成并提交，不阻塞后续消息
       try {
         await this.clickhouseService.insert('error_log', [{
           data: JSON.stringify({
@@ -330,6 +446,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
       } catch (logError) {
         // error_log 写不进去时不能影响消费流程，打日志即可
         console.error('写入 error_log 失败:', logError)
+      }
+      const progress = this.markOffsetCompleted(meta)
+      if (progress) {
+        await this.commitProgress(progress)
       }
     }
   }

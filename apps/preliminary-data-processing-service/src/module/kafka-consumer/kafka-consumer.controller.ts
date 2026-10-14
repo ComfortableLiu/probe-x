@@ -14,14 +14,18 @@ export class KafkaConsumerController {
     @Payload() event: IEventLog,
     @Ctx() context: KafkaContext,
   ) {
-    await this.kafkaConsumerService.handleEvent(event)
-    // 处理成功后手动提交 offset（main.ts 中 autoCommit 默认关闭）；
-    // handleEvent 抛出可重试错误时不会走到这里，消息等待重投
     const message = context.getMessage()
-    await context.getConsumer().commitOffsets([{
-      topic: context.getTopic(),
-      partition: context.getPartition(),
-      offset: (Number(message.offset) + 1).toString(),
-    }])
+    // offset 提交统一交给 service：只在数据落库成功（或确认为脏数据）后按分区连续完成前缀提交，
+    // 仅入内存缓冲就提交会在进程崩溃/OOM 时永久丢失缓冲区数据（main.ts 中 autoCommit 默认关闭）；
+    // handleEvent 抛出可重试错误时不推进位点，消息等待重投
+    await this.kafkaConsumerService.handleEvent(
+      event,
+      {
+        topic: context.getTopic(),
+        partition: context.getPartition(),
+        offset: Number(message.offset),
+      },
+      (offsets) => context.getConsumer().commitOffsets(offsets),
+    )
   }
 }
