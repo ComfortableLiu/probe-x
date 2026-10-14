@@ -122,9 +122,12 @@ export class PropertyService {
     if (!columnType) {
       throw new Error('无效的属性类型')
     }
-    // 先创建ClickHouse的列
+    // 先创建ClickHouse的列（event_log 与 final_event_log 业务列保持一致，否则清洗服务写入 final_event_log 会报未知列）
     await this.clickhouseService.executeDDL(
-      `ALTER TABLE \`event_log\` ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${columnType} COMMENT '${escapedComment}'`
+      `ALTER TABLE \`event_log\` ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${columnType} COMMENT '${escapedComment}'`,
+    )
+    await this.clickhouseService.executeDDL(
+      `ALTER TABLE \`final_event_log\` ADD COLUMN IF NOT EXISTS \`${data.propertyName}\` ${columnType} COMMENT '${escapedComment}'`,
     )
     // 保存到自定义数据库中
     const property = await this.propertyRepository.save({
