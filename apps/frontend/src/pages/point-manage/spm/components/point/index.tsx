@@ -36,7 +36,7 @@ function Point(props: IPointProps) {
   const page = useMemo(() => children?.page || 1, [children?.page])
   const total = useMemo(() => children?.total || 0, [children?.total])
 
-  const isFinish = useMemo(() => total <= (page * pageSize) || list?.length, [page, pageSize, total, list?.length])
+  const isFinish = useMemo(() => total <= (page * pageSize), [page, pageSize, total])
 
   useEffect(() => {
     if (!selectedModule) return

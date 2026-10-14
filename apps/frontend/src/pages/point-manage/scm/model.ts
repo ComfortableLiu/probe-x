@@ -51,7 +51,9 @@ const pointManageScmModel = createModel<RootModel>()({
             total: payload.total,
             page: payload.page,
             pageSize: payload.pageSize,
-            trackingScmList: payload.child || [],
+            trackingScmList: payload.page > 1
+              ? [...(item.child?.trackingScmList || []), ...(payload.child || [])]
+              : payload.child || [],
           }
           break
         } else {
@@ -69,7 +71,7 @@ const pointManageScmModel = createModel<RootModel>()({
       await dispatch.pointManageScmModel.getScmNodeList(null)
     },
     // 获取SCM列表
-    async getScmNodeList(payload: { parentCode?: string | null, page?: number, pageSize?: number } | null) {
+    async getScmNodeList(payload: { parentCode?: string | null, page?: number, pageSize?: number } | null, state) {
       const { parentCode, page = 1, pageSize = 20 } = payload || {}
 
       // 是否是第一级（A）
@@ -95,7 +97,9 @@ const pointManageScmModel = createModel<RootModel>()({
           total: data.total,
           page: data.page,
           pageSize: data.pageSize,
-          trackingScmList: data.data,
+          trackingScmList: page > 1
+            ? [...state.pointManageScmModel.trackingScmList, ...(data.data || [])]
+            : data.data,
         })
       } else {
         dispatch.pointManageScmModel.updateScmNodeChildren({

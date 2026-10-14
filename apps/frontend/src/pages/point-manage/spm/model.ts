@@ -52,7 +52,9 @@ const pointManageSpmModel = createModel<RootModel>()({
             total: payload.total,
             page: payload.page,
             pageSize: payload.pageSize,
-            trackingSpmList: payload.child || [],
+            trackingSpmList: payload.page > 1
+              ? [...(item.child?.trackingSpmList || []), ...(payload.child || [])]
+              : payload.child || [],
           }
           break
         } else {
@@ -77,7 +79,7 @@ const pointManageSpmModel = createModel<RootModel>()({
       dispatch.pointManageSpmModel.updateItem({ businessList: res.data })
     },
     // 获取SPM列表
-    async getSpmNodeList(payload: { parentCode?: string, page?: number, pageSize?: number } | null) {
+    async getSpmNodeList(payload: { parentCode?: string, page?: number, pageSize?: number } | null, state) {
       const { parentCode, page = 1, pageSize = 20 } = payload || {}
 
       // 是否是页面
@@ -107,7 +109,9 @@ const pointManageSpmModel = createModel<RootModel>()({
           total: data.total,
           page: data.page,
           pageSize: data.pageSize,
-          trackingSpmList: data.data,
+          trackingSpmList: page > 1
+            ? [...state.pointManageSpmModel.trackingSpmList, ...(data.data || [])]
+            : data.data,
         })
       } else {
         dispatch.pointManageSpmModel.updateSpmNodeChildren({

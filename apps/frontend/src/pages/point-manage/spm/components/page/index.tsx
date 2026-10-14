@@ -30,7 +30,7 @@ function Page(props: IPageProps) {
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
 
-  const isFinish = useMemo(() => total <= (page * pageSize) || trackingSpmList?.length, [page, pageSize, total, trackingSpmList?.length])
+  const isFinish = useMemo(() => total <= (page * pageSize), [page, pageSize, total])
 
   const listHeight = useMemo(() => {
     // 因为页面这里没有详情内容，所以要将其高度加上去

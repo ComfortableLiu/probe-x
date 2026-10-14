@@ -30,7 +30,7 @@ function A(props: IAProps) {
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
 
-  const isFinish = useMemo(() => total <= (page * pageSize) || trackingScmList?.length, [page, pageSize, total, trackingScmList?.length])
+  const isFinish = useMemo(() => total <= (page * pageSize), [page, pageSize, total])
 
   const listHeight = useMemo(() => {
     // 因为A栏这里没有详情内容，所以要将其高度加上去
