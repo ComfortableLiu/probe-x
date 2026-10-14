@@ -33,6 +33,7 @@ import { SqlAnalysisService } from "./sql-analysis.service"
 import { UtmAnalysisService } from "./utm-analysis.service"
 import { DataAnalysisRecordService } from "./record.service"
 import { Request } from 'express'
+import { RequirePermissions } from '../../guard/permission.guard'
 
 @Controller('/data-analysis')
 export class DataAnalysisController {
@@ -53,6 +54,7 @@ export class DataAnalysisController {
    * 事件分析 - 查询数据任务
    */
   @Post('/event/query')
+  @RequirePermissions('data:analysis:view')
   async queryEvent(
     @Body() data: IEventAnalysisReq,
     @User() user: IUser,
@@ -80,6 +82,7 @@ export class DataAnalysisController {
    * 事件分析 - 创建数据下载
    */
   @Post('/event/download')
+  @RequirePermissions('data:analysis:export')
   async createDownloadTask(
     @Body() data: ISubmitDownloadTaskReq,
     @User() user: IUser,
@@ -98,6 +101,7 @@ export class DataAnalysisController {
    * 事件分析 - 查询下载数据任务进度
    */
   @Post('/event/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
@@ -113,6 +117,7 @@ export class DataAnalysisController {
    * 漏斗分析 - 查询数据任务
    */
   @Post('/funnel/query')
+  @RequirePermissions('data:analysis:view')
   async queryFunnel(
     @Body() data: IFunnelAnalysisReq,
     @User() user: IUser,
@@ -140,6 +145,7 @@ export class DataAnalysisController {
    * 漏斗分析 - 创建数据下载
    */
   @Post('/funnel/download')
+  @RequirePermissions('data:analysis:export')
   async createFunnelDownloadTask(
     @Body() data: ISubmitDownloadTaskReq,
     @User() user: IUser,
@@ -158,6 +164,7 @@ export class DataAnalysisController {
    * 漏斗分析 - 查询下载数据任务进度
    */
   @Post('/funnel/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryFunnelDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
@@ -173,6 +180,7 @@ export class DataAnalysisController {
    * 用户路径分析 - 查询数据任务
    */
   @Post('/user-path/query')
+  @RequirePermissions('data:analysis:view')
   async queryUserPath(
     @Body() data: IUserPathAnalysisReq,
     @User() user: IUser,
@@ -200,6 +208,7 @@ export class DataAnalysisController {
    * 用户路径分析 - 创建数据下载
    */
   @Post('/user-path/download')
+  @RequirePermissions('data:analysis:export')
   async createUserPathDownloadTask(
     @Body() data: ISubmitDownloadTaskReq,
     @User() user: IUser,
@@ -218,6 +227,7 @@ export class DataAnalysisController {
    * 用户路径分析 - 查询下载数据任务进度
    */
   @Post('/user-path/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryUserPathDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
@@ -233,6 +243,7 @@ export class DataAnalysisController {
    * 归因分析 - 查询数据任务
    */
   @Post('/attribution/query')
+  @RequirePermissions('data:analysis:view')
   async queryAttribution(
     @Body() data: IAttributionAnalysisReq,
     @User() user: IUser,
@@ -260,6 +271,7 @@ export class DataAnalysisController {
    * 归因分析 - 创建数据下载
    */
   @Post('/attribution/download')
+  @RequirePermissions('data:analysis:export')
   async createAttributionDownloadTask(
     @Body() data: ISubmitDownloadTaskReq,
     @User() user: IUser,
@@ -278,6 +290,7 @@ export class DataAnalysisController {
    * 归因分析 - 查询下载数据任务进度
    */
   @Post('/attribution/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryAttributionDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
@@ -293,6 +306,7 @@ export class DataAnalysisController {
    * 留存分析 - 查询数据
    */
   @Post('/retention/query')
+  @RequirePermissions('data:analysis:view')
   async queryRetention(
     @Body() data: IRetentionAnalysisReq,
     @User() user: IUser,
@@ -319,6 +333,7 @@ export class DataAnalysisController {
    * 留存分析 - 创建数据下载
    */
   @Post('/retention/download')
+  @RequirePermissions('data:analysis:export')
   async createRetentionDownloadTask(
     @Body() data: IRetentionAnalysisReq,
     @User() user: IUser,
@@ -337,6 +352,7 @@ export class DataAnalysisController {
    * 留存分析 - 查询下载数据任务进度
    */
   @Post('/retention/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryRetentionDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
@@ -352,6 +368,7 @@ export class DataAnalysisController {
    * 用户分群 - 创建分群
    */
   @Post('/segment/create')
+  @RequirePermissions('data:analysis:view')
   async createSegment(
     @Body() data: ISegmentCreateReq,
     @User() user: IUser,
@@ -378,6 +395,7 @@ export class DataAnalysisController {
    * 用户分群 - 查询分群用户列表
    */
   @Post('/segment/query')
+  @RequirePermissions('data:analysis:view')
   async querySegment(
     @Body() data: ISegmentQueryReq,
     @User() user: IUser,
@@ -404,6 +422,7 @@ export class DataAnalysisController {
    * 用户分群 - 导出分群用户列表
    */
   @Post('/segment/export')
+  @RequirePermissions('data:analysis:export')
   async exportSegment(
     @Body() data: ISegmentExportReq,
     @User() user: IUser,
@@ -422,6 +441,7 @@ export class DataAnalysisController {
    * SQL 查询分析 - 执行查询
    */
   @Post('/sql/query')
+  @RequirePermissions('data:analysis:view')
   async querySql(
     @Body() data: ISqlQueryReq,
     @User() user: IUser,
@@ -448,6 +468,7 @@ export class DataAnalysisController {
    * UTM 分析 - 查询数据
    */
   @Post('/utm/query')
+  @RequirePermissions('data:analysis:view')
   async queryUtm(
     @Body() data: IUtmAnalysisReq,
     @User() user: IUser,
@@ -474,6 +495,7 @@ export class DataAnalysisController {
    * UTM 分析 - 创建数据下载
    */
   @Post('/utm/download')
+  @RequirePermissions('data:analysis:export')
   async createUtmDownloadTask(
     @Body() data: IUtmAnalysisReq,
     @User() user: IUser,
@@ -492,6 +514,7 @@ export class DataAnalysisController {
    * UTM 分析 - 查询下载数据任务进度
    */
   @Post('/utm/download/task')
+  @RequirePermissions('data:analysis:export')
   async queryUtmDownloadTask(
     @Body() data: IQueryDownloadTaskReq,
     @User() user: IUser,
