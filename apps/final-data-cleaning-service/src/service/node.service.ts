@@ -133,17 +133,49 @@ export class ComputeNodeService {
 
       this.logger.log(`[清洗] 任务 ${task.task_id} 归因完成：${result.finalEvents.length} 条清洗事件、${result.attributions.length} 条归因记录，开始落库`)
 
-      // 保证任务原子性，统一执行落库
-      await Promise.all([
-        this.clickhouseService.insert('final_event_log', result.finalEvents).then(() => {
-          this.recordMetric(() => recordRuntimeMetric(this.redisService.getClient(), 'processing', result.finalEvents.length))
-        }),
-        this.clickhouseService.insert('event_attribution', result.attributions),
+      // 事件级幂等：双表 Promise.all 落库不具备原子性，一成一败后调度器会以新 task_id（:rN）重试，
+      // 任务级幂等键拦截不到；MergeTree 表无唯一约束，故插入前按 (date, session_id) 查出两张表
+      // 已落库的事件 id，过滤掉已存在的记录再插入，保证重试不会产生重复数据
+      const existingQueryParams = { queryDate: task.date, sessionId: task.session_id }
+      const [existingEventRows, existingAttributionRows] = await Promise.all([
+        this.clickhouseService.query<{ $event_id: string }>(
+          `
+        SELECT \`$event_id\`
+        FROM final_event_log
+        WHERE toDate(\`$service_time\`) = {queryDate: DateTime64}
+          AND \`$session_id\` = {sessionId: String};
+          `,
+          existingQueryParams,
+        ),
+        this.clickhouseService.query<{ event_id: string }>(
+          `
+        SELECT DISTINCT event_id
+        FROM event_attribution
+        WHERE toDate(event_time) = {queryDate: DateTime64}
+          AND session_id = {sessionId: String};
+          `,
+          existingQueryParams,
+        ),
       ])
+      const existingEventIds = new Set(existingEventRows.map(row => row.$event_id))
+      const existingAttributionEventIds = new Set(existingAttributionRows.map(row => row.event_id))
+      const finalEvents = result.finalEvents.filter(event => !existingEventIds.has(event.$event_id))
+      const attributions = result.attributions.filter(attr => !existingAttributionEventIds.has(attr.event_id))
+
+      const writes: Promise<unknown>[] = []
+      if (finalEvents.length > 0) {
+        writes.push(this.clickhouseService.insert('final_event_log', finalEvents).then(() => {
+          this.recordMetric(() => recordRuntimeMetric(this.redisService.getClient(), 'processing', finalEvents.length))
+        }))
+      }
+      if (attributions.length > 0) {
+        writes.push(this.clickhouseService.insert('event_attribution', attributions))
+      }
+      await Promise.all(writes)
 
       this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), true))
 
-      this.logger.log(`[清洗] 任务 ${task.task_id} 完成，落库 ${result.finalEvents.length} 条清洗事件，耗时 ${Date.now() - startTime}ms`)
+      this.logger.log(`[清洗] 任务 ${task.task_id} 完成，落库 ${finalEvents.length} 条清洗事件，耗时 ${Date.now() - startTime}ms`)
 
       // TODO 手动回滚逻辑
 

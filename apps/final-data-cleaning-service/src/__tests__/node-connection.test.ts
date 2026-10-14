@@ -288,17 +288,22 @@ describe('计算节点接入 NodeConnectionService', () => {
       expect(done.progress).toBe(done.target)
       expect(done.target).toBe(5)
 
-      // 归因结果确实落了库
-      const tables = clickhouse.insertLog.map((item) => item.table)
-      expect(tables).toContain('final_event_log')
-      expect(tables).toContain('event_attribution')
+      // 清洗事件确实落了库；该场景归因事件无扩展参数、KV 行为 0，
+      // 事件级幂等下落库前按已存在事件过滤，空结果集会跳过对应 insert
+      const finalInsert = clickhouse.insertLog.find((item) => item.table === 'final_event_log')
+      expect(finalInsert).toBeDefined()
+      expect(finalInsert!.data).toHaveLength(5)
+      expect(clickhouse.insertLog.some((item) => item.table === 'event_attribution')).toBe(false)
 
       // 任务结束后节点回到空闲
       await waitFor(() => nodeService.currentTaskId === '')
     })
 
     it('任务失败时回传 failed:true 且带 error', async () => {
-      boot({ clickhouse: new FailingClickHouse() })
+      // 需要有数据可落库才会真正调用 insert（空结果集会跳过 insert），从而触发写入失败
+      const clickhouse = new FailingClickHouse()
+      clickhouse.seedEventLog(createHomepageToListScenario(TASK.session_id))
+      boot({ clickhouse })
       const call = connection.currentCall
       accept(call)
 
