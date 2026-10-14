@@ -132,7 +132,7 @@ export const trackPurchase = (order: any, additionalProperties: Record<string, a
   trackEvent('purchase', {
     order_id: order.id,
     order_number: order.orderNumber,
-    total_amount: order.finalAmount,
+    total_amount: order.totalAmount,
     item_count: order.items.length,
     payment_method: order.paymentMethod,
     ...additionalProperties,

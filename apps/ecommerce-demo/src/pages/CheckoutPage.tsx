@@ -32,7 +32,7 @@ const CheckoutPage: React.FC = () => {
   }, [location.state])
 
   const calculateTotalAmount = (items: any[]) => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0)
+    return items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
   }
 
   const handlePaymentMethodChange = (value: string) => {
