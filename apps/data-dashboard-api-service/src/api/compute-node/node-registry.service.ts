@@ -8,6 +8,7 @@ import {
   MasterFrame,
   NodeFrame,
   NodeInfo,
+  NodeLogEntry,
   NodeRegister,
   NodeStatus,
   ProgressUpdate,
@@ -18,6 +19,7 @@ import {
   recordCleaningSessionCompletion,
   recordNodeCleaningSpeed,
 } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
+import { appendNodeLogs, readNodeLogs } from '@probe-x/shared-utils/src/lib/backend-common/node-logs'
 import { ComputeNodeService } from './compute-node.service'
 
 /** 判定离线的心跳超时，默认 15s（3 倍于节点默认 5s 心跳间隔） */
@@ -95,6 +97,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
   private readonly settleListeners: Array<(taskId: string, failed: boolean) => void> = []
   private reconcileTimer: ReturnType<typeof setInterval> | null = null
   private lastMetricsWarning = 0
+  private lastLogWarning = 0
 
   constructor(
     private readonly computeNodeService: ComputeNodeService,
@@ -165,6 +168,11 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
           if (frame.progress) {
             const node = state.node || this.nodes.get(frame.progress.node_id)
             if (node) this.applyProgress(node, frame.progress)
+          }
+          if (frame.logs) {
+            // 优先认会话绑定的 nodeId，防止帧里伪报别的节点
+            const nodeId = state.node?.nodeId || frame.logs.node_id
+            this.applyLogs(nodeId, frame.logs.entries)
           }
         } catch (error: unknown) {
           console.error(`[计算节点] 处理上行帧失败：${toMessage(error)}`)
@@ -433,6 +441,38 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
         console.warn('[计算节点] 清洗速度采样未能写入 Redis，此期间采样可能不完整')
       }
     })
+  }
+
+  /**
+   * 节点日志上行落 Redis 有界列表
+   *
+   * 与速度采样同属遥测：写失败只按分钟节流记 warn，不能影响任务状态推进；
+   * 节点按 2s 周期上报，Redis 抖动期间不逐条刷错误日志。
+   */
+  private applyLogs(nodeId: string, entries: NodeLogEntry[]): void {
+    if (!this.redisService || !nodeId || !entries?.length) return
+    appendNodeLogs(this.redisService.getClient(), nodeId, entries).catch((error: unknown) => {
+      if (Date.now() - this.lastLogWarning > 60000) {
+        this.lastLogWarning = Date.now()
+        console.warn(`[计算节点 ${nodeId}] 日志写入 Redis 失败：${toMessage(error)}`)
+      }
+    })
+  }
+
+  /**
+   * 查询节点最近日志（按时间升序，尾部最新）
+   *
+   * Redis 缺失或读取失败时返回空数组：日志页按「暂无日志」展示，
+   * 与拓扑接口一样不允许遥测故障拖垮只读页面。
+   */
+  async getNodeLogs(nodeId: string, limit: number): Promise<NodeLogEntry[]> {
+    if (!this.redisService || !nodeId) return []
+    try {
+      return await readNodeLogs(this.redisService.getClient(), nodeId, limit)
+    } catch (error: unknown) {
+      console.warn(`[计算节点 ${nodeId}] 日志读取失败：${toMessage(error)}`)
+      return []
+    }
   }
 
   /** 实时速度：当前任务近期样本的首尾差分；样本不足或跨度太短返回 null */

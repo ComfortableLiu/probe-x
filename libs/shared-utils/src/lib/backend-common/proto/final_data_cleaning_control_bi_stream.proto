@@ -75,6 +75,24 @@ message MasterAck {
     string message = 2;
 }
 
+// 节点日志条目
+message NodeLogEntry {
+    // 毫秒时间戳（用 double 而非 int64：两端 proto-loader 固定 longs:String，
+    // int64 会反序列化成字符串；double 在 2^53 内精确，毫秒时间戳足够）
+    double ts = 1;
+    // 级别：log / info / warn / error / debug
+    string level = 2;
+    // 已格式化的日志文本
+    string message = 3;
+}
+
+// 节点日志批量上报：节点侧缓冲后随 flush 定时器上行
+message NodeLogBatch {
+    // 节点唯一标识
+    string node_id = 1;
+    repeated NodeLogEntry entries = 2;
+}
+
 // 节点 -> 总服务 上行帧
 message NodeFrame {
     oneof payload {
@@ -82,6 +100,8 @@ message NodeFrame {
         NodeRegister register = 1;
         // 任务进度
         ProgressUpdate progress = 2;
+        // 日志批量上报
+        NodeLogBatch logs = 3;
     }
 }
 

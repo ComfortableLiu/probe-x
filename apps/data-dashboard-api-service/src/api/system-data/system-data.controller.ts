@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Controller, Get, Param, Query } from '@nestjs/common'
 import { MetaService } from './meta.service'
 import { AnalysisService } from './analysis.service'
 import { OverviewService } from './overview.service'
@@ -12,6 +12,7 @@ import {
   ISystemDataMetaOverview,
   ISystemDataTrend,
   ISystemDataOverviewResponse,
+  IComputeNodeLogsRes,
   IComputeNodeTopology,
 } from '@probe-x/shared-types/src'
 
@@ -34,6 +35,21 @@ export class SystemDataController {
   @Get('computing-nodes')
   async getComputingNodes(): Promise<IComputeNodeTopology> {
     return await this.nodeRegistryService.getTopology()
+  }
+
+  /**
+   * 计算节点运行日志（只读）
+   *
+   * 日志由节点经 gRPC 双向流主动上行，总服务落 Redis 有界列表；
+   * 节点离线后仍可查询留存的历史日志。
+   */
+  @Get('computing-nodes/:nodeId/logs')
+  async getComputingNodeLogs(
+    @Param('nodeId') nodeId: string,
+    @Query('limit') limit?: number,
+  ): Promise<IComputeNodeLogsRes> {
+    const capped = Math.min(Math.max(Number(limit) || 200, 1), 1000)
+    return { nodeId, entries: await this.nodeRegistryService.getNodeLogs(nodeId, capped) }
   }
 
   @Get('overview')

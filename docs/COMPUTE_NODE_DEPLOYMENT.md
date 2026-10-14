@@ -12,7 +12,7 @@
 │  计算节点 x N     │ ──────────────────────────────────────▶ │  总服务                  │
 │  （gRPC 客户端）   │ ◀────────────────────────────────────── │  data-dashboard-api      │
 └──────────────────┘          下发 ComputeTask               └────────────────────────┘
-     │  上行：NodeRegister（注册/心跳/NodeInfo）· ProgressUpdate              │
+     │  上行：NodeRegister（注册/心跳/NodeInfo）· ProgressUpdate · NodeLogBatch（节点日志）              │
      │  断线 / 心跳超时 → 拓扑图立即显示「离线」                             ▼
      └─ GET /health（仅容器网络内）              GET /api/system-data/computing-nodes
                                                               系统数据 > 计算节点
@@ -85,6 +85,7 @@ yarn start:final-cleaning
 | `NODE_NAME` | 同 `NODE_ID` | 拓扑图上的展示名 |
 | `NODE_ADVERTISE_ADDRESS` | 空 | 节点上报地址，仅用于页面展示节点在哪 |
 | `HEARTBEAT_INTERVAL_MS` | `5000` | 心跳间隔（注册帧兼作心跳） |
+| `NODE_LOG_FLUSH_INTERVAL_MS` | `2000` | 节点日志上行冲刷间隔（捕获的 console 日志缓冲后经双向流上报总服务） |
 | `PORT` | `10000` | 进程内的 `/health` 监听端口，**不需要对外发布** |
 
 `NODE_ID` / `NODE_NAME` 在 `ComputeNodeService` 中读取，其余在 `config/configuration.ts`。
@@ -184,7 +185,10 @@ ALTER TABLE `compute_node`
    `status` 为 `ok` 表示已连上总服务，`degraded` 表示正在重连或连不上。
    （端口只在容器网络内，宿主机上要 `docker exec <容器> curl -s localhost:10000/health`。）
 3. **拓扑 API**（与页面同源）：`GET /api/system-data/computing-nodes`
-4. **自动注册落库**：`GET /api/compute-node/list` 能看到自动生成的记录（`description` 为「由计算节点自动注册」）。
+4. **节点日志页**：拓扑页选中节点后点「查看日志」，或 `GET /api/system-data/computing-nodes/:nodeId/logs?limit=200`。
+   节点捕获自身 console / NestJS Logger 输出，按 `NODE_LOG_FLUSH_INTERVAL_MS` 周期经双向流上行，
+   总服务落 Redis 有界列表（每节点最近 2000 条、保留 3 天）——节点离线后仍能查到留存的历史日志。
+5. **自动注册落库**：`GET /api/compute-node/list` 能看到自动生成的记录（`description` 为「由计算节点自动注册」）。
 
 ---
 
@@ -210,10 +214,13 @@ proto 单一来源在 [libs/shared-utils/.../proto/final_data_cleaning_control_b
 
 | 环节 | 位置 |
 |---|---|
-| 节点接入客户端（拨出、心跳、重连） | [node-connection.service.ts](../apps/final-data-cleaning-service/src/service/node-connection.service.ts) |
+| 节点接入客户端（拨出、心跳、重连、日志上行） | [node-connection.service.ts](../apps/final-data-cleaning-service/src/service/node-connection.service.ts) |
+| 节点日志捕获缓冲（包装 console，环形缓冲） | [node-log-buffer.ts](../apps/final-data-cleaning-service/src/lib/node-log-buffer.ts) |
 | 节点计算本体 | [node.service.ts](../apps/final-data-cleaning-service/src/service/node.service.ts) |
 | 节点 `/health` | [main.ts](../apps/final-data-cleaning-service/src/main.ts) |
-| 总服务在线注册表 | [node-registry.service.ts](../apps/data-dashboard-api-service/src/api/compute-node/node-registry.service.ts) |
+| 总服务在线注册表（含 logs 帧落 Redis、日志查询） | [node-registry.service.ts](../apps/data-dashboard-api-service/src/api/compute-node/node-registry.service.ts) |
 | 总服务 gRPC 双向流入口 | [node-control.controller.ts](../apps/data-dashboard-api-service/src/api/compute-node/node-control.controller.ts) |
-| 拓扑查询接口 | [system-data.controller.ts](../apps/data-dashboard-api-service/src/api/system-data/system-data.controller.ts) |
+| 拓扑 / 节点日志查询接口 | [system-data.controller.ts](../apps/data-dashboard-api-service/src/api/system-data/system-data.controller.ts) |
+| 节点日志 Redis 有界列表读写 | [node-logs.ts](../libs/shared-utils/src/lib/backend-common/node-logs.ts) |
 | 拓扑图页 | [apps/frontend/src/pages/system-data/computing-node](../apps/frontend/src/pages/system-data/computing-node) |
+| 节点日志页 | [apps/frontend/src/pages/system-data/computing-node/components/log](../apps/frontend/src/pages/system-data/computing-node/components/log) |

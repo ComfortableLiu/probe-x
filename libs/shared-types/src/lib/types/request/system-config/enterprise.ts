@@ -201,16 +201,41 @@ export interface MasterAck {
   message: string
 }
 
+/** 节点日志级别 */
+export type NodeLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug'
+
+/** 节点日志条目 */
+export interface NodeLogEntry {
+  /** 毫秒时间戳 */
+  ts: number
+  level: NodeLogLevel
+  /** 已格式化的日志文本 */
+  message: string
+}
+
+/** 节点日志批量上报帧：节点侧缓冲后随 flush 定时器上行 */
+export interface NodeLogBatch {
+  node_id: string
+  entries: NodeLogEntry[]
+}
+
 /** 节点 -> 总服务 上行帧 */
 export interface NodeFrame {
   register?: NodeRegister
   progress?: ProgressUpdate
+  logs?: NodeLogBatch
 }
 
 /** 总服务 -> 节点 下行帧 */
 export interface MasterFrame {
   ack?: MasterAck
   task?: ComputeTask
+}
+
+/** 计算节点日志查询响应 */
+export interface IComputeNodeLogsRes {
+  nodeId: string
+  entries: NodeLogEntry[]
 }
 
 /** 计算节点清洗速度（条/s），avg/max/min 为今日已完成任务口径 */

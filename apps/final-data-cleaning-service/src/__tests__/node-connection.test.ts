@@ -12,10 +12,12 @@
  * 4. 任务失败 → 回传 failed:true 且带 error
  * 5. 断线 → link 变 disconnected 并按退避重连，重连后重新注册
  * 6. 重复 task_id → Redis setNx 幂等，第二次不再执行
+ * 7. 节点日志缓冲按冲刷间隔经双向流上行（logs 帧），缓冲为空时不发
  */
 
 import { ComputeNodeService } from '../service/node.service'
 import { NodeConnectionService } from '../service/node-connection.service'
+import { installNodeLogCapture, resetNodeLogCapture } from '../lib/node-log-buffer'
 import { MockClickHouseService } from './mocks/clickhouse.service.mock'
 import { createHomepageToListScenario, resetEventCounter } from './fixtures/event-factory'
 import type { MasterFrame, NodeCall, NodeFrame, ProgressUpdate } from '../type'
@@ -190,6 +192,8 @@ describe('计算节点接入 NodeConnectionService', () => {
 
   afterEach(() => {
     connection?.onModuleDestroy()
+    // 兜底还原日志捕获，避免单条用例失败波及后续用例
+    resetNodeLogCapture()
     jest.useRealTimers()
     jest.restoreAllMocks()
   })
@@ -443,6 +447,38 @@ describe('计算节点接入 NodeConnectionService', () => {
 
       await jest.advanceTimersByTimeAsync(1500)
       expect(connection.calls).toHaveLength(2)
+    })
+  })
+
+  describe('日志上行', () => {
+    it('缓冲的节点日志按冲刷间隔经双向流上行', async () => {
+      boot({ config: { 'node.logFlushIntervalMs': 50 } })
+      const call = connection.currentCall
+      accept(call)
+
+      installNodeLogCapture()
+      try {
+        console.log('节点日志-测试条目')
+
+        await waitFor(() => call.sent.some((frame) => frame.logs))
+        const batch = call.sent.find((frame) => frame.logs)!.logs!
+        expect(batch.node_id).toBe(nodeService.nodeId)
+        expect(
+          batch.entries.some((entry) => entry.message.includes('节点日志-测试条目')),
+        ).toBe(true)
+      } finally {
+        resetNodeLogCapture()
+      }
+    })
+
+    it('缓冲为空时冲刷不发 logs 帧', async () => {
+      boot({ config: { 'node.logFlushIntervalMs': 50 } })
+      const call = connection.currentCall
+      accept(call)
+
+      // 缓冲全程为空（捕获未安装）：等足够多个冲刷周期，不应出现任何 logs 帧
+      await sleep(200)
+      expect(call.sent.every((frame) => !frame.logs)).toBe(true)
     })
   })
 })

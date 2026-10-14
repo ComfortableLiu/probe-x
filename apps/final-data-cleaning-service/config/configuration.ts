@@ -40,6 +40,7 @@ export default () => ({
   node: {
     advertiseAddress: process.env.NODE_ADVERTISE_ADDRESS || '',
     heartbeatIntervalMs: parseInt(process.env.HEARTBEAT_INTERVAL_MS || '', 10) || 5000,
+    logFlushIntervalMs: parseInt(process.env.NODE_LOG_FLUSH_INTERVAL_MS || '', 10) || 2000,
   },
   database: {
     host: process.env.DB_HOST || 'localhost',

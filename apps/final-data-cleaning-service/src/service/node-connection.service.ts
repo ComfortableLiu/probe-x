@@ -5,6 +5,7 @@ import * as grpc from '@grpc/grpc-js'
 import * as protoLoader from '@grpc/proto-loader'
 import { resolveProtoPath } from '@probe-x/shared-utils/src/lib/backend-common'
 import { ComputeNodeService } from './node.service'
+import { drainNodeLogs, pendingNodeLogCount } from '../lib/node-log-buffer'
 import type {
   ComputeTask,
   LinkStatus,
@@ -18,6 +19,7 @@ type DuplexStream = grpc.ClientDuplexStream<NodeFrame, MasterFrame>
 
 const PROTO_PACKAGE = 'final_data_cleaning_control_bi_stream'
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000
+const DEFAULT_LOG_FLUSH_INTERVAL_MS = 2000
 const RECONNECT_DELAY_MIN_MS = 1000
 const RECONNECT_DELAY_MAX_MS = 30000
 
@@ -98,6 +100,7 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
   private masterAddr = ''
   private call: NodeCall | null = null
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  private logFlushTimer: ReturnType<typeof setInterval> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectDelay = 0
   private stopped = false
@@ -113,6 +116,7 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
       `[节点 ${this.nodeService.nodeId}] 开始接入总服务 ${this.masterAddr}（节点名：${this.nodeService.nodeName}）`,
     )
     this.connect()
+    this.startLogFlush()
   }
 
   onModuleDestroy(): void {
@@ -244,6 +248,23 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
     this.heartbeatTimer = setInterval(() => this.sendRegister(), interval)
   }
 
+  /**
+   * 周期把捕获的节点日志上行给总服务
+   *
+   * 与心跳定时器分离：断连期间冲刷自然跳过（无 call），日志留在缓冲里，
+   * 重连后随下一次冲刷补发；缓冲有界（node-log-buffer），断连再久也不会撑爆内存。
+   */
+  private startLogFlush(): void {
+    if (this.logFlushTimer) return
+    const interval =
+      Number(this.configService.get('node.logFlushIntervalMs')) || DEFAULT_LOG_FLUSH_INTERVAL_MS
+    this.logFlushTimer = setInterval(() => {
+      // 与注册/进度帧一致直接 send：流异常由 settle 兜底重连，日志是遥测不许打断主流程
+      if (!this.call || pendingNodeLogCount() === 0) return
+      this.call.send({ logs: { node_id: this.nodeService.nodeId, entries: drainNodeLogs() } })
+    }, interval)
+  }
+
   private scheduleReconnect(): void {
     if (this.stopped || this.reconnectTimer) return
 
@@ -287,6 +308,10 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
 
   private clearTimers(): void {
     this.clearHeartbeat()
+    if (this.logFlushTimer) {
+      clearInterval(this.logFlushTimer)
+      this.logFlushTimer = null
+    }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null

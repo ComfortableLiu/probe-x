@@ -2,8 +2,13 @@ import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from '@src/app.module'
 import { NodeConnectionService } from '@src/service/node-connection.service'
+import { installNodeLogCapture } from '@src/lib/node-log-buffer'
 
 async function bootstrap() {
+  // 必须在 NestFactory.create 之前安装：NestJS 内置 Logger 底层走 console，
+  // 提前包装才能捕获启动阶段的全部日志，供总服务侧的节点日志页展示
+  installNodeLogCapture()
+
   const app = await NestFactory.create(AppModule)
 
   // 计算节点以 HTTP /health 暴露自身链接状态，供部署健康检查与运维排查；
