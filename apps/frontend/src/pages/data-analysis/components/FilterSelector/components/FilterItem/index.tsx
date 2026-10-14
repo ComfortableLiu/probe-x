@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo } from "react"
+import React, { memo, useMemo } from "react"
 import * as styles from "./styles.module.scss"
 import { DatePicker, Input, InputNumber, Select } from "antd"
 import { useModel } from "@/hooks"
@@ -112,22 +112,6 @@ function FilterItem(props: IFilterItemProps) {
   const {
     propertyList,
   } = useModel<IPointState>('pointModel')
-
-  useEffect(() => {
-    // 在属性类型和比较方式改变时，先粗暴的情况数据，等后续提升体验的时候可以兼容上次的输入内容转化到现在的输入框中
-    const defaultValue = filterInputDefaultValue[filterItem.propertyType][filterItem.compareType] || undefined
-    onChange({
-      ...filterItem,
-      propertyValue: defaultValue,
-    })
-  }, [filterItem.compareType])
-
-  useEffect(() => {
-    onChange({
-      ...filterItem,
-      compareType: 'EQUAL',
-    })
-  }, [filterItem.propertyType])
 
   // 渲染文本输入框
   const renderFilterTextInput = useMemo(() => (
@@ -342,13 +326,13 @@ function FilterItem(props: IFilterItemProps) {
         placeholder="属性名"
         onChange={(value) => {
           const property = propertyList.find(property => property.propertyName === value)
-          const defaultValue = property.propertyType === MetaPropertyType.DATE ? dayjs().format('YYYY-MM-DD') :
-            (property.propertyType === MetaPropertyType.STRING ? [] : 0)
+          // 在属性类型和比较方式改变时，先粗暴的情况数据，等后续提升体验的时候可以兼容上次的输入内容转化到现在的输入框中
           onChange && onChange({
             ...filterItem,
             propertyType: property.propertyType,
             propertyName: property.propertyName,
-            propertyValue: defaultValue,
+            compareType: 'EQUAL',
+            propertyValue: filterInputDefaultValue[property.propertyType]['EQUAL'],
           })
         }}
         value={filterItem.propertyName ? filterItem.propertyName : null}
@@ -361,6 +345,7 @@ function FilterItem(props: IFilterItemProps) {
           onChange && onChange({
             ...filterItem,
             compareType: value,
+            propertyValue: filterInputDefaultValue[filterItem.propertyType][value],
           })
         }}
         value={filterItem.compareType}
