@@ -249,4 +249,41 @@ describe('DataSender transport 上报方式', () => {
     expect(MockImage.urls.length).toBe(0)
     expect(sender.getQueueLength()).toBe(0)
   })
+
+  test('清空存储后两次生成的设备 ID 互不相同', () => {
+    const sender = createSender()
+
+    const id1 = (sender as any).getDeviceId()
+    const id2 = (sender as any).getDeviceId()
+
+    expect(id1).not.toBe(id2)
+    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    expect(id2).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+  })
+
+  test('旧版固定前缀的设备 ID 会被迁移替换', () => {
+    const legacyId = `ZGF0YTppbWFnZS9wbmc7YmFzZTY0LM9zZSBp`
+    ;(localStorage.getItem as jest.Mock).mockReturnValueOnce(legacyId)
+    const sender = createSender()
+
+    const deviceId = (sender as any).getDeviceId()
+
+    expect(deviceId).not.toBe(legacyId)
+    expect(deviceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    expect(localStorage.setItem).toHaveBeenCalledWith('probe_x_device_id', deviceId)
+  })
+
+  test('flushSync 在队列 25 条、batchSize 10 时发送 3 批', () => {
+    const sender = createSender(undefined, { batchSize: 10 })
+    // 直接写入队列，避免 send() 达到 batchSize 时触发异步 flush 干扰批次计数
+    for (let i = 0; i < 25; i++) {
+      (sender as any).queue.push(createEvent())
+    }
+    expect(sender.getQueueLength()).toBe(25)
+
+    sender.flushSync()
+
+    expect(sendBeaconMock).toHaveBeenCalledTimes(3)
+    expect(sender.getQueueLength()).toBe(0)
+  })
 })

@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid'
 import type { ProbeXEvent } from './types'
 import { ConfigManager } from './config'
 
+// 旧版 canvas 指纹设备 ID 的固定前缀：btoa('data:image/png;base64,...') 的前 29 个字符，所有设备相同
+const LEGACY_DEVICE_ID_PREFIX = 'ZGF0YTppbWFnZS9wbmc7YmFzZTY0L'
+
 export class DataSender {
   private config: ConfigManager
   private queue: ProbeXEvent[] = []
@@ -86,14 +89,19 @@ export class DataSender {
 
   /**
    * 同步批量发送（用于页面卸载场景）
-   * transport 为 'gif' 时跳过 beacon 直接走 gif 分支；其余情况优先使用 sendBeacon
+   * 按 batchSize 切块逐批发送，直至队列排空
    */
   flushSync(): void {
-    if (this.queue.length === 0) {
-      return
+    while (this.queue.length > 0) {
+      this.sendBatchSync(this.queue.splice(0, this.batchSize))
     }
+  }
 
-    const events = this.queue.splice(0, this.batchSize)
+  /**
+   * 同步发送单批数据
+   * transport 为 'gif' 时跳过 beacon 直接走 gif 分支；其余情况优先使用 sendBeacon
+   */
+  private sendBatchSync(events: ProbeXEvent[]): void {
     const apiUrl = this.config.get('apiUrl')
     const appId = this.config.get('appId')
 
@@ -592,7 +600,8 @@ export class DataSender {
     try {
       let deviceId = localStorage.getItem(deviceKey)
 
-      if (!deviceId) {
+      // 旧版 canvas 指纹 ID 所有设备相同，带固定前缀的已存 ID 视为旧版 ID，迁移为新 UUID
+      if (!deviceId || deviceId.startsWith(LEGACY_DEVICE_ID_PREFIX)) {
         deviceId = this.generateDeviceId()
         localStorage.setItem(deviceKey, deviceId)
       }
@@ -608,25 +617,7 @@ export class DataSender {
    * 生成设备ID
    */
   private generateDeviceId(): string {
-    // 使用Canvas指纹生成设备ID
-    try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.textBaseline = 'top'
-        ctx.font = '14px Arial'
-        ctx.fillText('ProbeX Device ID', 2, 2)
-
-        const fingerprint = canvas.toDataURL()
-        return btoa(fingerprint).substring(0, 32)
-      }
-    } catch (error) {
-      // Canvas指纹生成失败，使用随机字符串
-      console.warn('Canvas fingerprint generation failed:', error)
-    }
-
-    // 降级方案：使用随机字符串 + 时间戳
-    return `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return uuidv4()
   }
 
   /**
