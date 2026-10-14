@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from "react"
 import { useModel } from "@/hooks"
 import { IDataAnalysisEventState } from "@pages/data-analysis/event/type"
+import { Metrics } from "@probe-x/shared-types/src"
 import dayjs from "dayjs"
 import type { EChartsOption, SeriesOption } from "echarts"
 import ChartContainer from "@components/ChartContainer"
@@ -36,19 +37,31 @@ function DataChat() {
       name: info.eventName || 'unknown_event',
     }))
 
-    // 按事件分组，聚合所有维度行的指标值
-    const seriesList: SeriesOption[] = eventAliases.map(({ alias, name }) => {
-      const seriesData = dateList.map((date) => {
-        const metricKey = `${alias}_${date.replace(/-/g, '_')}`
-        // 对所有维度行的同一事件-日期指标求和
-        return data.reduce((sum, row) => sum + (Number(row[metricKey]) || 0), 0)
-      })
-      return {
+    // 「总体」维度在参数中是空字符串，分组判定时需要过滤掉
+    const validDimension = (querySnapshot?.dimension || []).filter(item => typeof item === 'string' && item.trim())
+
+    // USERS/SESSIONS 是去重口径，按维度分组后每行是组内去重人数，跨行求和会重复计数，
+    // 需按「事件 × 维度组合」逐行生成 series；COUNT 或无维度时保持跨行求和
+    const seriesList: (SeriesOption & { name: string })[] = eventAliases.flatMap(({ alias, name }, index) => {
+      const metric = eventInfoList[index]?.metrics
+      const metricKeyOf = (date: string) => `${alias}_${date.replace(/-/g, '_')}`
+
+      if (validDimension.length && (metric === Metrics.USERS || metric === Metrics.SESSIONS)) {
+        return data.map(row => ({
+          name: `${name} | ${validDimension.map(dim => String(row[dim] ?? '')).join(' / ')}`,
+          type: 'line' as const,
+          data: dateList.map(date => Number(row[metricKeyOf(date)]) || 0),
+          smooth: true,
+        }))
+      }
+
+      return [{
         name,
         type: 'line' as const,
-        data: seriesData,
+        // 对所有维度行的同一事件-日期指标求和
+        data: dateList.map(date => data.reduce((sum, row) => sum + (Number(row[metricKeyOf(date)]) || 0), 0)),
         smooth: true,
-      }
+      }]
     })
 
     return {
@@ -64,7 +77,7 @@ function DataChat() {
       },
       series: seriesList,
       legend: {
-        data: eventAliases.map(e => e.name),
+        data: seriesList.map(e => e.name),
         top: 0,
       },
       toolbox: {
@@ -86,7 +99,7 @@ function DataChat() {
         },
       },
     }
-  }, [data, eventInfoList, dateList])
+  }, [data, eventInfoList, dateList, querySnapshot])
 
   const hasData = !!data?.length
 

@@ -2,6 +2,7 @@ import React, { memo, useEffect, useMemo, useRef } from 'react'
 import * as echarts from 'echarts'
 import { Empty } from 'antd'
 import { useLoading, useModel } from '@/hooks'
+import { escapeHtml } from '@/utils'
 import { IDataAnalysisAttributionState } from '@pages/data-analysis/attribution/type'
 import { AttributionModelEnum } from '@probe-x/shared-types/src'
 import * as styles from './styles.module.scss'
@@ -75,9 +76,9 @@ function ModelComparisonBar() {
         formatter: (params: any) => {
           if (!Array.isArray(params) || params.length === 0) return ''
           const eventName = params[0].axisValue
-          let html = `<div style="padding: 4px 8px;"><div style="font-weight: 600; margin-bottom: 4px;">${eventName}</div>`
+          let html = `<div style="padding: 4px 8px;"><div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(eventName)}</div>`
           for (const p of params) {
-            html += `<div>${p.marker} ${p.seriesName}：<b>${p.value.toFixed(2)}%</b></div>`
+            html += `<div>${p.marker} ${escapeHtml(p.seriesName)}：<b>${p.value.toFixed(2)}%</b></div>`
           }
           html += '</div>'
           return html

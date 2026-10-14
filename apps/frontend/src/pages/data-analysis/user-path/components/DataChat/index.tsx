@@ -6,6 +6,7 @@ import { IDataAnalysisUserPathState } from "@pages/data-analysis/user-path/type"
 import { Button, theme } from "antd"
 import { DownPicture } from "@icon-park/react"
 import ChartContainer from "@components/ChartContainer"
+import { escapeHtml } from "@/utils"
 
 function DataChat() {
 
@@ -82,7 +83,7 @@ function DataChat() {
         trigger: 'item',
         triggerOn: 'mousemove',
         formatter: (params: any) => {
-          const getOriginalName = (name: string) => name.replace(/_\d+$/, '')
+          const getOriginalName = (name: string) => escapeHtml(name.replace(/_\d+$/, ''))
 
           if (params.dataType === 'link') {
             const sourceName = getOriginalName(params.sourceName)

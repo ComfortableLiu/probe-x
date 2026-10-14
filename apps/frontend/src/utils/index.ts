@@ -122,6 +122,18 @@ const extractFileNameFromUrl = (fileUrl: string): string => {
 }
 
 /**
+ * 转义 HTML 特殊字符，服务端返回的字符串拼进 tooltip HTML 前必须转义
+ */
+export function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
  * 兼容所有浏览器的文件下载函数（TS版）
  * @param fileUrl - 下载链接（HTTP/HTTPS/Blob/Base64）
  * @param customFileName - 自定义文件名（可选，优先级高于提取的文件名）

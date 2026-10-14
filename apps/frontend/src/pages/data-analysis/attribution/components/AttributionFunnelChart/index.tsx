@@ -2,6 +2,7 @@ import React, { memo, useEffect, useMemo, useRef } from 'react'
 import * as echarts from 'echarts'
 import { Empty } from 'antd'
 import { useModel } from '@/hooks'
+import { escapeHtml } from '@/utils'
 import { IDataAnalysisAttributionState } from '@pages/data-analysis/attribution/type'
 import * as styles from './styles.module.scss'
 
@@ -52,7 +53,7 @@ function AttributionFunnelChart() {
           const { name, data: itemData } = params
           return `
             <div style="padding: 4px 8px;">
-              <div style="font-weight: 600; margin-bottom: 4px;">${name}</div>
+              <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(name)}</div>
               <div>贡献度：${itemData.value.toFixed(2)}%</div>
               <div>转化指标：${itemData.conversionMetric}</div>
               <div>平均转化率：${itemData.avgConversionRate}%</div>

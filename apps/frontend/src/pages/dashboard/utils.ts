@@ -16,12 +16,14 @@ import type {
   UtmDimension,
 } from "@probe-x/shared-types/src"
 import {
+  Metrics,
   UTM_DIMENSION_LABEL,
   utmDimAlias,
   utmMetricDateAlias,
   utmMetricTotalAlias,
 } from "@probe-x/shared-types/src"
 import { METRIC_LABEL } from "@pages/data-analysis/utm/type"
+import { escapeHtml } from "@/utils"
 
 // 分析类型中文名映射
 export const ANALYSIS_TYPE_TEXT: Record<AnalysisType, string> = {
@@ -79,16 +81,31 @@ function buildEventChartOption(
 
   const eventAliases = buildEventAliases(eventInfoList)
 
-  // 按事件分组，聚合所有维度行的同一事件-日期指标
-  const series = eventAliases.map(({ alias, name }) => ({
-    name,
-    type: 'line' as const,
-    smooth: true,
-    data: dateList.map((date) => {
-      const metricKey = `${alias}_${date.replace(/-/g, '_')}`
-      return data.reduce((sum, row) => sum + (Number(row[metricKey]) || 0), 0)
-    }),
-  }))
+  // 「总体」维度在参数中是空字符串，分组判定时需要过滤掉
+  const validDimension = (config?.dimension || []).filter(item => typeof item === 'string' && item.trim())
+
+  // USERS/SESSIONS 是去重口径，按维度分组后每行是组内去重人数，跨行求和会重复计数，
+  // 需按「事件 × 维度组合」逐行生成 series（只取前 10 个维度组合）；COUNT 或无维度时保持跨行求和
+  const series = eventAliases.flatMap(({ alias, name }, index) => {
+    const metric = eventInfoList[index]?.metrics
+    const metricKeyOf = (date: string) => `${alias}_${date.replace(/-/g, '_')}`
+
+    if (validDimension.length && (metric === Metrics.USERS || metric === Metrics.SESSIONS)) {
+      return data.slice(0, 10).map(row => ({
+        name: `${name} | ${validDimension.map(dim => String(row[dim] ?? '')).join(' / ')}`,
+        type: 'line' as const,
+        smooth: true,
+        data: dateList.map(date => Number(row[metricKeyOf(date)]) || 0),
+      }))
+    }
+
+    return [{
+      name,
+      type: 'line' as const,
+      smooth: true,
+      data: dateList.map(date => data.reduce((sum, row) => sum + (Number(row[metricKeyOf(date)]) || 0), 0)),
+    }]
+  })
 
   return {
     xAxis: {
@@ -103,7 +120,7 @@ function buildEventChartOption(
     },
     series,
     legend: {
-      data: eventAliases.map(item => item.name),
+      data: series.map(item => item.name),
       top: 0,
     },
     tooltip: {
@@ -179,7 +196,7 @@ function buildUserPathChartOption(data: IUserPathAnalysisRes): EChartsOption | n
       trigger: 'item',
       triggerOn: 'mousemove',
       formatter: (params: any) => {
-        const getOriginalName = (name: string) => name.replace(/_\d+$/, '')
+        const getOriginalName = (name: string) => escapeHtml(name.replace(/_\d+$/, ''))
         if (params.dataType === 'link') {
           return `源事件：${getOriginalName(params.sourceName)}<br/>目标事件：${getOriginalName(params.targetName)}<br/>流转次数：${params.value}`
         }
