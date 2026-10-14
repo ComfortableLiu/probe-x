@@ -51,17 +51,21 @@ export class QueryDownloadQueueProcessor extends WorkerHost {
         worksheet.addRow(Object.values(row))
       }
 
-      // Excel 流式上传 MinIO（无需本地存储）
+      // Excel 流式上传 MinIO（无需本地存储），生成与上传并行，避免数据超过 highWaterMark 时死锁
       const excelStream = new PassThrough()
-      excelStream._read = () => {
-      } // 实现 Readable 必需的 _read 方法
-      await workbook.xlsx.write(excelStream)
-      excelStream.end()
 
       // MinIO 文件路径（用 taskId 避免重复）
       const exportName = `${dayjs(createTime).format()}`
       const fileName = `${exportName}_${taskId}.xlsx`
-      const fileKey = await this.minioService.uploadStream(excelStream, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      const [fileKey] = await Promise.all([
+        this.minioService.uploadStream(excelStream, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+        workbook.xlsx.write(excelStream).then(() => {
+          excelStream.end()
+        }, (err) => {
+          excelStream.destroy(err)
+          throw err
+        }),
+      ])
 
       // 生成 MinIO 预签名下载链接（默认有效期 30分钟）
       const downloadUrl = await this.minioService.getPresignedDownloadUrl(fileKey)
