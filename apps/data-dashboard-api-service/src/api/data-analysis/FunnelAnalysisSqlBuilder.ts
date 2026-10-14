@@ -207,7 +207,7 @@ function buildContainsFilter(
     params[paramKey] = item
     return `position(${field}, {${paramKey}:String}) > 0`
   })
-  return containsClauses.join(" OR ")
+  return `(${containsClauses.join(" OR ")})`
 }
 
 /**
