@@ -212,7 +212,7 @@ export class EventCollector {
     return {
       name: 'probe-x-web-sdk',
       version: '2.0.0',
-      build: process.env.BUILD_VERSION || 'dev',
+      build: (typeof process !== 'undefined' && process.env && process.env.BUILD_VERSION) || 'dev',
     }
   }
 

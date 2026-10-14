@@ -1,6 +1,7 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
+import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 
@@ -14,6 +15,10 @@ const baseConfig = {
       preferBuiltins: false,
     }),
     commonjs(),
+    replace({
+      preventAssignment: true,
+      'process.env.BUILD_VERSION': JSON.stringify(process.env.BUILD_VERSION || 'dev'),
+    }),
     typescript({
       tsconfig: './tsconfig.json',
       declaration: false,
@@ -32,6 +37,10 @@ const umdConfig = {
       preferBuiltins: false,
     }),
     commonjs(),
+    replace({
+      preventAssignment: true,
+      'process.env.BUILD_VERSION': JSON.stringify(process.env.BUILD_VERSION || 'dev'),
+    }),
     typescript({
       tsconfig: './tsconfig.json',
       declaration: false,
