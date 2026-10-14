@@ -53,3 +53,7 @@ export const formatDuration = (from: number | null, now: number): string => {
 /** 「可用 x MB / 共 y MB」 */
 export const formatMemory = (available: number, total: number): string =>
   total > 0 ? `可用 ${available} MB / 共 ${total} MB` : '—'
+
+/** 清洗速度，如「12.3 条/s」；无样本为「—」 */
+export const formatSpeed = (value: number | null | undefined): string =>
+  value === null || value === undefined ? '—' : `${value.toFixed(1)} 条/s`

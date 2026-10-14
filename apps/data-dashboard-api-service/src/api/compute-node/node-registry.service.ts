@@ -1,7 +1,8 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
+import { Injectable, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   ComputeTask,
+  IComputeNodeCleaningSpeed,
   IComputeNodeLinkInfo,
   IComputeNodeTopology,
   MasterFrame,
@@ -11,12 +12,24 @@ import {
   NodeStatus,
   ProgressUpdate,
 } from '@probe-x/shared-types/src'
+import { RedisService } from '@probe-x/shared-utils/src/lib/backend-common'
+import {
+  readNodeCleaningSpeeds,
+  recordCleaningSessionCompletion,
+  recordNodeCleaningSpeed,
+} from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
 import { ComputeNodeService } from './compute-node.service'
 
 /** 判定离线的心跳超时，默认 15s（3 倍于节点默认 5s 心跳间隔） */
 const DEFAULT_HEARTBEAT_TIMEOUT_MS = 15000
 /** 把派生链接态回写 compute_node.status 的巡检间隔 */
 const STATUS_RECONCILE_INTERVAL_MS = 10000
+/** 实时速度采样最小间隔：进度帧按事件逐条上报，降采样控制样本量 */
+const SPEED_SAMPLE_INTERVAL_MS = 500
+/** 实时速度样本窗口（12 个样本 ≈ 最近 6 秒） */
+const SPEED_SAMPLE_WINDOW = 12
+/** 实时速度估算要求的最小样本时间跨度 */
+const SPEED_SAMPLE_MIN_SPAN_MS = 1000
 
 const EMPTY_NODE_INFO: NodeInfo = {
   cpu_count: 0,
@@ -62,6 +75,12 @@ interface LiveNode {
   persistedSignature: string
   /** 当前下行通道，断开后置 null（记录保留，页面显示「离线」而非消失） */
   session: NodeSession | null
+  /** 当前任务下发时间戳，任务结束（完成/失败/离线）后归 null */
+  taskStartedAt: number | null
+  /** 当前任务的实时速度采样（降采样后的进度帧） */
+  speedSamples: Array<{ at: number; progress: number }>
+  /** 上一次压入速度样本的时间戳 */
+  lastSampleAt: number
 }
 
 /**
@@ -75,10 +94,13 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
   private readonly nodes = new Map<string, LiveNode>()
   private readonly settleListeners: Array<(taskId: string, failed: boolean) => void> = []
   private reconcileTimer: ReturnType<typeof setInterval> | null = null
+  private lastMetricsWarning = 0
 
   constructor(
     private readonly computeNodeService: ComputeNodeService,
     private readonly configService: ConfigService,
+    // 可选注入：单测直接 new 出来的实例没有 RedisService，速度统计逻辑自动跳过
+    @Optional() private readonly redisService?: RedisService,
   ) {}
 
   onModuleInit(): void {
@@ -120,6 +142,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       node.session = null
       if (!node.lastError) node.lastError = reason
       node.persistedStatus = 'stopped'
+      this.resetTaskTiming(node)
       console.warn(`[计算节点 ${node.nodeId}] 链接断开：${reason}`)
       this.persist(this.computeNodeService.syncStatus(node.nodeId, 'stopped'), '回写离线状态')
     }
@@ -180,8 +203,31 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       })
     }
 
+    // 今日已完成任务的速度统计（Redis），读取失败不拖垮拓扑
+    let speedStats = new Map<string, { avg: number | null; max: number | null; min: number | null }>()
+    try {
+      if (this.redisService) {
+        const nodeIds = [...new Set([...merged.keys(), ...this.nodes.keys()])]
+        speedStats = await readNodeCleaningSpeeds(this.redisService.getClient(), nodeIds, now)
+      }
+    } catch (error: unknown) {
+      console.warn(`[计算节点] 清洗速度统计读取失败：${toMessage(error)}`)
+    }
+
     for (const node of this.nodes.values()) {
-      merged.set(node.nodeId, this.toLinkInfo(node, now))
+      merged.set(node.nodeId, this.toLinkInfo(node, now, speedStats.get(node.nodeId)))
+    }
+
+    // 离线节点也带上今日历史速度（实时速度只有在线忙碌时才可能有）
+    for (const [nodeId, info] of merged) {
+      if (info.cleaningSpeed) continue
+      const stats = speedStats.get(nodeId)
+      info.cleaningSpeed = {
+        current: null,
+        avg: stats?.avg ?? null,
+        max: stats?.max ?? null,
+        min: stats?.min ?? null,
+      }
     }
 
     const nodes = [...merged.values()].sort((a, b) => a.nodeId.localeCompare(b.nodeId))
@@ -214,6 +260,9 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     node.busy = true
     node.busyTaskId = task.task_id
     node.lastError = ''
+    node.taskStartedAt = Date.now()
+    node.speedSamples = []
+    node.lastSampleAt = 0
     return true
   }
 
@@ -265,6 +314,9 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       persistedStatus: null,
       persistedSignature: '',
       session,
+      taskStartedAt: null,
+      speedSamples: [],
+      lastSampleAt: 0,
     }
 
     node.session = session
@@ -317,13 +369,15 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
   }
 
   private applyProgress(node: LiveNode, progress: ProgressUpdate): void {
-    node.lastHeartbeat = Date.now()
+    const now = Date.now()
+    node.lastHeartbeat = now
     node.lastProgress = progress
 
     if (progress.failed) {
       node.busy = false
       node.busyTaskId = ''
       node.lastError = progress.error || '任务执行失败'
+      this.resetTaskTiming(node)
       this.settleListeners.forEach(listener => listener(progress.task_id, true))
       return
     }
@@ -332,6 +386,8 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       node.busyTaskId = ''
       // 任务跑成功即代表上次失败已成过去，红灯不应常亮
       node.lastError = ''
+      this.recordTaskSpeed(node, progress, now)
+      this.resetTaskTiming(node)
       this.settleListeners.forEach(listener => listener(progress.task_id, false))
       return
     }
@@ -339,10 +395,69 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     node.busyTaskId = progress.task_id
     // 新任务开跑，上次失败不再算「当前异常」
     node.lastError = ''
+    // 实时速度采样：进度帧按事件逐条上报，降采样到每 500ms 一个样本
+    if (node.taskStartedAt !== null && now - node.lastSampleAt >= SPEED_SAMPLE_INTERVAL_MS) {
+      node.speedSamples.push({ at: now, progress: progress.progress })
+      if (node.speedSamples.length > SPEED_SAMPLE_WINDOW) node.speedSamples.shift()
+      node.lastSampleAt = now
+    }
   }
 
-  private toLinkInfo(node: LiveNode, now: number): IComputeNodeLinkInfo {
+  /** 任务结束（完成/失败/离线）时清空计时与采样状态 */
+  private resetTaskTiming(node: LiveNode): void {
+    node.taskStartedAt = null
+    node.speedSamples = []
+    node.lastSampleAt = 0
+  }
+
+  /**
+   * 任务完成时记录速度：节点维度写入当日 hash（平均/最快/最慢展示用），
+   * 清洗任务（clean: 前缀）同时写入 session 分钟桶（总览 session/s 用）。
+   * 幂等重放的完成帧 target 为 0，不代表真实执行，不计入任何统计。
+   */
+  private recordTaskSpeed(node: LiveNode, progress: ProgressUpdate, now: number): void {
+    if (!this.redisService || node.taskStartedAt === null || progress.target <= 0) return
+    const durationMs = now - node.taskStartedAt
+    const redisService = this.redisService
+    this.recordMetric(() => recordNodeCleaningSpeed(redisService.getClient(), node.nodeId, progress.target, durationMs, now))
+    if (progress.task_id.startsWith('clean:')) {
+      this.recordMetric(() => recordCleaningSessionCompletion(redisService.getClient(), now))
+    }
+  }
+
+  private recordMetric(write: () => Promise<void>): void {
+    // 遥测失败绝不能反过来影响任务状态推进
+    Promise.resolve().then(write).catch(() => {
+      if (Date.now() - this.lastMetricsWarning > 60000) {
+        this.lastMetricsWarning = Date.now()
+        console.warn('[计算节点] 清洗速度采样未能写入 Redis，此期间采样可能不完整')
+      }
+    })
+  }
+
+  /** 实时速度：当前任务近期样本的首尾差分；样本不足或跨度太短返回 null */
+  private currentSpeed(node: LiveNode): number | null {
+    if (node.speedSamples.length < 2) return null
+    const first = node.speedSamples[0]
+    const last = node.speedSamples[node.speedSamples.length - 1]
+    const spanMs = last.at - first.at
+    if (spanMs < SPEED_SAMPLE_MIN_SPAN_MS) return null
+    return (last.progress - first.progress) * 1000 / spanMs
+  }
+
+  private toLinkInfo(
+    node: LiveNode,
+    now: number,
+    speedStats?: { avg: number | null; max: number | null; min: number | null },
+  ): IComputeNodeLinkInfo {
     const alive = this.isAlive(node, now)
+    const busy = alive && node.busy
+    const cleaningSpeed: IComputeNodeCleaningSpeed = {
+      current: busy ? this.currentSpeed(node) : null,
+      avg: speedStats?.avg ?? null,
+      max: speedStats?.max ?? null,
+      min: speedStats?.min ?? null,
+    }
     return {
       nodeId: node.nodeId,
       nodeName: node.nodeName,
@@ -350,7 +465,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       // 拨出接入的节点一律走 gRPC 双向流
       nodeType: 'grpc',
       link: alive ? 'connected' : 'disconnected',
-      busy: alive && node.busy,
+      busy,
       busyTaskId: alive ? node.busyTaskId : '',
       cpuCount: node.info.cpu_count,
       cpuUsage: alive && node.info.resource_sampled ? node.info.cpu_usage : null,
@@ -361,6 +476,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       connectedAt: alive ? node.connectedAt : null,
       lastHeartbeat: node.lastHeartbeat,
       lastError: node.lastError,
+      cleaningSpeed,
     }
   }
 
@@ -380,6 +496,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     const taskId = node.busyTaskId
     node.busy = false
     node.busyTaskId = ''
+    this.resetTaskTiming(node)
     console.warn(`[计算节点 ${node.nodeId}] 节点离线，在途任务 ${taskId} 按失败落定`)
     this.settleListeners.forEach(listener => listener(taskId, true))
   }

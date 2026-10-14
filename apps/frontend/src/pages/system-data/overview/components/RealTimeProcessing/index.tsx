@@ -34,6 +34,40 @@ function RealTimeProcessing({ realTimeProcessingMetrics }: RealTimeProcessingPro
           />
         </Col>
       </Row>
+      <Row gutter={16} style={{ marginTop: 16 }} className={styles.metricGroup}>
+        <Col span={6}>
+          <MetricCard
+            title="实时清洗速度"
+            value={realTimeProcessingMetrics.currentCleaningSpeed ?? '—'}
+            precision={1}
+            suffix="条/s"
+          />
+        </Col>
+        <Col span={6}>
+          <MetricCard
+            title="今日峰值速度"
+            value={realTimeProcessingMetrics.peakCleaningSpeed ?? '—'}
+            precision={1}
+            suffix="条/s"
+          />
+        </Col>
+        <Col span={6}>
+          <MetricCard
+            title="实时清洗速度"
+            value={realTimeProcessingMetrics.currentSessionSpeed ?? '—'}
+            precision={2}
+            suffix="session/s"
+          />
+        </Col>
+        <Col span={6}>
+          <MetricCard
+            title="今日峰值速度"
+            value={realTimeProcessingMetrics.peakSessionSpeed ?? '—'}
+            precision={2}
+            suffix="session/s"
+          />
+        </Col>
+      </Row>
     </div>
   )
 }

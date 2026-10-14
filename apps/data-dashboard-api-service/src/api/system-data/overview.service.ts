@@ -66,7 +66,11 @@ export class OverviewService {
       read('数分查询量', () => this.getAnalysisQueryMetrics(now), {
         todayQueries: null, yesterdayQueries: null, weekQueries: null, monthQueries: null,
       }),
-      read('处理吞吐采样', () => this.runtimeMetrics.getProcessing(now), { currentProcessing: null, peakProcessing: null, finalCleaningSuccessRate: null }),
+      read('处理吞吐采样', () => this.runtimeMetrics.getProcessing(now), {
+        currentProcessing: null, peakProcessing: null, finalCleaningSuccessRate: null,
+        currentCleaningSpeed: null, peakCleaningSpeed: null,
+        currentSessionSpeed: null, peakSessionSpeed: null,
+      }),
       read<number | null>('清洗后事件量', async () => {
         const rows = await this.clickhouseService.query<{ count: string }>('SELECT toString(count()) AS count FROM final_event_log')
         return Number(rows[0]?.count || 0)
@@ -79,7 +83,15 @@ export class OverviewService {
       systemPerformanceMetrics,
       eventCollectionMetrics,
       analysisQueryMetrics,
-      realTimeProcessingMetrics: { currentProcessing: processing.currentProcessing, peakProcessing: processing.peakProcessing, cumulativeProcessing: finalCount },
+      realTimeProcessingMetrics: {
+        currentProcessing: processing.currentProcessing,
+        peakProcessing: processing.peakProcessing,
+        cumulativeProcessing: finalCount,
+        currentCleaningSpeed: processing.currentCleaningSpeed ?? null,
+        peakCleaningSpeed: processing.peakCleaningSpeed ?? null,
+        currentSessionSpeed: processing.currentSessionSpeed ?? null,
+        peakSessionSpeed: processing.peakSessionSpeed ?? null,
+      },
       metaOverview: {
         originalDataTotal: eventCollectionMetrics.totalAmount === null ? '—' : String(eventCollectionMetrics.totalAmount),
         finalCleanedData: finalCount === null ? '—' : String(finalCount),

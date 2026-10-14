@@ -16,6 +16,7 @@ import {
 import {
   formatDuration,
   formatMemory,
+  formatSpeed,
   linkLabelMap,
   resolveNodeLight,
   secondsAgo,
@@ -171,6 +172,7 @@ const NodeTooltip: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ no
       <div>状态灯：{statusLightLabelMap[light]}</div>
       <div>最近心跳：{secondsAgo(node.lastHeartbeat, now)}</div>
       {node.busy && node.busyTaskId && <div>当前任务：{node.busyTaskId}</div>}
+      {node.busy && <div>实时速度：{formatSpeed(node.cleaningSpeed?.current)}</div>}
     </div>
   )
 }
@@ -205,6 +207,18 @@ const NodeDetail: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ nod
       </Descriptions.Item>
       <Descriptions.Item label="当前任务">
         {node.busy && node.busyTaskId ? node.busyTaskId : node.busy ? '执行中' : '空闲'}
+      </Descriptions.Item>
+      <Descriptions.Item label="实时速度">
+        {node.busy ? formatSpeed(node.cleaningSpeed?.current) : '—'}
+      </Descriptions.Item>
+      <Descriptions.Item label="今日平均速度">
+        {formatSpeed(node.cleaningSpeed?.avg)}
+      </Descriptions.Item>
+      <Descriptions.Item label="今日最快速度">
+        {formatSpeed(node.cleaningSpeed?.max)}
+      </Descriptions.Item>
+      <Descriptions.Item label="今日最慢速度">
+        {formatSpeed(node.cleaningSpeed?.min)}
       </Descriptions.Item>
       <Descriptions.Item label="最近错误">
         {node.lastError ? (

@@ -46,11 +46,18 @@ export class RuntimeMetricsService {
     const minuteStart = window.dayStart + (window.minute - 1) * 60000
     const currentCount = startedAt && startedAt <= minuteStart
       ? Number(previousMinute[`minute:${minute}`] || 0) : null
+    // session 分钟桶与事件分钟桶共用同一完整分钟守卫
+    const currentSessionCount = startedAt && startedAt <= minuteStart
+      ? Number(previousMinute[`sessionMinute:${minute}`] || 0) : null
     const completeMinutes = Object.entries(today)
       .filter(([key]) => key.startsWith('minute:') && Number(key.slice(7)) < window.minute
         && window.dayStart + Number(key.slice(7)) * 60000 >= Number(today.startedAt))
       .map(([, count]) => Number(count))
-    return { window, today, previousMinute, minute, currentCount, completeMinutes, result }
+    const completeSessionMinutes = Object.entries(today)
+      .filter(([key]) => key.startsWith('sessionMinute:') && Number(key.slice(14)) < window.minute
+        && window.dayStart + Number(key.slice(14)) * 60000 >= Number(today.startedAt))
+      .map(([, count]) => Number(count))
+    return { window, today, previousMinute, minute, currentCount, currentSessionCount, completeMinutes, completeSessionMinutes, result }
   }
 
   async getPerformance(now = Date.now()): Promise<ISystemPerformanceMetrics> {
@@ -77,13 +84,19 @@ export class RuntimeMetricsService {
   }
 
   async getProcessing(now = Date.now()) {
-    const { today, currentCount, completeMinutes } = await this.read('processing', now)
+    const { today, currentCount, currentSessionCount, completeMinutes, completeSessionMinutes } = await this.read('processing', now)
     const successful = Number(today.successfulTasks || 0)
     const failed = Number(today.failedTasks || 0)
+    const peakProcessing = completeMinutes.length ? Math.max(...completeMinutes) : currentCount === null ? null : 0
+    const peakSessions = completeSessionMinutes.length ? Math.max(...completeSessionMinutes) : currentSessionCount === null ? null : 0
     return {
       finalCleaningSuccessRate: successful + failed ? successful / (successful + failed) * 100 : null,
       currentProcessing: currentCount,
-      peakProcessing: completeMinutes.length ? Math.max(...completeMinutes) : currentCount === null ? null : 0,
+      peakProcessing,
+      currentCleaningSpeed: currentCount === null ? null : currentCount / 60,
+      peakCleaningSpeed: peakProcessing === null ? null : peakProcessing / 60,
+      currentSessionSpeed: currentSessionCount === null ? null : currentSessionCount / 60,
+      peakSessionSpeed: peakSessions === null ? null : peakSessions / 60,
     }
   }
 }

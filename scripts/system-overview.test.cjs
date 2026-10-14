@@ -7,7 +7,7 @@ require('ts-node').register({
   skipProject: true,
   compilerOptions: { target: 'ES2022', module: 'CommonJS', moduleResolution: 'node', experimentalDecorators: true, emitDecoratorMetadata: true, esModuleInterop: true },
 })
-const { metricsWindow, metricsKey, recordRuntimeMetric, recordCleaningOutcome } = require('../libs/shared-utils/src/lib/backend-common/runtime-metrics.ts')
+const { metricsWindow, metricsKey, recordRuntimeMetric, recordCleaningOutcome, recordCleaningSessionCompletion, recordNodeCleaningSpeed, readNodeCleaningSpeeds, nodeCleaningMetricsKey } = require('../libs/shared-utils/src/lib/backend-common/runtime-metrics.ts')
 const { RuntimeMetricsService } = require('../apps/data-dashboard-api-service/src/api/system-data/runtime-metrics.service.ts')
 const { RuntimeMetricsMiddleware } = require('../apps/data-dashboard-api-service/src/api/system-data/runtime-metrics.middleware.ts')
 const { OverviewService } = require('../apps/data-dashboard-api-service/src/api/system-data/overview.service.ts')
@@ -15,17 +15,25 @@ const { OverviewService } = require('../apps/data-dashboard-api-service/src/api/
 class MemoryRedis {
   status = 'ready'
   data = new Map()
+  async hset(key, field, value) {
+    const row = this.data.get(key) || {}
+    row[field] = String(value)
+    this.data.set(key, row)
+    return 1
+  }
   multi() {
     const operations = []
     const tx = {}
-    for (const command of ['hsetnx', 'hincrby', 'hincrbyfloat', 'expire', 'hgetall', 'hmget']) {
+    for (const command of ['hsetnx', 'hincrby', 'hincrbyfloat', 'expire', 'hgetall', 'hmget', 'hget', 'hset']) {
       tx[command] = (key, field, value) => {
         operations.push(() => {
           const row = this.data.get(key) || {}
           if (command === 'hgetall') return { ...row }
           if (command === 'hmget') return [row[field] ?? null, row[value] ?? null]
+          if (command === 'hget') return row[field] ?? null
           if (command === 'expire') return 1
-          if (command === 'hsetnx') { if (!(field in row)) row[field] = String(value) }
+          if (command === 'hset') { row[field] = String(value) }
+          else if (command === 'hsetnx') { if (!(field in row)) row[field] = String(value) }
           else row[field] = String(Number(row[field] || 0) + value)
           this.data.set(key, row)
           return 1
@@ -109,10 +117,49 @@ test('processing counts completed writes and independently measures actual task 
   await recordCleaningOutcome(redis, true, start)
   await recordCleaningOutcome(redis, false, start)
   const result = await service.getProcessing(start + 60000)
-  assert.deepEqual(result, { currentProcessing: 400, peakProcessing: 400, finalCleaningSuccessRate: 50 })
+  assert.deepEqual(result, {
+    currentProcessing: 400,
+    peakProcessing: 400,
+    finalCleaningSuccessRate: 50,
+    currentCleaningSpeed: 400 / 60,
+    peakCleaningSpeed: 400 / 60,
+    currentSessionSpeed: 0,
+    peakSessionSpeed: 0,
+  })
   redis.status = 'reconnecting'
   await assert.rejects(recordRuntimeMetric(redis, 'processing', 1), /未就绪/)
   await assert.rejects(service.getProcessing(start), /未就绪/)
+})
+
+test('session speed comes from master-observed completion buckets in complete minutes', async () => {
+  const { redis, service } = metricsFixture()
+  const start = at('2026-09-29T10:00:00')
+  await recordRuntimeMetric(redis, 'processing', 600, undefined, start)
+  await recordCleaningSessionCompletion(redis, start)
+  await recordCleaningSessionCompletion(redis, start)
+  await recordCleaningSessionCompletion(redis, start)
+  const result = await service.getProcessing(start + 60000)
+  assert.equal(result.currentCleaningSpeed, 10)
+  assert.equal(result.peakCleaningSpeed, 10)
+  assert.equal(result.currentSessionSpeed, 3 / 60)
+  assert.equal(result.peakSessionSpeed, 3 / 60)
+  // 首个不完整分钟不展示速度
+  const partial = await service.getProcessing(start + 30000)
+  assert.equal(partial.currentSessionSpeed, null)
+  assert.equal(partial.peakSessionSpeed, null)
+})
+
+test('node cleaning speeds accumulate per node with avg/max/min and skip empty replays', async () => {
+  const redis = new MemoryRedis()
+  const now = at('2026-09-29T10:00:00')
+  await recordNodeCleaningSpeed(redis, 'node-1', 100, 10000, now)
+  await recordNodeCleaningSpeed(redis, 'node-1', 300, 10000, now)
+  await recordNodeCleaningSpeed(redis, 'node-1', 200, 20000, now)
+  // 幂等重放（0 事件）不写入
+  await recordNodeCleaningSpeed(redis, 'node-1', 0, 100, now)
+  const stats = await readNodeCleaningSpeeds(redis, ['node-1', 'node-2'], now)
+  assert.deepEqual(stats.get('node-1'), { avg: 600 * 1000 / 40000, max: 30, min: 10 })
+  assert.deepEqual(stats.get('node-2'), { avg: null, max: null, min: null })
 })
 
 test('HTTP middleware observes guard errors and business errors while excluding monitoring polls', () => {
@@ -146,7 +193,7 @@ function overviewFixture({ failEvents = false, failNodes = false, nodes = [] } =
     return [{ todayCollection: '12', yesterdayCollection: '15', weekCollection: '27', monthCollection: '80', totalAmount: '100' }]
   } }
   const query = { select() { return this }, addSelect() { return this }, where() { return this }, getRawOne: async () => ({ todayQueries: '2', yesterdayQueries: '3', weekQueries: '5', monthQueries: '9' }) }
-  const runtime = { getPerformance: async () => ({}), getProcessing: async () => ({ currentProcessing: 0, peakProcessing: 7, finalCleaningSuccessRate: 0 }) }
+  const runtime = { getPerformance: async () => ({}), getProcessing: async () => ({ currentProcessing: 0, peakProcessing: 7, finalCleaningSuccessRate: 0, currentCleaningSpeed: 1.5, peakCleaningSpeed: 2.5, currentSessionSpeed: 0.5, peakSessionSpeed: 1 }) }
   const service = new OverviewService(clickhouse, { getTopology: async () => { if (failNodes) throw new Error('MySQL down'); return { nodes } } }, runtime, { createQueryBuilder: () => query }, { getResources: async () => [] })
   return { service, calls: () => clickhouseCalls }
 }
@@ -160,6 +207,8 @@ test('overview separates query counts, preserves zeros, caches and coalesces con
   assert.equal(a.metaOverview.finalCleaningSuccessRate, 0)
   assert.equal(a.realTimeProcessingMetrics.currentProcessing, 0)
   assert.equal(a.realTimeProcessingMetrics.cumulativeProcessing, 8)
+  assert.equal(a.realTimeProcessingMetrics.currentCleaningSpeed, 1.5)
+  assert.equal(a.realTimeProcessingMetrics.peakSessionSpeed, 1)
   assert.equal(a.computingNodeStatus.totalNodes, 0)
   assert.equal(a.computingNodeStatus.cpuUsage, null)
   await service.getSystemDataOverview()
@@ -194,6 +243,7 @@ test('only live nodes contribute resources, CPU and memory are weighted, partial
 
 const { Subject } = require('rxjs')
 const { ComputeNodeService } = require('../apps/final-data-cleaning-service/src/service/node.service.ts')
+const { createPageViewEvent } = require('../apps/final-data-cleaning-service/src/__tests__/fixtures/event-factory.ts')
 const drain = () => new Promise(resolve => setImmediate(resolve))
 
 test('real cleaning service samples only successful inserts and does not count deduplicated replays', async () => {
@@ -217,7 +267,9 @@ test('real cleaning service samples only successful inserts and does not count d
 
 test('failed cleaning insert reports failure without inventing processed events', async () => {
   const redis = new MemoryRedis()
-  const service = new ComputeNodeService({ query: async () => [], insert: async () => { throw new Error('write failed') } }, { getClient: () => redis, setNx: async () => true })
+  // 事件查询返回一条事件让落库真实发生（已落库 id 查询返回空），insert 抛错进入失败路径
+  const query = async sql => sql.includes('FROM event_log') ? [createPageViewEvent('page-1')] : []
+  const service = new ComputeNodeService({ query, insert: async () => { throw new Error('write failed') } }, { getClient: () => redis, setNx: async () => true })
   const progress = new Subject()
   const messages = []
   progress.subscribe(item => messages.push(item))

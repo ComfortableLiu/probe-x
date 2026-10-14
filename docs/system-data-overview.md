@@ -15,6 +15,9 @@
 | 错误率 | 今日 HTTP 4xx / 5xx / HTTP 成功但业务 code 非 200，互斥计数 |
 | 清洗任务成功率 | 今日最终清洗执行成功次数 /（成功 + 失败次数），跳过的重复任务不计数 |
 | 实时写入量 | final_event_log 成功写入后采样，按实际写入完成时间统计完整分钟量及今日峰值，历史补算和实际重复写入也计入 |
+| 清洗速度（条/s） | 上一完整分钟写入事件数 ÷ 60；今日峰值为完整分钟写入峰值 ÷ 60 |
+| 清洗速度（session/s） | 上一完整分钟总服务观测到成功完成的清洗任务数 ÷ 60；一个任务对应一个 session 的一天切片，节点幂等跳过的重复任务不计数 |
+| 节点清洗速度 | 计算节点页逐节点展示：实时速度为当前任务近期进度帧差分估算（仅清洗中）；今日平均/最快/最慢为已完成任务的端到端速度（任务拉取事件数 ÷ 下发到完成时长），失败任务与幂等重放不计入 |
 | 事件存量 | 当前 ClickHouse 表内数量；受保留期影响，不是永久累计值，也不能相除推算清洗成功率 |
 
 无样本、首个不完整分钟、旧节点缺少有效性标志、不支持的平台指标返回 null，UI 显示“—”。真实零值保留为 0。单个数据源失败只影响对应卡片，并返回 warnings；整个请求失败时保留前次结果和数据时间。
@@ -24,6 +27,7 @@
 - 同时更新仪表板 API、前端、最终清洗服务和 shared-types/shared-utils；proto 的新增字段使用新编号，兼容旧节点。旧节点的新增资源指标显示不可用，直到升级并收到有效心跳。
 - 无新数据库迁移，无新增必填环境变量。采样复用现有 Redis，API 与计算节点必须使用同一 Redis 实例和 DB；不同部署应隔离 Redis DB。
 - Redis 键前缀为 `probe-x:overview:v1:`，按上海自然日聚合，保留 35 天。不保存 URL、用户信息、请求体或凭证。新版本上线前的历史监控数据无法补采。
+- session 分钟桶（`sessionMinute:{m}`）与节点速度统计（`probe-x:overview:v1:nodeCleaning:{day}:{nodeId}`，含 tasks/events/durationMs/maxSpeed/minSpeed）由总服务在观测到任务完成时写入，节点无需升级即可生效。
 - Redis 故障期间放弃监控写入，避免阻塞业务或无限排队，并限频记录日志。失败期间可能缺样本；重启保留已成功写入 Redis 的历史。
 - 网络速率在 Linux 上通过 `/proc/net/dev` 采集，其他平台显示不可用。没有在线节点时资源指标无样本。
 - 当前开发配置的 API `autoRestart` 为 false，修改源码后需要重启 API；计算节点也需重新构建/重启才能发送新增指标。
@@ -34,6 +38,7 @@
 
 ```sh
 node --test scripts/system-overview.test.cjs
+node --test scripts/cleaning-scheduler.test.cjs
 yarn workspace final-data-cleaning-service test --runInBand
 yarn workspace data-dashboard-api-service build
 yarn workspace final-data-cleaning-service build

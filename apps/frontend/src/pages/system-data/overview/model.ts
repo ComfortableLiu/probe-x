@@ -50,6 +50,10 @@ const initState: ISystemDataOverviewWithMetaState = {
     currentProcessing: null,
     peakProcessing: null,
     cumulativeProcessing: null,
+    currentCleaningSpeed: null,
+    peakCleaningSpeed: null,
+    currentSessionSpeed: null,
+    peakSessionSpeed: null,
   },
 }
 

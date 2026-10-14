@@ -213,6 +213,18 @@ export interface MasterFrame {
   task?: ComputeTask
 }
 
+/** 计算节点清洗速度（条/s），avg/max/min 为今日已完成任务口径 */
+export interface IComputeNodeCleaningSpeed {
+  /** 实时速度（条/s），仅正在清洗时由近期进度帧差分估算，否则为 null */
+  current: number | null
+  /** 今日已完成任务平均速度（条/s），今日尚无完成任务为 null */
+  avg: number | null
+  /** 今日已完成任务最快速度（条/s） */
+  max: number | null
+  /** 今日已完成任务最慢速度（条/s） */
+  min: number | null
+}
+
 /** 计算节点链接信息（拓扑图/状态展示用） */
 export interface IComputeNodeLinkInfo {
   /** 节点唯一标识 */
@@ -244,6 +256,8 @@ export interface IComputeNodeLinkInfo {
   lastHeartbeat: number | null
   /** 最近一次失败的任务错误信息，空串表示当前无异常 */
   lastError: string
+  /** 清洗速度统计；旧版总服务不下发该字段 */
+  cleaningSpeed?: IComputeNodeCleaningSpeed
 }
 
 /** 计算节点拓扑（根节点 = 总服务） */

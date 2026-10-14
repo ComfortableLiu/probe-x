@@ -82,3 +82,92 @@ export async function recordCleaningOutcome(client: Redis, success: boolean, now
     .exec()
   if (!result || result.some(([error]) => error)) throw new Error('清洗任务结果写入失败')
 }
+
+/**
+ * 清洗 session 完成计数：按自然分钟落入当日 processing hash 的 sessionMinute:{m} 桶，
+ * 供总览页 session/s 速度使用。由总服务在观测到任务成功完成时写入，
+ * 节点幂等跳过的重复任务（target 为 0）不计入。
+ */
+export async function recordCleaningSessionCompletion(client: Redis, now = Date.now()): Promise<void> {
+  if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
+  const { today, minute } = metricsWindow(now)
+  const key = metricsKey('processing', today)
+  const result = await client.multi()
+    .hincrby(key, `sessionMinute:${minute}`, 1)
+    .expire(key, METRICS_TTL_SECONDS)
+    .exec()
+  if (!result || result.some(([error]) => error)) throw new Error('清洗 session 计数写入失败')
+}
+
+export const nodeCleaningMetricsKey = (nodeId: string, day: string) =>
+  `probe-x:overview:v1:nodeCleaning:${day}:${nodeId}`
+
+export interface INodeCleaningSpeedStats {
+  /** 今日已完成任务平均速度（条/s） */
+  avg: number | null
+  /** 今日已完成任务最快速度（条/s） */
+  max: number | null
+  /** 今日已完成任务最慢速度（条/s） */
+  min: number | null
+}
+
+/**
+ * 记录一个节点完成任务的端到端速度（事件数 / 下发到完成时长）。
+ *
+ * max/min 的读改写依赖「同一节点同一时刻只执行一个任务」这一调度约束，
+ * 同一节点的完成事件天然串行，不会产生并发竞争。
+ */
+export async function recordNodeCleaningSpeed(
+  client: Redis,
+  nodeId: string,
+  events: number,
+  durationMs: number,
+  now = Date.now(),
+): Promise<void> {
+  if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
+  if (events <= 0 || durationMs <= 0) return
+  const key = nodeCleaningMetricsKey(nodeId, metricsWindow(now).today)
+  const speed = events * 1000 / durationMs
+  const result = await client.multi()
+    .hincrby(key, 'tasks', 1)
+    .hincrby(key, 'events', events)
+    .hincrbyfloat(key, 'durationMs', durationMs)
+    .hget(key, 'maxSpeed')
+    .hget(key, 'minSpeed')
+    .expire(key, METRICS_TTL_SECONDS)
+    .exec()
+  if (!result || result.some(([error]) => error)) throw new Error('节点清洗速度写入失败')
+  const currentMax = Number((result[3][1] as string | null) ?? -1)
+  const minRaw = result[4][1] as string | null
+  const writes: Promise<unknown>[] = []
+  if (speed > currentMax) writes.push(client.hset(key, 'maxSpeed', String(speed)))
+  if (minRaw === null || speed < Number(minRaw)) writes.push(client.hset(key, 'minSpeed', String(speed)))
+  await Promise.all(writes)
+}
+
+/** 批量读取多个节点当日的清洗速度统计；无记录的节点返回全 null */
+export async function readNodeCleaningSpeeds(
+  client: Redis,
+  nodeIds: string[],
+  now = Date.now(),
+): Promise<Map<string, INodeCleaningSpeedStats>> {
+  const stats = new Map<string, INodeCleaningSpeedStats>()
+  if (!nodeIds.length) return stats
+  if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
+  const day = metricsWindow(now).today
+  const tx = client.multi()
+  for (const nodeId of nodeIds) tx.hgetall(nodeCleaningMetricsKey(nodeId, day))
+  const result = await tx.exec()
+  if (!result || result.some(([error]) => error)) throw new Error('节点清洗速度读取失败')
+  nodeIds.forEach((nodeId, index) => {
+    const row = result[index][1] as Record<string, string>
+    const events = Number(row.events || 0)
+    const durationMs = Number(row.durationMs || 0)
+    stats.set(nodeId, {
+      avg: events > 0 && durationMs > 0 ? events * 1000 / durationMs : null,
+      max: row.maxSpeed !== undefined ? Number(row.maxSpeed) : null,
+      min: row.minSpeed !== undefined ? Number(row.minSpeed) : null,
+    })
+  })
+  return stats
+}

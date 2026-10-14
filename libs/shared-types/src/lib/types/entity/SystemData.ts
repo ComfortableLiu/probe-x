@@ -94,6 +94,10 @@ export interface IRealTimeProcessingMetrics {
   currentProcessing: number | null; // 上一个完整自然分钟成功写入的事件数
   peakProcessing: number | null; // 今日完整分钟峰值
   cumulativeProcessing: number | null; // 当前 ClickHouse 清洗后存量
+  currentCleaningSpeed: number | null; // 上一完整分钟写入速度，条/s
+  peakCleaningSpeed: number | null; // 今日完整分钟写入峰值速度，条/s
+  currentSessionSpeed: number | null; // 上一完整分钟成功完成的清洗任务（session）速度，session/s
+  peakSessionSpeed: number | null; // 今日完整分钟 session 峰值速度，session/s
 }
 export interface IAnalysisQueryMetrics {
   todayQueries: number | null;

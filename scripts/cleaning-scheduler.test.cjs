@@ -179,3 +179,155 @@ test('非 clean: 前缀的落定通知被直接忽略', () => {
   assert.equal(scheduler.queue.length, 0)
   assert.equal(scheduler.attempts.size, 0)
 })
+
+const { metricsWindow, metricsKey, nodeCleaningMetricsKey } = require('../libs/shared-utils/src/lib/backend-common/runtime-metrics.ts')
+
+/** 带 multi 的内存 Redis 桩，覆盖速度统计用到的命令 */
+function memoryRedis() {
+  const data = new Map()
+  return {
+    status: 'ready',
+    data,
+    hset: async (key, field, value) => {
+      const row = data.get(key) || {}
+      row[field] = String(value)
+      data.set(key, row)
+      return 1
+    },
+    multi() {
+      const operations = []
+      const tx = {}
+      for (const command of ['hsetnx', 'hincrby', 'hincrbyfloat', 'expire', 'hgetall', 'hget', 'hset']) {
+        tx[command] = (key, field, value) => {
+          operations.push(() => {
+            const row = data.get(key) || {}
+            if (command === 'hgetall') return { ...row }
+            if (command === 'hget') return row[field] ?? null
+            if (command === 'expire') return 1
+            if (command === 'hset') { row[field] = String(value) }
+            else if (command === 'hsetnx') { if (!(field in row)) row[field] = String(value) }
+            else row[field] = String(Number(row[field] || 0) + value)
+            data.set(key, row)
+            return 1
+          })
+          return tx
+        }
+      }
+      tx.exec = async () => operations.map(op => [null, op()])
+      return tx
+    },
+  }
+}
+
+const drainMetrics = () => new Promise(resolve => setImmediate(resolve))
+
+/**
+ * node:test 的上报帧与用例里的 console 输出交错时可能损坏父进程解析（nodejs/node#64061），
+ * 用例内静默 console，不影响断言
+ */
+async function withSilentConsole(fn) {
+  const originalLog = console.log
+  const originalWarn = console.warn
+  console.log = () => {}
+  console.warn = () => {}
+  try {
+    return await fn()
+  } finally {
+    console.log = originalLog
+    console.warn = originalWarn
+  }
+}
+
+/** 真实 registry + 内存 Redis 的接线，进度帧入口由 connectNode 返回 */
+function stubRegistryWithRedis() {
+  const redis = memoryRedis()
+  const computeNodeService = {
+    upsertFromRegister: async () => {},
+    syncStatus: async () => {},
+    listRegistered: async () => [],
+  }
+  const configService = { get: () => undefined }
+  const registry = new NodeRegistryService(computeNodeService, configService, { getClient: () => redis })
+  return { registry, redis }
+}
+
+const progressFrame = (taskId, overrides = {}) => ({ progress: {
+  task_id: taskId, node_id: 'node-1', target: 100, progress: 100,
+  message: '', completed: false, failed: false, error: '', ...overrides,
+} })
+
+test('任务完成帧记录节点速度与 session 分钟桶，幂等重放与失败帧不计入', () => withSilentConsole(async () => {
+  const rows = [{ session_id: 's-1', date: '2026-09-28' }]
+  const { registry, redis } = stubRegistryWithRedis()
+  const scheduler = new CleaningSchedulerService(registry, { query: async () => rows }, {}, {})
+  registry.onTaskSettled((taskId, failed) => scheduler.onTaskSettled(taskId, failed))
+  const { session, handle } = connectNode(registry)
+  const taskId = await dispatchOne(registry, scheduler, session)
+  const day = metricsWindow().today
+  const nodeKey = nodeCleaningMetricsKey('node-1', day)
+
+  // 幂等重放的完成帧（target:0）不产生任何统计
+  handle.onFrame(progressFrame(taskId, { target: 0, progress: 0, completed: true }))
+  await drainMetrics()
+  assert.equal(redis.data.has(nodeKey), false)
+
+  // 重新下发后真实完成：写入节点速度与 session 分钟桶
+  await scheduler.enqueueBacklog()
+  scheduler.drain()
+  const retryTaskId = session.frames.at(-1).task.task_id
+  // 钉住任务起始时间，避免快速机器上端到端时长为 0ms 被当作无效样本
+  registry.nodes.get('node-1').taskStartedAt = Date.now() - 5000
+  handle.onFrame(progressFrame(retryTaskId, { completed: true }))
+  await drainMetrics()
+  await drainMetrics()
+  const nodeRow = redis.data.get(nodeKey)
+  assert.equal(nodeRow.tasks, '1')
+  assert.equal(nodeRow.events, '100')
+  assert.ok(Number(nodeRow.maxSpeed) > 19 && Number(nodeRow.maxSpeed) <= 20)
+  assert.equal(nodeRow.minSpeed, nodeRow.maxSpeed)
+  const processingRow = redis.data.get(metricsKey('processing', day))
+  const sessionBuckets = Object.keys(processingRow).filter(key => key.startsWith('sessionMinute:'))
+  assert.equal(sessionBuckets.length, 1)
+  assert.equal(processingRow[sessionBuckets[0]], '1')
+
+  // 失败帧只落定，不记速度
+  await scheduler.enqueueBacklog()
+  scheduler.drain()
+  const failedTaskId = session.frames.at(-1).task.task_id
+  handle.onFrame(progressFrame(failedTaskId, { progress: 0, failed: true, error: 'boom' }))
+  await drainMetrics()
+  assert.equal(redis.data.get(nodeKey).tasks, '1')
+  assert.equal(processingRow[sessionBuckets[0]], '1')
+}))
+
+test('清洗中的节点实时速度来自进度样本差分，任务结束后归 null 且带今日统计', () => withSilentConsole(async () => {
+  const rows = [{ session_id: 's-1', date: '2026-09-28' }]
+  const { registry } = stubRegistryWithRedis()
+  const scheduler = new CleaningSchedulerService(registry, { query: async () => rows }, {}, {})
+  registry.onTaskSettled((taskId, failed) => scheduler.onTaskSettled(taskId, failed))
+  const { session, handle } = connectNode(registry)
+  const taskId = await dispatchOne(registry, scheduler, session)
+
+  // 样本不足时实时速度为 null
+  let topology = await registry.getTopology()
+  assert.equal(topology.nodes[0].cleaningSpeed.current, null)
+
+  // 手工补两个跨度 2s 的样本（逐事件进度帧会被降采样，单测直接铺样本）
+  const node = registry.nodes.get('node-1')
+  node.speedSamples.push({ at: Date.now() - 2000, progress: 40 }, { at: Date.now(), progress: 100 })
+  topology = await registry.getTopology()
+  assert.equal(topology.nodes[0].cleaningSpeed.current, 30)
+
+  // 任务完成后实时速度归 null，今日统计可读
+  node.taskStartedAt = Date.now() - 5000
+  handle.onFrame(progressFrame(taskId, { completed: true }))
+  await drainMetrics()
+  await drainMetrics()
+  topology = await registry.getTopology()
+  assert.equal(topology.nodes[0].busy, false)
+  assert.equal(topology.nodes[0].cleaningSpeed.current, null)
+  const { avg, max, min } = topology.nodes[0].cleaningSpeed
+  assert.ok(avg > 19 && avg <= 20)
+  assert.equal(max, avg)
+  assert.equal(min, avg)
+}))
