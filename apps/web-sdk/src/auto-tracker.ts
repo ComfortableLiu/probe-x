@@ -454,10 +454,14 @@ export class AutoTracker {
           const entries = list.getEntries()
           entries.forEach((entry) => {
             if (entry.entryType === 'largest-contentful-paint') {
-              this.collector.collectEvent('lcp_measurement', {
+              const lcpEvent = this.collector.collectEvent('lcp_measurement', {
                 lcp_value: entry.startTime,
                 lcp_element: (entry as any).element?.tagName,
               })
+
+              if (lcpEvent) {
+                this.sendEvent(lcpEvent)
+              }
             }
           })
         })
@@ -487,7 +491,7 @@ export class AutoTracker {
           const duration = Date.now() - startTime
 
           if (!isOwnRequest) {
-            this.collector.collectEvent('network_request', {
+            const requestEvent = this.collector.collectEvent('network_request', {
               url,
               method: args[1]?.method || 'GET',
               status: response.status,
@@ -495,6 +499,10 @@ export class AutoTracker {
               success: response.ok,
               response_size: response.headers.get('content-length') || 0,
             })
+
+            if (requestEvent) {
+              this.sendEvent(requestEvent)
+            }
           }
 
           return response
@@ -502,12 +510,16 @@ export class AutoTracker {
           const duration = Date.now() - startTime
 
           if (!isOwnRequest) {
-            this.collector.collectEvent('network_error', {
+            const errorEvent = this.collector.collectEvent('network_error', {
               url,
               method: args[1]?.method || 'GET',
               error: (error as Error).message,
               duration,
             })
+
+            if (errorEvent) {
+              this.sendEvent(errorEvent)
+            }
           }
 
           throw error
@@ -518,6 +530,7 @@ export class AutoTracker {
     // 拦截XMLHttpRequest
     if (typeof XMLHttpRequest !== 'undefined') {
       const collector = this.collector // 通过闭包保存collector引用
+      const sendEvent = (event: any) => this.sendEvent(event) // 通过闭包保存事件转发函数
       const isOwnRequest = (url: string) => this.isOwnRequest(url) // 通过闭包保存自请求判断
       const originalOpen = XMLHttpRequest.prototype.open
       const originalSend = XMLHttpRequest.prototype.send
@@ -538,7 +551,7 @@ export class AutoTracker {
             const duration = Date.now() - trackingData.startTime
 
             if (this.status >= 200 && this.status < 400) {
-              collector.collectEvent('network_request', {
+              const requestEvent = collector.collectEvent('network_request', {
                 url: trackingData.url,
                 method: trackingData.method,
                 status: this.status,
@@ -546,14 +559,22 @@ export class AutoTracker {
                 success: true,
                 response_size: this.responseText?.length || 0,
               })
+
+              if (requestEvent) {
+                sendEvent(requestEvent)
+              }
             } else {
-              collector.collectEvent('network_error', {
+              const errorEvent = collector.collectEvent('network_error', {
                 url: trackingData.url,
                 method: trackingData.method,
                 status: this.status,
                 duration,
                 error: this.statusText,
               })
+
+              if (errorEvent) {
+                sendEvent(errorEvent)
+              }
             }
           })
         }
@@ -575,7 +596,7 @@ export class AutoTracker {
           entries.forEach((entry) => {
             if (entry.entryType === 'resource') {
               const resourceEntry = entry as PerformanceResourceTiming
-              this.collector.collectEvent('resource_load', {
+              const resourceEvent = this.collector.collectEvent('resource_load', {
                 resource_name: resourceEntry.name,
                 resource_type: this.getResourceType(resourceEntry.name),
                 duration: resourceEntry.duration,
@@ -584,6 +605,10 @@ export class AutoTracker {
                 decoded_size: resourceEntry.decodedBodySize,
                 start_time: resourceEntry.startTime,
               })
+
+              if (resourceEvent) {
+                this.sendEvent(resourceEvent)
+              }
             }
           })
         })
@@ -631,11 +656,15 @@ export class AutoTracker {
         )
 
         if (significantChanges.length > 0) {
-          this.collector.collectEvent('dom_change', {
+          const domEvent = this.collector.collectEvent('dom_change', {
             mutations_count: significantChanges.length,
             added_nodes: significantChanges.reduce((sum, m) => sum + m.addedNodes.length, 0),
             removed_nodes: significantChanges.reduce((sum, m) => sum + m.removedNodes.length, 0),
           })
+
+          if (domEvent) {
+            this.sendEvent(domEvent)
+          }
         }
       })
 
@@ -666,13 +695,17 @@ export class AutoTracker {
     const resizeHandler = () => {
       clearTimeout(this.resizeTimer)
       this.resizeTimer = window.setTimeout(() => {
-        this.collector.collectEvent('viewport_change', {
+        const viewportEvent = this.collector.collectEvent('viewport_change', {
           viewport_width: window.innerWidth,
           viewport_height: window.innerHeight,
           screen_width: screen.width,
           screen_height: screen.height,
           device_pixel_ratio: window.devicePixelRatio,
         })
+
+        if (viewportEvent) {
+          this.sendEvent(viewportEvent)
+        }
       }, 300)
     }
 
@@ -688,7 +721,7 @@ export class AutoTracker {
       this.intersectionObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const element = entry.target as HTMLElement
-          this.collector.collectEvent('element_visibility', {
+          const visibilityEvent = this.collector.collectEvent('element_visibility', {
             element_id: element.id,
             element_class: Utils.getSafeClassName(element),
             element_tag: element.tagName,
@@ -696,6 +729,10 @@ export class AutoTracker {
             intersection_ratio: entry.intersectionRatio,
             element_selector: this.getElementSelector(element),
           })
+
+          if (visibilityEvent) {
+            this.sendEvent(visibilityEvent)
+          }
         })
       }, {
         threshold: [0, 0.25, 0.5, 0.75, 1.0],
@@ -712,6 +749,15 @@ export class AutoTracker {
    * 获取元素信息
    */
   private getElementInfo(element: Element): ElementInfo {
+    let value: string | null
+    if (element instanceof HTMLInputElement && element.type === 'password') {
+      value = null
+    } else if (['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName)) {
+      value = this.maskFieldValue(element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) || null
+    } else {
+      value = (element as HTMLInputElement).value || null
+    }
+
     return {
       type: (element as HTMLInputElement).type || null,
       id: element.id || null,
@@ -721,7 +767,7 @@ export class AutoTracker {
       src: (element as HTMLImageElement).src || null,
       alt: (element as HTMLImageElement).alt || null,
       title: element.getAttribute('title') || null,
-      value: (element as HTMLInputElement).value || null,
+      value,
       placeholder: (element as HTMLInputElement).placeholder || null,
       name: (element as HTMLInputElement).name || null,
       tagName: element.tagName || null,
@@ -808,15 +854,20 @@ export class AutoTracker {
    * 脱敏字段值
    */
   private maskFieldValue(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+    const fieldType = (field as HTMLInputElement).type?.toLowerCase() || ''
+    const fieldName = field.name?.toLowerCase() || ''
+
+    // 密码字段不受 maskSensitiveData 配置影响，始终脱敏
+    if (fieldType === 'password') {
+      return '***'
+    }
+
     if (!this.config.get('maskSensitiveData', true)) {
       return field.value
     }
 
     const sensitiveTypes = ['password', 'email', 'tel', 'credit-card']
     const sensitiveNames = ['password', 'pwd', 'email', 'phone', 'tel', 'credit', 'card', 'ssn']
-
-    const fieldType = (field as HTMLInputElement).type?.toLowerCase() || ''
-    const fieldName = field.name?.toLowerCase() || ''
 
     if (sensitiveTypes.includes(fieldType) ||
         sensitiveNames.some(name => fieldName.includes(name))) {
