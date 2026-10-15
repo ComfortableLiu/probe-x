@@ -60,8 +60,10 @@ export class SystemDataController {
   @Get('meta/overview')
   async getMetaOverview(
     @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<ISystemDataMetaOverview> {
-    return await this.metaService.getMetaOverview(date)
+    return await this.metaService.getMetaOverview(date, startDate, endDate)
   }
 
   @Get('meta/data-trend')
@@ -76,22 +78,28 @@ export class SystemDataController {
   @Get('meta/cleaning-stats')
   async getCleaningStats(
     @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<ISystemDataCleaningStats> {
-    return await this.metaService.getCleaningStats(date)
+    return await this.metaService.getCleaningStats(date, startDate, endDate)
   }
 
   @Get('meta/first-cleaning-detail')
   async getFirstCleaningDetail(
     @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<ISystemDataCleaningDetail> {
-    return await this.metaService.getFirstCleaningDetail(date)
+    return await this.metaService.getFirstCleaningDetail(date, startDate, endDate)
   }
 
   @Get('meta/final-cleaning-detail')
   async getFinalCleaningDetail(
     @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<ISystemDataCleaningDetail> {
-    return await this.metaService.getFinalCleaningDetail(date)
+    return await this.metaService.getFinalCleaningDetail(date, startDate, endDate)
   }
 
   @Get('analysis/statistics')

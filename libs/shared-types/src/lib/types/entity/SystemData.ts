@@ -15,19 +15,19 @@ export interface ISystemDataTrend {
 
 export interface ISystemDataCleaningStats {
   firstCleaning: {
-    successRate: number;
+    successRate: number | null;
     successCount: string;
     failCount: string;
   };
   finalCleaning: {
-    successRate: number;
+    successRate: number | null;
     successCount: string;
     failCount: string;
   };
 }
 
 export interface ISystemDataCleaningDetail {
-  successRate: number;
+  successRate: number | null;
   successCount: string;
   failCount: string;
   detailList: any[]; // 可以根据需要扩展详细信息

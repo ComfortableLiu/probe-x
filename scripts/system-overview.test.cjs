@@ -140,6 +140,7 @@ test('processing counts completed writes and independently measures actual task 
   await recordCleaningOutcome(redis, false, start)
   const result = await service.getProcessing(start + 60000)
   assert.deepEqual(result, {
+    firstCleaningSuccessRate: null,
     currentProcessing: 400,
     peakProcessing: 400,
     finalCleaningSuccessRate: 50,

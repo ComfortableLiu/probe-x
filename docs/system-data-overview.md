@@ -14,23 +14,37 @@
 | API 请求成功率 | 采样请求中成功的比例；分别展示上一完整分钟及本月，**不是服务在线时长或主动探测可用率** |
 | 错误率 | 今日 HTTP 4xx / 5xx / HTTP 成功但业务 code 非 200，互斥计数 |
 | 清洗任务成功率 | 今日最终清洗执行成功次数 /（成功 + 失败次数），跳过的重复任务不计数 |
+| 初次清洗成功率 | 今日初次清洗新事件成功入库次数 /（成功 + 失败的事件尝试次数）；已识别并跳过的重复事件不计 |
 | 实时写入量 | final_event_log 成功写入后采样，按实际写入完成时间统计完整分钟量及今日峰值，历史补算和实际重复写入也计入 |
 | 清洗速度（条/s） | 上一完整分钟写入事件数 ÷ 60；今日峰值为完整分钟写入峰值 ÷ 60 |
 | 清洗速度（session/s） | 上一完整分钟总服务观测到成功完成的清洗任务数 ÷ 60；一个任务对应一个 session 的一天切片，节点幂等跳过的重复任务不计数 |
-| 节点清洗速度 | 计算节点页逐节点展示：实时速度为当前任务近期进度帧差分估算（仅清洗中）；今日平均/最快/最慢为已完成任务的端到端速度（任务拉取事件数 ÷ 下发到完成时长），失败任务与幂等重放不计入 |
+| 节点清洗速度 | 实时速度为节点近6秒所有任务合计进度；今日平均为合计处理量 / 节点忙碌墙钟时长（并发重叠只计一次），最快/最慢为约每秒节点合计采样极值，首尾按实际时长采样 |
 | 事件存量 | 当前 ClickHouse 表内数量；受保留期影响，不是永久累计值，也不能相除推算清洗成功率 |
 
 无样本、首个不完整分钟、旧节点缺少有效性标志、不支持的平台指标返回 null，UI 显示“—”。真实零值保留为 0。单个数据源失败只影响对应卡片，并返回 warnings；整个请求失败时保留前次结果和数据时间。
 
 ## 部署
 
-- 同时更新仪表板 API、前端、最终清洗服务和 shared-types/shared-utils；proto 的新增字段使用新编号，兼容旧节点。旧节点的新增资源指标显示不可用，直到升级并收到有效心跳。
+- 同时更新仪表板 API、前端、初次处理、最终清洗服务和 shared-types/shared-utils；proto 的新增字段使用新编号，兼容旧节点。旧节点的新增资源指标显示不可用，直到升级并收到有效心跳。
 - 无新数据库迁移，无新增必填环境变量。采样复用现有 Redis，API 与计算节点必须使用同一 Redis 实例和 DB；不同部署应隔离 Redis DB。
 - Redis 键前缀为 `probe-x:overview:v1:`，按上海自然日聚合，保留 35 天。不保存 URL、用户信息、请求体或凭证。新版本上线前的历史监控数据无法补采。
-- session 分钟桶（`sessionMinute:{m}`）与节点速度统计（`probe-x:overview:v1:nodeCleaning:{day}:{nodeId}`，含 tasks/events/durationMs/maxSpeed/minSpeed）由总服务在观测到任务完成时写入，节点无需升级即可生效。
+- session 分钟桶（`sessionMinute:{m}`）由总服务观测成功完成任务时写入；节点总速度统计使用 `probe-x:overview:v2:nodeCleaning:{day}:{nodeId}`，含 samples/events/durationMs/maxSpeed/minSpeed，旧单任务统计不混用。
 - Redis 故障期间放弃监控写入，避免阻塞业务或无限排队，并限频记录日志。失败期间可能缺样本；重启保留已成功写入 Redis 的历史。
 - 网络速率在 Linux 上通过 `/proc/net/dev` 采集，其他平台显示不可用。没有在线节点时资源指标无样本。
-- 当前开发配置的 API `autoRestart` 为 false，修改源码后需要重启 API；计算节点也需重新构建/重启才能发送新增指标。
+- API 与最终清洗开发配置在成功编译后等待旧进程退出再启动新产物；旧 watcher 需重启才能加载该配置。初次处理服务更新后需重新构建并重启以启用新增结果采样。
+
+## 元数据清洗结果
+
+`/system-data/meta/overview`、`cleaning-stats`、`first-cleaning-detail`、`final-cleaning-detail`
+共用真实执行结果采样。成功率为成功尝试数 /（成功尝试数 + 失败尝试数），无样本时成功率为 null，
+成功/失败次数显示“—”；真实全失败仍为 0%。不以库存条数反推失败数。
+
+- 初次处理在 `event_log` 插入成功后按实际新事件数量记录成功；转换失败及批次处理失败记录失败事件尝试，重试分别计次，已确认去重跳过的事件不计。监控写入异步隔离，不改变缓冲区、重试或 Kafka offset 提交。
+- 最终清洗复用 `processing:{day}` 的 successfulTasks/failedTasks；按 session 任务执行尝试统计，幂等提前返回不计。详情的成功/失败次数是任务次数，不能与最终事件库存数量直接比较。
+- 初次采样使用 `probe-x:overview:v1:preliminary:{day}` 的 successfulEvents/failedEvents。两个服务与 API 必须使用同一 Redis DB。
+- 统计按 Asia/Shanghai 执行完成日期归档，默认今日；`date` 指定单日，`startDate`/`endDate` 指定完整范围。仅支持最近35个自然日内的执行统计，包含过期或未来日期的范围显示无样本。
+- 概览两个数据量字段仍是事件库存，未选日期查询全部存量，选择范围时按事件日期过滤；与按执行日期计算的成功率分别展示。
+- 直接运行造数脚本插入初步表不会经过初次服务，不生成初次成功样本。上线前未记录的结果无法从现有库存可靠补算。
 
 ## 验证
 
@@ -39,9 +53,11 @@
 ```sh
 node --test scripts/system-overview.test.cjs
 node --test scripts/cleaning-scheduler.test.cjs
+node --test scripts/meta-cleaning.test.cjs scripts/meta-success-rate.test.cjs scripts/preliminary-cleaning-metrics.test.cjs
 yarn workspace final-data-cleaning-service test --runInBand
 yarn workspace data-dashboard-api-service build
 yarn workspace final-data-cleaning-service build
+yarn workspace preliminary-data-processing-service build
 yarn workspace frontend build
 ```
 

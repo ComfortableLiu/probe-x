@@ -22,7 +22,7 @@ export function metricsWindow(now = Date.now()) {
   }
 }
 
-export const metricsKey = (kind: 'api' | 'processing', day: string) => `probe-x:overview:v1:${kind}:${day}`
+export const metricsKey = (kind: 'api' | 'processing' | 'preliminary', day: string) => `probe-x:overview:v1:${kind}:${day}`
 
 export async function recordRuntimeMetric(
   client: Redis,
@@ -81,6 +81,88 @@ export async function recordCleaningOutcome(client: Redis, success: boolean, now
     .expire(key, METRICS_TTL_SECONDS)
     .exec()
   if (!result || result.some(([error]) => error)) throw new Error('清洗任务结果写入失败')
+}
+
+/** 初次清洗以实际新事件落库/失败尝试计数，已识别并跳过的重复事件不计。 */
+export async function recordPreliminaryCleaningOutcome(
+  client: Redis,
+  success: boolean,
+  count = 1,
+  now = Date.now(),
+): Promise<void> {
+  if (!Number.isSafeInteger(count) || count <= 0) return
+  if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
+  const key = metricsKey('preliminary', metricsWindow(now).today)
+  const result = await client.multi()
+    .hincrby(key, success ? 'successfulEvents' : 'failedEvents', count)
+    .expire(key, METRICS_TTL_SECONDS)
+    .exec()
+  if (!result || result.some(([error]) => error)) throw new Error('初次清洗结果写入失败')
+}
+
+export interface ICleaningOutcomeStats {
+  successRate: number | null
+  successCount: number | null
+  failCount: number | null
+}
+
+export interface ICleaningOutcomes {
+  firstCleaning: ICleaningOutcomeStats
+  finalCleaning: ICleaningOutcomeStats
+}
+
+const unobservedCleaningOutcome = (): ICleaningOutcomeStats => ({
+  successRate: null,
+  successCount: null,
+  failCount: null,
+})
+
+/** 读取保留期内的真实执行结果。缺少样本不代表成功率为 0。 */
+export async function readCleaningOutcomes(
+  client: Redis,
+  startDate?: string,
+  endDate?: string,
+  now = Date.now(),
+): Promise<ICleaningOutcomes> {
+  const { today, dayStart } = metricsWindow(now)
+  const parseDate = (value: string) => {
+    const timestamp = Date.parse(`${value}T00:00:00+08:00`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(timestamp) || metricsWindow(timestamp).today !== value) {
+      throw new Error('清洗统计日期必须为有效的 YYYY-MM-DD')
+    }
+    return timestamp
+  }
+  const start = parseDate(startDate ?? today)
+  const end = parseDate(endDate ?? startDate ?? today)
+  if (start > end) throw new Error('清洗统计开始日期不能晚于结束日期')
+  const dayMs = 86400000
+  const empty = () => ({ firstCleaning: unobservedCleaningOutcome(), finalCleaning: unobservedCleaningOutcome() })
+  // 绝不把已过期的部分范围当成完整范围统计，也不返回未来日期的推测结果。
+  if (end - start >= METRICS_TTL_SECONDS * 1000 || start < dayStart - METRICS_TTL_SECONDS * 1000 + dayMs || end > dayStart) return empty()
+  if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
+  const tx = client.multi()
+  for (let day = start; day <= end; day += dayMs) {
+    const date = metricsWindow(day).today
+    tx.hmget(metricsKey('preliminary', date), 'successfulEvents', 'failedEvents')
+    tx.hmget(metricsKey('processing', date), 'successfulTasks', 'failedTasks')
+  }
+  const result = await tx.exec()
+  if (!result || result.some(([error]) => error)) throw new Error('清洗结果读取失败')
+  const totals = [{ success: 0, failed: 0 }, { success: 0, failed: 0 }]
+  result.forEach(([, value], index) => {
+    const counts = value as [string | null, string | null]
+    const success = Number(counts[0] ?? 0)
+    const failed = Number(counts[1] ?? 0)
+    if (!Number.isSafeInteger(success) || success < 0 || !Number.isSafeInteger(failed) || failed < 0) {
+      throw new Error('清洗结果计数无效')
+    }
+    totals[index % 2].success += success
+    totals[index % 2].failed += failed
+  })
+  const summarize = ({ success, failed }: typeof totals[number]): ICleaningOutcomeStats => success + failed > 0
+    ? { successRate: success * 100 / (success + failed), successCount: success, failCount: failed }
+    : unobservedCleaningOutcome()
+  return { firstCleaning: summarize(totals[0]), finalCleaning: summarize(totals[1]) }
 }
 
 /**

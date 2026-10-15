@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationShutdown, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { IEventLog, IPreEventLog, IUserCacheData, TrackingNodeLevel, TrackingNodeType } from "@probe-x/shared-types/src"
 import { ClickHouseService, RedisService, TrackingNodeEntity } from "@probe-x/shared-utils/src/lib/backend-common"
+import { recordPreliminaryCleaningOutcome } from "@probe-x/shared-utils/src/lib/backend-common/runtime-metrics"
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository } from "typeorm"
 import dayjs from "dayjs"
@@ -51,6 +52,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
   private partitionProgress = new Map<string, PartitionProgress>()
   // 最近一次消费传入的提交能力（同一 consumer，可提交任意分区的位点）
   private offsetCommitter: OffsetCommitter | null = null
+  private lastMetricsWarningAt: number | null = null
 
   constructor(
     private readonly clickhouseService: ClickHouseService,
@@ -58,6 +60,19 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
     @InjectRepository(TrackingNodeEntity)
     private trackingNodeRepository: Repository<TrackingNodeEntity>,
   ) {
+  }
+
+  // 监控故障不得改变消费、落库、offset 提交或重试结果；最多每分钟告警一次。
+  private recordCleaningOutcome(success: boolean, count: number) {
+    const recordedAt = Date.now()
+    void Promise.resolve().then(() => recordPreliminaryCleaningOutcome(this.redisService.getClient(), success, count, recordedAt))
+      .catch(() => {
+        const now = Date.now()
+        if (this.lastMetricsWarningAt === null || now - this.lastMetricsWarningAt >= 60000) {
+          this.lastMetricsWarningAt = now
+          console.warn('初次清洗结果监控写入失败，业务处理继续')
+        }
+      })
   }
 
   onModuleInit() {
@@ -124,6 +139,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
     // $event_id 缺失（旧 SDK/兜底未覆盖）时用 deviceId+eventName+logTime 哈希兜底
     const acquiredKeys: string[] = []
     const newEvents: IPreEventLog[] = []
+    let pendingEvents = batch.length
     try {
       for (const { event } of batch) {
         const dedupId = event.$event_id || createHash('md5')
@@ -135,6 +151,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
           acquiredKeys.push(dedupKey)
           newEvents.push(event)
         } else {
+          pendingEvents--
           console.debug(`重复事件跳过: ${dedupId} (${event.$event_name})`)
         }
       }
@@ -142,10 +159,12 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
         await this.clickhouseService.insert('event_log', newEvents)
       }
     } catch (e) {
+      this.recordCleaningOutcome(false, pendingEvents)
       // 失败时释放本次新占用的去重键，避免重投被误判重复；批次由调用方回缓冲头部
       await this.releaseDedupKeys(acquiredKeys)
       throw e
     }
+    if (newEvents.length > 0) this.recordCleaningOutcome(true, newEvents.length)
 
     // 落库成功：批内所有 offset（含被去重丢弃的）都计为完成，并提交有推进的分区位点
     for (const { meta } of batch) {
@@ -395,6 +414,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
    */
   async handleEvent(event: IEventLog, meta: EventMeta, commitOffsets: OffsetCommitter) {
     this.offsetCommitter = commitOffsets
+    let buffered = false
     try {
       const res = await Promise.all([
         this.splitSessionAndUtm(event),
@@ -421,11 +441,14 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy, OnAp
       // 进入内存缓冲区，按条数（500）或时间窗口（5s）批量落库，先到先发；
       // offset 只在落库成功后才提交，崩溃时缓冲区数据随 Kafka 重投恢复，由落库前去重保证幂等
       this.eventBuffer.push({ event: data, meta })
+      buffered = true
       if (this.eventBuffer.length >= KafkaConsumerService.FLUSH_BATCH_SIZE) {
         await this.flushEventLog()
       }
       // TODO 通知在线清洗服务，一期不实现
     } catch (e) {
+      // flushBatch 已统计整批失败；补全阶段失败仅统计当前事件一次。
+      if (!buffered) this.recordCleaningOutcome(false, 1)
       // 可重试错误（连接/超时类）rethrow，不推进 offset，让 Kafka 重投
       if (this.isRetryableError(e)) {
         throw e

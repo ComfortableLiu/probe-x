@@ -5,6 +5,7 @@ import {
   histogramPercentile,
   metricsKey,
   metricsWindow,
+  readCleaningOutcomes,
   recordRuntimeMetric,
 } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
 
@@ -14,6 +15,10 @@ export class RuntimeMetricsService {
   private lastWarningAt = 0
 
   constructor(private readonly redisService: RedisService) {}
+
+  getCleaningOutcomes(startDate?: string, endDate?: string, now = Date.now()) {
+    return readCleaningOutcomes(this.redisService.getClient(), startDate, endDate, now)
+  }
 
   record(duration: number, status: number, businessError: boolean): void {
     recordRuntimeMetric(this.redisService.getClient(), 'api', 1, { duration, status, businessError })
@@ -84,13 +89,14 @@ export class RuntimeMetricsService {
   }
 
   async getProcessing(now = Date.now()) {
-    const { today, currentCount, currentSessionCount, completeMinutes, completeSessionMinutes } = await this.read('processing', now)
-    const successful = Number(today.successfulTasks || 0)
-    const failed = Number(today.failedTasks || 0)
+    const { currentCount, currentSessionCount, completeMinutes, completeSessionMinutes } = await this.read('processing', now)
+    const day = metricsWindow(now).today
+    const outcomes = await this.getCleaningOutcomes(day, day, now)
     const peakProcessing = completeMinutes.length ? Math.max(...completeMinutes) : currentCount === null ? null : 0
     const peakSessions = completeSessionMinutes.length ? Math.max(...completeSessionMinutes) : currentSessionCount === null ? null : 0
     return {
-      finalCleaningSuccessRate: successful + failed ? successful / (successful + failed) * 100 : null,
+      firstCleaningSuccessRate: outcomes.firstCleaning.successRate,
+      finalCleaningSuccessRate: outcomes.finalCleaning.successRate,
       currentProcessing: currentCount,
       peakProcessing,
       currentCleaningSpeed: currentCount === null ? null : currentCount / 60,

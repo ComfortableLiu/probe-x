@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ClickHouseService } from '@probe-x/shared-utils/src/lib/backend-common'
 import {
   ISystemDataCleaningDetail,
@@ -6,6 +6,12 @@ import {
   ISystemDataMetaOverview,
   ISystemDataTrend,
 } from '@probe-x/shared-types/src'
+import { metricsWindow } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
+import { RuntimeMetricsService } from './runtime-metrics.service'
+
+type CleaningOutcomes = Awaited<ReturnType<RuntimeMetricsService['getCleaningOutcomes']>>
+
+const EMPTY_OUTCOME = { successRate: null, successCount: null, failCount: null }
 
 /**
  * 元数据服务
@@ -13,8 +19,14 @@ import {
  */
 @Injectable()
 export class MetaService {
+  private readonly logger = new Logger(MetaService.name)
+  private lastMetricsWarning = 0
+  private outcomeCache: { key: string; at: number; data: CleaningOutcomes } | null = null
+  private readonly pendingOutcomes = new Map<string, Promise<CleaningOutcomes>>()
+
   constructor(
     private readonly clickhouseService: ClickHouseService,
+    private readonly runtimeMetrics: RuntimeMetricsService,
   ) {
   }
 
@@ -23,17 +35,14 @@ export class MetaService {
    * @param date 指定日期，格式为 YYYY-MM-DD
    * @returns ISystemDataMetaOverview 元数据概览信息
    */
-  async getMetaOverview(date?: string): Promise<ISystemDataMetaOverview> {
+  async getMetaOverview(date?: string, startDate?: string, endDate?: string): Promise<ISystemDataMetaOverview> {
+    const period = this.resolvePeriod(date, startDate, endDate)
     // 从ClickHouse查询元数据概览信息
     try {
-      // 验证日期格式
-      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        throw new Error('Invalid date format. Expected YYYY-MM-DD')
-      }
-
       // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
-      const params = date ? { date } : {}
+      const dateCondition = period.startDate
+        ? `AND toDate(\`$service_time\`, 'Asia/Shanghai') BETWEEN {startDate:Date} AND {endDate:Date}` : ''
+      const params = period.startDate ? period : {}
 
       // 查询原始数据总量
       const originalDataTotalResult = await this.clickhouseService.query<{ count: string }>(
@@ -53,17 +62,13 @@ export class MetaService {
       )
       const finalCleanedData = this.formatCount(finalCleanedDataResult[0]?.count || '0')
 
-      // 查询初次清洗成功率
-      const firstCleaningSuccessRate = null // TODO 实际应用中可能需要通过比较原始数据和初次清洗数据来计算
-
-      // 查询最终清洗成功率
-      const finalCleaningSuccessRate = null // TODO 实际应用中可能需要通过比较初次清洗数据和最终清洗数据来计算
+      const outcomes = await this.getOutcomes(period)
 
       return {
         originalDataTotal,
         finalCleanedData,
-        firstCleaningSuccessRate,
-        finalCleaningSuccessRate,
+        firstCleaningSuccessRate: outcomes.firstCleaning.successRate,
+        finalCleaningSuccessRate: outcomes.finalCleaning.successRate,
       }
     } catch (error) {
       console.error('Error fetching meta overview:', error)
@@ -152,54 +157,11 @@ export class MetaService {
    * @param date 指定日期，格式为 YYYY-MM-DD
    * @returns ISystemDataCleaningStats 清洗统计信息
    */
-  async getCleaningStats(date?: string): Promise<ISystemDataCleaningStats> {
-    try {
-      // 验证日期格式
-      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        throw new Error('Invalid date format. Expected YYYY-MM-DD')
-      }
-
-      // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
-      const params = date ? { date } : {}
-
-      // 查询初次清洗统计
-      const [firstCleanResult, finalCleanResult] = await Promise.all([
-        this.clickhouseService.query<{ count: string }>(
-          `SELECT toString(count(*)) as count
-           FROM event_log
-           WHERE 1 = 1 ${dateCondition}`,
-          params,
-        ),
-        this.clickhouseService.query<{ count: string }>(
-          `SELECT toString(count(*)) as count
-           FROM final_event_log
-           WHERE 1 = 1 ${dateCondition}`,
-          params,
-        ),
-      ])
-
-      const firstCleanCount = firstCleanResult[0]?.count || '0'
-      const finalCleanCount = finalCleanResult[0]?.count || '0'
-
-      const firstSuccessRate = null
-      const finalSuccessRate = null
-
-      return {
-        firstCleaning: {
-          successRate: firstSuccessRate, // TODO 实际应用中需要计算成功率
-          successCount: this.formatCount(firstCleanCount),
-          failCount: this.calculateFailCount(firstCleanCount, firstSuccessRate),
-        },
-        finalCleaning: {
-          successRate: finalSuccessRate, // TODO 实际应用中需要计算成功率
-          successCount: this.formatCount(finalCleanCount),
-          failCount: this.calculateFailCount(finalCleanCount, finalSuccessRate),
-        },
-      }
-    } catch (error) {
-      console.error('Error fetching cleaning stats:', error)
-      return null
+  async getCleaningStats(date?: string, startDate?: string, endDate?: string): Promise<ISystemDataCleaningStats> {
+    const outcomes = await this.getOutcomes(this.resolvePeriod(date, startDate, endDate))
+    return {
+      firstCleaning: this.formatOutcome(outcomes.firstCleaning),
+      finalCleaning: this.formatOutcome(outcomes.finalCleaning),
     }
   }
 
@@ -208,40 +170,9 @@ export class MetaService {
    * @param date 指定日期，格式为 YYYY-MM-DD
    * @returns ISystemDataCleaningDetail 初次清洗详情
    */
-  async getFirstCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
-    try {
-      // 验证日期格式
-      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        throw new Error('Invalid date format. Expected YYYY-MM-DD')
-      }
-
-      // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
-      const params = date ? { date } : {}
-
-      // 查询初次清洗详情
-      const result = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM event_log
-         WHERE 1 = 1 ${dateCondition}`,
-        params,
-      )
-
-      const count = result[0]?.count || '0'
-
-      // TODO
-      const successRate = null
-
-      return {
-        successRate,
-        successCount: this.formatCount(count),
-        failCount: this.calculateFailCount(count, successRate),
-        detailList: [], // 可以扩展更多详细信息
-      }
-    } catch (error) {
-      console.error('Error fetching first cleaning detail:', error)
-      return null
-    }
+  async getFirstCleaningDetail(date?: string, startDate?: string, endDate?: string): Promise<ISystemDataCleaningDetail> {
+    const { firstCleaning } = await this.getCleaningStats(date, startDate, endDate)
+    return { ...firstCleaning, detailList: [] }
   }
 
   /**
@@ -249,38 +180,56 @@ export class MetaService {
    * @param date 指定日期，格式为 YYYY-MM-DD
    * @returns ISystemDataCleaningDetail 最终清洗详情
    */
-  async getFinalCleaningDetail(date?: string): Promise<ISystemDataCleaningDetail> {
-    try {
-      // 验证日期格式
-      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        throw new Error('Invalid date format. Expected YYYY-MM-DD')
+  async getFinalCleaningDetail(date?: string, startDate?: string, endDate?: string): Promise<ISystemDataCleaningDetail> {
+    const { finalCleaning } = await this.getCleaningStats(date, startDate, endDate)
+    return { ...finalCleaning, detailList: [] }
+  }
+
+  private resolvePeriod(date?: string, startDate?: string, endDate?: string) {
+    if ((startDate && !endDate) || (!startDate && endDate)) {
+      throw new BadRequestException('开始日期和结束日期必须一起提供')
+    }
+    const start = startDate || date
+    const end = endDate || date
+    for (const day of [start, end]) {
+      if (day && (!/^\d{4}-\d{2}-\d{2}$/.test(day)
+        || !Number.isFinite(Date.parse(`${day}T00:00:00Z`))
+        || new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) !== day)) {
+        throw new BadRequestException('日期必须为有效的 YYYY-MM-DD')
       }
+    }
+    if (start && end && start > end) throw new BadRequestException('开始日期不能晚于结束日期')
+    return { startDate: start, endDate: end }
+  }
 
-      // 构建日期条件
-      const dateCondition = date ? `AND toDate(\`$service_time\`) = {date:String}` : ''
-      const params = date ? { date } : {}
-
-      // 查询最终清洗详情
-      const result = await this.clickhouseService.query<{ count: string }>(
-        `SELECT toString(count(*)) as count
-         FROM final_event_log
-         WHERE 1 = 1 ${dateCondition}`,
-        params,
-      )
-
-      const count = result[0]?.count || '0'
-      // TODO
-      const successRate = null
-
-      return {
-        successRate,
-        successCount: this.formatCount(count),
-        failCount: this.calculateFailCount(count, successRate),
-        detailList: [], // 可以扩展更多详细信息
+  private getOutcomes(period: { startDate?: string; endDate?: string }): Promise<CleaningOutcomes> {
+    const start = period.startDate || metricsWindow().today
+    const end = period.endDate || start
+    const key = `${start}:${end}`
+    if (this.outcomeCache?.key === key && Date.now() - this.outcomeCache.at < 1000) {
+      return Promise.resolve(this.outcomeCache.data)
+    }
+    const existing = this.pendingOutcomes.get(key)
+    if (existing) return existing
+    const pending = this.runtimeMetrics.getCleaningOutcomes(start, end).catch(() => {
+      if (Date.now() - this.lastMetricsWarning > 60000) {
+        this.lastMetricsWarning = Date.now()
+        this.logger.warn('清洗结果采样暂不可用')
       }
-    } catch (error) {
-      console.error('Error fetching final cleaning detail:', error)
-      return null
+      return { firstCleaning: { ...EMPTY_OUTCOME }, finalCleaning: { ...EMPTY_OUTCOME } }
+    }).then(data => {
+      this.outcomeCache = { key, at: Date.now(), data }
+      return data
+    }).finally(() => { this.pendingOutcomes.delete(key) })
+    this.pendingOutcomes.set(key, pending)
+    return pending
+  }
+
+  private formatOutcome(outcome: CleaningOutcomes['firstCleaning']) {
+    return {
+      successRate: outcome.successRate,
+      successCount: outcome.successCount === null ? '—' : this.formatCount(String(outcome.successCount)),
+      failCount: outcome.failCount === null ? '—' : this.formatCount(String(outcome.failCount)),
     }
   }
 
@@ -298,20 +247,4 @@ export class MetaService {
     }
   }
 
-  // 计算失败数量
-  private calculateFailCount(total: string, successRate: number): string {
-    const totalNum = parseInt(total, 10)
-    if (isNaN(totalNum)) return '0'
-
-    const failRate = 100 - successRate
-    const failCount = Math.round(totalNum * (failRate / 100))
-
-    if (failCount >= 1000000) {
-      return `${(failCount / 1000000).toFixed(1)}M`
-    } else if (failCount >= 1000) {
-      return `${(failCount / 1000).toFixed(1)}k`
-    } else {
-      return failCount.toString()
-    }
-  }
 }

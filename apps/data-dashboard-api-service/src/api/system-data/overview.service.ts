@@ -67,7 +67,7 @@ export class OverviewService {
         todayQueries: null, yesterdayQueries: null, weekQueries: null, monthQueries: null,
       }),
       read('处理吞吐采样', () => this.runtimeMetrics.getProcessing(now), {
-        currentProcessing: null, peakProcessing: null, finalCleaningSuccessRate: null,
+        currentProcessing: null, peakProcessing: null, firstCleaningSuccessRate: null, finalCleaningSuccessRate: null,
         currentCleaningSpeed: null, peakCleaningSpeed: null,
         currentSessionSpeed: null, peakSessionSpeed: null,
       }),
@@ -96,7 +96,7 @@ export class OverviewService {
         originalDataTotal: eventCollectionMetrics.totalAmount === null ? '—' : String(eventCollectionMetrics.totalAmount),
         finalCleanedData: finalCount === null ? '—' : String(finalCount),
         // 成功率来自今日任务结果采样，不能以不同 TTL 的表存量相除。
-        firstCleaningSuccessRate: null,
+        firstCleaningSuccessRate: processing.firstCleaningSuccessRate ?? null,
         finalCleaningSuccessRate: processing.finalCleaningSuccessRate,
       },
       updatedAt: new Date(now).toISOString(),
