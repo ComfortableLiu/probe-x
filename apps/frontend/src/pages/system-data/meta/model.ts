@@ -16,8 +16,8 @@ const initState: ISystemDataMetaState = {
   overview: {
     originalDataTotal: '', // 原始数据总量
     finalCleanedData: '', // 最终清洗数据量
-    firstCleaningSuccessRate: 0, // 初次清洗成功率
-    finalCleaningSuccessRate: 0, // 最终清洗成功率
+    firstCleaningSuccessRate: null, // 初次清洗成功率
+    finalCleaningSuccessRate: null, // 最终清洗成功率
   },
   dataTrend: {
     xAxis: [], // 数据趋势X轴（通常是时间）
@@ -25,26 +25,26 @@ const initState: ISystemDataMetaState = {
   },
   cleaningStats: {
     firstCleaning: { // 初次清洗统计
-      successRate: 0, // 成功率
-      successCount: '', // 成功数量
-      failCount: '', // 失败数量
+      successRate: null, // 成功率
+      successCount: '—', // 成功数量
+      failCount: '—', // 失败数量
     },
     finalCleaning: { // 最终清洗统计
-      successRate: 0, // 成功率
-      successCount: '', // 成功数量
-      failCount: '', // 失败数量
+      successRate: null, // 成功率
+      successCount: '—', // 成功数量
+      failCount: '—', // 失败数量
     },
   },
   firstCleaningDetail: { // 初次清洗详情
-    successRate: 0, // 成功率
-    successCount: '', // 成功数量
-    failCount: '', // 失败数量
+    successRate: null, // 成功率
+    successCount: '—', // 成功数量
+    failCount: '—', // 失败数量
     detailList: [], // 详情列表
   },
   finalCleaningDetail: { // 最终清洗详情
-    successRate: 0, // 成功率
-    successCount: '', // 成功数量
-    failCount: '', // 失败数量
+    successRate: null, // 成功率
+    successCount: '—', // 成功数量
+    failCount: '—', // 失败数量
     detailList: [], // 详情列表
   },
 }
@@ -105,8 +105,8 @@ const systemDataMetaModel = createModel<RootModel>()({
         const overview = response.data || {
           originalDataTotal: '',
           finalCleanedData: '',
-          firstCleaningSuccessRate: 0,
-          finalCleaningSuccessRate: 0,
+          firstCleaningSuccessRate: null,
+          finalCleaningSuccessRate: null,
         }
         dispatch.systemDataMetaModel.setOverview(overview)
         return response
@@ -138,14 +138,14 @@ const systemDataMetaModel = createModel<RootModel>()({
         // 确保 cleaningStats 不为 null，如果为 null 则使用默认值
         const cleaningStats = response.data || {
           firstCleaning: {
-            successRate: 0,
-            successCount: '',
-            failCount: '',
+            successRate: null,
+            successCount: '—',
+            failCount: '—',
           },
           finalCleaning: {
-            successRate: 0,
-            successCount: '',
-            failCount: '',
+            successRate: null,
+            successCount: '—',
+            failCount: '—',
           },
         }
         dispatch.systemDataMetaModel.setCleaningStats(cleaningStats)
@@ -161,9 +161,9 @@ const systemDataMetaModel = createModel<RootModel>()({
         const response = await getFirstCleaningDetail(params)
         // 确保 firstCleaningDetail 不为 null，如果为 null 则使用默认值
         const firstCleaningDetail = response.data || {
-          successRate: 0,
-          successCount: '',
-          failCount: '',
+          successRate: null,
+          successCount: '—',
+          failCount: '—',
           detailList: [],
         }
         dispatch.systemDataMetaModel.setFirstCleaningDetail(firstCleaningDetail)
@@ -179,9 +179,9 @@ const systemDataMetaModel = createModel<RootModel>()({
         const response = await getFinalCleaningDetail(params)
         // 确保 finalCleaningDetail 不为 null，如果为 null 则使用默认值
         const finalCleaningDetail = response.data || {
-          successRate: 0,
-          successCount: '',
-          failCount: '',
+          successRate: null,
+          successCount: '—',
+          failCount: '—',
           detailList: [],
         }
         dispatch.systemDataMetaModel.setFinalCleaningDetail(finalCleaningDetail)

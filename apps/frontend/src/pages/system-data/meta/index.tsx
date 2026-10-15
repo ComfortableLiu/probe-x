@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react"
-import { Card, Col, DatePicker, Progress, Row, Spin, Statistic, theme } from "antd"
+import React, { useEffect, useMemo, useRef } from "react"
+import { Alert, Card, Col, DatePicker, Row, Spin, Statistic, Tooltip, theme } from "antd"
 import PageHeader from "@components/PageHeader"
 import * as styles from "./styles.module.scss"
 import * as echarts from "echarts"
@@ -8,6 +8,8 @@ import { ISystemDataMetaState } from "./type"
 import dayjs from "dayjs"
 import { useHistoryListener, useLoading, useModel, useQuery, useRouter } from "@/hooks"
 import { Dispatch } from "@/store/storeContext"
+import { IDateParams } from "./services"
+import { CleaningRateProgress, CleaningRateStatistic } from "./cleaning-rate"
 
 const { RangePicker } = DatePicker
 
@@ -17,8 +19,6 @@ function Meta() {
   const chartRef = useRef<HTMLDivElement>(null)
   // 图表实例引用
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  // 日期范围选择状态
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   // 主题 token
   const { token } = theme.useToken()
@@ -30,7 +30,6 @@ function Meta() {
   const {
     overview,
     dataTrend,
-    cleaningStats,
     firstCleaningDetail,
     finalCleaningDetail,
   } = useModel<ISystemDataMetaState>('systemDataMetaModel')
@@ -39,8 +38,8 @@ function Meta() {
   const safeOverview = overview || {
     originalDataTotal: '',
     finalCleanedData: '',
-    firstCleaningSuccessRate: 0,
-    finalCleaningSuccessRate: 0,
+    firstCleaningSuccessRate: null,
+    finalCleaningSuccessRate: null,
   }
 
   // 防御性编程：确保其他数据不为 null
@@ -49,30 +48,17 @@ function Meta() {
     series: [],
   }
 
-  const safeCleaningStats = cleaningStats || {
-    firstCleaning: {
-      successRate: 0,
-      successCount: '',
-      failCount: '',
-    },
-    finalCleaning: {
-      successRate: 0,
-      successCount: '',
-      failCount: '',
-    },
-  }
-
   const safeFirstCleaningDetail = firstCleaningDetail || {
-    successRate: 0,
-    successCount: '',
-    failCount: '',
+    successRate: null,
+    successCount: '—',
+    failCount: '—',
     detailList: [],
   }
 
   const safeFinalCleaningDetail = finalCleaningDetail || {
-    successRate: 0,
-    successCount: '',
-    failCount: '',
+    successRate: null,
+    successCount: '—',
+    failCount: '—',
     detailList: [],
   }
 
@@ -88,7 +74,16 @@ function Meta() {
 
   // 使用useRouter和useQuery获取路由参数
   const { refresh } = useRouter()
-  const query = useQuery()
+  const query = useQuery<IDateParams>()
+  // 日期由路由保存，刷新页面和浏览器前进/后退时恢复选择。
+  const dateRange = useMemo<[dayjs.Dayjs, dayjs.Dayjs] | null>(() => {
+    const start = query.startDate || query.date
+    const end = query.endDate || query.date
+    if (!start || !end) return null
+    const startDay = dayjs(start)
+    const endDay = dayjs(end)
+    return startDay.isValid() && endDay.isValid() ? [startDay, endDay] : null
+  }, [query.date, query.startDate, query.endDate])
 
   // 使用useDispatch获取dispatch方法
   const dispatch = useDispatch<Dispatch>()
@@ -109,69 +104,34 @@ function Meta() {
     }
   })
 
-  // 组件挂载时获取数据
-  useEffect(() => {
-    fetchData()
-  }, [])
-
   // 获取数据函数
   const fetchData = async () => {
     try {
-      // 优先使用查询参数中的日期；默认不传日期，后端查询全部时间的数据
-      const dateStr = query.date
-      const startStr = query.startDate || dateStr
-      const endStr = query.endDate || dateStr
+      // 库存按事件日期筛选，清洗结果按执行完成日期筛选；成功率默认今日。
+      const params: IDateParams = query.startDate || query.endDate
+        ? { startDate: query.startDate || query.date, endDate: query.endDate || query.date }
+        : query.date ? { date: query.date } : {}
+      const startStr = params.startDate || params.date
+      const endStr = params.endDate || params.date
 
-      // 并行获取所有需要的数据
       await Promise.all([
-        getMetaOverview(dateStr ? { date: dateStr } : {}),
+        getMetaOverview(params),
         getDataTrend(startStr && endStr ? { startDate: startStr, endDate: endStr } : {}),
-        getCleaningStats(dateStr ? { date: dateStr } : {}),
-        getFirstCleaningDetail(dateStr ? { date: dateStr } : {}),
-        getFinalCleaningDetail(dateStr ? { date: dateStr } : {}),
+        getCleaningStats(params),
+        getFirstCleaningDetail(params),
+        getFinalCleaningDetail(params),
       ])
     } catch (error) {
       console.error('获取数据失败:', error)
     }
   }
 
-  // 日期范围选择处理
-  const handleDateChange = async (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
-    setDateRange(dates)
-
-    try {
-      if (dates) {
-        const [startDate, endDate] = dates
-        const startStr = startDate.format('YYYY-MM-DD')
-        const endStr = endDate.format('YYYY-MM-DD')
-
-        // 并行获取所有需要的数据
-        await Promise.all([
-          getMetaOverview({ date: startStr }),
-          getDataTrend({ startDate: startStr, endDate: endStr }),
-          getCleaningStats({ date: startStr }),
-          getFirstCleaningDetail({ date: startStr }),
-          getFinalCleaningDetail({ date: startStr }),
-        ])
-
-        // 更新查询参数
-        refresh({ date: startStr, startDate: startStr, endDate: endStr }, false)
-      } else {
-        // 清空日期选择时，不传日期查询全部时间的数据
-        await Promise.all([
-          getMetaOverview({}),
-          getDataTrend({}),
-          getCleaningStats({}),
-          getFirstCleaningDetail({}),
-          getFinalCleaningDetail({}),
-        ])
-
-        // 清除查询参数
-        refresh({}, false)
-      }
-    } catch (error) {
-      console.error('获取数据失败:', error)
-    }
+  // 路由变化统一触发查询，所有清洗统计使用完整日期范围。
+  const handleDateChange = (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
+    refresh(dates ? {
+      startDate: dates[0].format('YYYY-MM-DD'),
+      endDate: dates[1].format('YYYY-MM-DD'),
+    } : {}, false)
   }
 
   // 初始化和更新图表
@@ -275,6 +235,13 @@ function Meta() {
         }
       />
 
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 24 }}
+        message="成功率按执行完成日期统计，未选日期时显示今日；仅保留最近35天的执行统计，没有采样时显示“—”。"
+      />
+
       {/* 元数据概览卡片行 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
@@ -297,23 +264,19 @@ function Meta() {
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card loading={overviewLoading}>
-            <Statistic
-              title="初次清洗成功率"
-              value={safeOverview.firstCleaningSuccessRate ?? '-'} // 显示初次清洗成功率
-              precision={2}
-              valueStyle={{ color: token.colorSuccess }}
-              suffix="%"
+            <CleaningRateStatistic
+              title={<Tooltip title="按事件处理尝试统计：成功次数 ÷（成功次数 + 失败次数）。不以数据库现有数据量推算。">初次清洗成功率</Tooltip>}
+              rate={safeOverview.firstCleaningSuccessRate}
+              color={token.colorSuccess}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card loading={overviewLoading}>
-            <Statistic
-              title="最终清洗成功率"
-              value={safeOverview.finalCleaningSuccessRate ?? '-'} // 显示最终清洗成功率
-              precision={2}
-              valueStyle={{ color: token.colorSuccess }}
-              suffix="%"
+            <CleaningRateStatistic
+              title={<Tooltip title="按 session 任务执行尝试统计：成功次数 ÷（成功次数 + 失败次数），重试分别计次。">最终清洗成功率</Tooltip>}
+              rate={safeOverview.finalCleaningSuccessRate}
+              color={token.colorSuccess}
             />
           </Card>
         </Col>
@@ -339,20 +302,20 @@ function Meta() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span>清洗成功率</span>
+                    <span>清洗成功率（按事件尝试）</span>
                   </div>
-                  <Progress percent={safeFirstCleaningDetail.successRate} strokeColor={token.colorSuccess} />
+                  <CleaningRateProgress rate={safeFirstCleaningDetail.successRate} color={token.colorSuccess} />
                 </div>
 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Card size="small" title="清洗成功数">
-                      <Statistic value={safeFirstCleaningDetail.successCount} /> {/* 显示初次清洗成功数 */}
+                    <Card size="small" title={<Tooltip title="所选执行日期内成功写入的事件尝试次数，重试分别计次。">成功事件次数</Tooltip>}>
+                      <Statistic value={safeFirstCleaningDetail.successCount ?? '—'} /> {/* 显示初次清洗成功数 */}
                     </Card>
                   </Col>
                   <Col span={12}>
-                    <Card size="small" title="清洗失败数">
-                      <Statistic value={safeFirstCleaningDetail.failCount}
+                    <Card size="small" title={<Tooltip title="所选执行日期内校验失败或写入失败的事件尝试次数，重试分别计次。">失败事件次数</Tooltip>}>
+                      <Statistic value={safeFirstCleaningDetail.failCount ?? '—'}
                         valueStyle={{ color: token.colorError }} /> {/* 显示初次清洗失败数 */}
                     </Card>
                   </Col>
@@ -369,20 +332,20 @@ function Meta() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span>清洗成功率</span>
+                    <span>清洗成功率（按 session 任务尝试）</span>
                   </div>
-                  <Progress percent={safeFinalCleaningDetail.successRate} strokeColor={token.colorSuccess} />
+                  <CleaningRateProgress rate={safeFinalCleaningDetail.successRate} color={token.colorSuccess} />
                 </div>
 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Card size="small" title="清洗成功数">
-                      <Statistic value={safeFinalCleaningDetail.successCount} /> {/* 显示最终清洗成功数 */}
+                    <Card size="small" title={<Tooltip title="所选执行日期内成功完成的 session 任务尝试次数，重试分别计次。">成功任务次数</Tooltip>}>
+                      <Statistic value={safeFinalCleaningDetail.successCount ?? '—'} /> {/* 显示最终清洗成功数 */}
                     </Card>
                   </Col>
                   <Col span={12}>
-                    <Card size="small" title="清洗失败数">
-                      <Statistic value={safeFinalCleaningDetail.failCount}
+                    <Card size="small" title={<Tooltip title="所选执行日期内执行失败的 session 任务尝试次数，重试分别计次。">失败任务次数</Tooltip>}>
+                      <Statistic value={safeFinalCleaningDetail.failCount ?? '—'}
                         valueStyle={{ color: token.colorError }} /> {/* 显示最终清洗失败数 */}
                     </Card>
                   </Col>

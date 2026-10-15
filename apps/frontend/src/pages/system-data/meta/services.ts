@@ -16,6 +16,8 @@ export interface IDataTrendParams {
 // 日期查询参数接口
 export interface IDateParams {
   date?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 // 获取元数据概览信息
