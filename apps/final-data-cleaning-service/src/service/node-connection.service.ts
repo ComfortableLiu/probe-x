@@ -135,6 +135,9 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
       connectedAt: this.connectedAt,
       lastError: this.lastError,
       currentTaskId: this.nodeService.currentTaskId,
+      currentTaskIds: this.nodeService.currentTaskIds,
+      taskCapacity: this.nodeService.taskCapacity,
+      activeTaskCount: this.nodeService.activeTaskCount,
     }
   }
 

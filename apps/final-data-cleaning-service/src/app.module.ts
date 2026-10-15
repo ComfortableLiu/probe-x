@@ -2,6 +2,7 @@ import { ServiceResourcesModule } from '@probe-x/shared-utils/src/lib/backend-co
 import { Module } from '@nestjs/common'
 import { ComputeNodeService } from "@src/service/node.service"
 import { NodeConnectionService } from "@src/service/node-connection.service"
+import { AttributionWorkerPool } from "@src/lib/attribution-worker-pool"
 import { ClickHouseModule, envConfig, MysqlModule, RedisModule } from "@probe-x/shared-utils/src/lib/backend-common"
 import configuration from "../config/configuration"
 
@@ -13,7 +14,14 @@ import configuration from "../config/configuration"
     ClickHouseModule,
     RedisModule.forRoot(),
   ],
-  providers: [ComputeNodeService, NodeConnectionService],
+  providers: [
+    ComputeNodeService,
+    NodeConnectionService,
+    {
+      provide: AttributionWorkerPool,
+      useFactory: () => new AttributionWorkerPool(),
+    },
+  ],
 })
 export class AppModule {
 }

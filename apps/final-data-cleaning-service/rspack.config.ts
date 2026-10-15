@@ -1,7 +1,8 @@
 import type { Configuration } from "@rspack/cli"
 import { CopyRspackPlugin, rspack } from "@rspack/core"
-import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
 import * as path from "node:path"
+
+const RestartServicePlugin = require('../../scripts/restart-service-plugin.cjs')
 
 const PORT = 3002
 
@@ -16,10 +17,17 @@ const config: Configuration = {
     main: [
       path.resolve(finalDataCleaningServicePath, './src/main.ts'),
     ],
+    'attribution-worker': path.resolve(finalDataCleaningServicePath, './src/lib/attribution-worker.ts'),
   },
   output: {
     path: path.resolve(rootDir, 'dist/apps/final-data-cleaning-service'),
+    filename: '[name].js',
     clean: true,
+  },
+  // worker 与 main.js 一起发布，运行时从构建产物目录加载
+  node: {
+    __dirname: false,
+    __filename: false,
   },
   resolve: {
     extensions: ['...', 'js', '.ts', '.tsx', '.jsx'],
@@ -50,6 +58,7 @@ const config: Configuration = {
     ],
   },
   optimization: {
+    emitOnErrors: false,
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
         minimizerOptions: {
@@ -100,9 +109,8 @@ const config: Configuration = {
       ],
     }),
     !process.env.BUILD &&
-    new RunScriptWebpackPlugin({
+    new RestartServicePlugin({
       name: 'main.js',
-      autoRestart: false,
     }),
   ].filter(Boolean),
   devServer: {

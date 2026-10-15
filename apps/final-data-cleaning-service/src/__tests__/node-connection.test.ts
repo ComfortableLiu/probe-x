@@ -165,10 +165,11 @@ describe('计算节点接入 NodeConnectionService', () => {
   const boot = (options: {
     clickhouse?: any
     redis?: any
+    pool?: any
     config?: Record<string, unknown>
   } = {}) => {
     mockCH = options.clickhouse || new MockClickHouseService()
-    nodeService = new ComputeNodeService(mockCH, options.redis)
+    nodeService = new ComputeNodeService(mockCH as any, options.redis, options.pool)
     connection = new TestableConnection(
       nodeService,
       fakeConfig({
@@ -220,6 +221,8 @@ describe('计算节点接入 NodeConnectionService', () => {
       expect(register.info!.available).toBe(true)
       expect(register.info!.busy).toBe(false)
       expect(register.info!.busy_task_id).toBe('')
+      expect(register.info!.task_capacity).toBe(nodeService.taskCapacity)
+      expect(register.info!.active_task_ids).toEqual([])
     })
 
     it('心跳按间隔重复发送，任务执行期间 busy_task_id 正确置位', async () => {
@@ -257,6 +260,38 @@ describe('计算节点接入 NodeConnectionService', () => {
       const last = afterTask[afterTask.length - 1].register!.info!
       expect(last.busy).toBe(false)
       expect(last.busy_task_id).toBe('')
+    })
+
+    it('注册和健康快照报告所有任务及容量，各任务回传独立终态', async () => {
+      const clickhouse = new GatedClickHouse()
+      const secondTask = { ...TASK, task_id: 'second-task', session_id: 'second-session' }
+      clickhouse.seedEventLog(createHomepageToListScenario(TASK.session_id))
+      clickhouse.seedEventLog(createHomepageToListScenario(secondTask.session_id))
+      clickhouse.hold()
+      boot({ clickhouse, pool: { concurrency: 2, compute: async events => ({ finalEvents: events, attributions: [] }) } })
+      const call = connection.currentCall
+      accept(call)
+      call.emitFrame({ task: TASK })
+      call.emitFrame({ task: secondTask })
+      connection.sendRegister()
+
+      const info = call.registers[call.registers.length - 1].register!.info!
+      expect(info).toMatchObject({
+        busy: true,
+        busy_task_id: TASK.task_id,
+        task_capacity: 2,
+        active_task_ids: [TASK.task_id, secondTask.task_id],
+      })
+      expect(connection.getSnapshot()).toMatchObject({
+        taskCapacity: 2,
+        activeTaskCount: 2,
+        currentTaskIds: [TASK.task_id, secondTask.task_id],
+      })
+
+      clickhouse.unhold()
+      await waitFor(() => nodeService.activeTaskCount === 0)
+      expect(call.progresses.filter(progress => progress.completed).map(progress => progress.task_id).sort())
+        .toEqual([TASK.task_id, secondTask.task_id].sort())
     })
   })
 

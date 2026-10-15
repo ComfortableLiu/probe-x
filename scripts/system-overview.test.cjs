@@ -7,7 +7,7 @@ require('ts-node').register({
   skipProject: true,
   compilerOptions: { target: 'ES2022', module: 'CommonJS', moduleResolution: 'node', experimentalDecorators: true, emitDecoratorMetadata: true, esModuleInterop: true },
 })
-const { metricsWindow, metricsKey, recordRuntimeMetric, recordCleaningOutcome, recordCleaningSessionCompletion, recordNodeCleaningSpeed, readNodeCleaningSpeeds, nodeCleaningMetricsKey } = require('../libs/shared-utils/src/lib/backend-common/runtime-metrics.ts')
+const { metricsWindow, metricsKey, recordRuntimeMetric, recordCleaningOutcome, recordCleaningSessionCompletion, recordNodeCleaningSpeed, readNodeCleaningSpeeds, nodeCleaningMetricsKey, METRICS_TTL_SECONDS } = require('../libs/shared-utils/src/lib/backend-common/runtime-metrics.ts')
 const { RuntimeMetricsService } = require('../apps/data-dashboard-api-service/src/api/system-data/runtime-metrics.service.ts')
 const { RuntimeMetricsMiddleware } = require('../apps/data-dashboard-api-service/src/api/system-data/runtime-metrics.middleware.ts')
 const { OverviewService } = require('../apps/data-dashboard-api-service/src/api/system-data/overview.service.ts')
@@ -15,6 +15,28 @@ const { OverviewService } = require('../apps/data-dashboard-api-service/src/api/
 class MemoryRedis {
   status = 'ready'
   data = new Map()
+  expiry = new Map()
+  evalCalls = 0
+  async eval(script, numberOfKeys, key, eventsRaw, durationRaw, ttlRaw) {
+    assert.equal(numberOfKeys, 1)
+    assert.match(script, /redis\.call\('HINCRBY', KEYS\[1\], 'samples', 1\)/)
+    assert.match(script, /redis\.call\('HINCRBYFLOAT', KEYS\[1\], 'events', ARGV\[1\]\)/)
+    assert.match(script, /redis\.call\('EXPIRE', KEYS\[1\], ARGV\[3\]\)/)
+    this.evalCalls++
+    // Redis executes the complete Lua script atomically, including both extrema.
+    const row = this.data.get(key) || {}
+    const events = Number(eventsRaw)
+    const durationMs = Number(durationRaw)
+    const speed = events * 1000 / durationMs
+    row.samples = String(Number(row.samples || 0) + 1)
+    row.events = String(Number(row.events || 0) + events)
+    row.durationMs = String(Number(row.durationMs || 0) + durationMs)
+    if (row.maxSpeed === undefined || speed > Number(row.maxSpeed)) row.maxSpeed = String(speed)
+    if (row.minSpeed === undefined || speed < Number(row.minSpeed)) row.minSpeed = String(speed)
+    this.data.set(key, row)
+    this.expiry.set(key, Number(ttlRaw))
+    return 1
+  }
   async hset(key, field, value) {
     const row = this.data.get(key) || {}
     row[field] = String(value)
@@ -149,17 +171,98 @@ test('session speed comes from master-observed completion buckets in complete mi
   assert.equal(partial.peakSessionSpeed, null)
 })
 
-test('node cleaning speeds accumulate per node with avg/max/min and skip empty replays', async () => {
+test('node cleaning speeds count all concurrent events against one busy wall-clock interval', async () => {
   const redis = new MemoryRedis()
   const now = at('2026-09-29T10:00:00')
-  await recordNodeCleaningSpeed(redis, 'node-1', 100, 10000, now)
-  await recordNodeCleaningSpeed(redis, 'node-1', 300, 10000, now)
-  await recordNodeCleaningSpeed(redis, 'node-1', 200, 20000, now)
-  // 幂等重放（0 事件）不写入
-  await recordNodeCleaningSpeed(redis, 'node-1', 0, 100, now)
+  // Fourteen workers process 100 events each during the same one-second interval.
+  await recordNodeCleaningSpeed(redis, 'node-1', 14 * 100, 1000, now)
   const stats = await readNodeCleaningSpeeds(redis, ['node-1', 'node-2'], now)
-  assert.deepEqual(stats.get('node-1'), { avg: 600 * 1000 / 40000, max: 30, min: 10 })
+  assert.deepEqual(stats.get('node-1'), { avg: 1400, max: 1400, min: 1400 })
   assert.deepEqual(stats.get('node-2'), { avg: null, max: null, min: null })
+  const key = nodeCleaningMetricsKey('node-1', '2026-09-29')
+  assert.deepEqual(redis.data.get(key), { samples: '1', events: '1400', durationMs: '1000', maxSpeed: '1400', minSpeed: '1400' })
+  assert.equal(redis.expiry.get(key), METRICS_TTL_SECONDS)
+})
+
+test('node speed average is weighted by busy wall-clock time and retains zero-progress intervals', async () => {
+  const redis = new MemoryRedis()
+  const now = at('2026-09-29T10:00:00')
+  await recordNodeCleaningSpeed(redis, 'node-1', 1400, 1000, now)
+  await recordNodeCleaningSpeed(redis, 'node-1', 600, 3000, now)
+  let stats = await readNodeCleaningSpeeds(redis, ['node-1'], now)
+  assert.deepEqual(stats.get('node-1'), { avg: 500, max: 1400, min: 200 })
+  await recordNodeCleaningSpeed(redis, 'node-1', 0, 1000, now)
+  stats = await readNodeCleaningSpeeds(redis, ['node-1'], now)
+  assert.deepEqual(stats.get('node-1'), { avg: 400, max: 1400, min: 0 })
+  await recordNodeCleaningSpeed(redis, 'stalled-node', 0, 1000, now)
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['stalled-node'], now)).get('stalled-node'), { avg: 0, max: 0, min: 0 })
+})
+
+test('invalid node speed samples do not create hashes or contribute durations', async () => {
+  const redis = new MemoryRedis()
+  const now = at('2026-09-29T10:00:00')
+  for (const events of [-1, NaN, Infinity, -Infinity]) {
+    await recordNodeCleaningSpeed(redis, 'node-1', events, 1000, now)
+  }
+  for (const duration of [0, -1, NaN, Infinity, -Infinity]) {
+    await recordNodeCleaningSpeed(redis, 'node-1', 100, duration, now)
+  }
+  assert.equal(redis.evalCalls, 0)
+  assert.equal(redis.data.size, 0)
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['node-1'], now)).get('node-1'), { avg: null, max: null, min: null })
+})
+
+test('v2 node totals never mix with or delete legacy per-task speed hashes', async () => {
+  const redis = new MemoryRedis()
+  const now = at('2026-09-29T10:00:00')
+  const oldKey = 'probe-x:overview:v1:nodeCleaning:2026-09-29:node-1'
+  const oldRow = { tasks: '14', events: '1400', durationMs: '14000', maxSpeed: '100', minSpeed: '100' }
+  redis.data.set(oldKey, { ...oldRow })
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['node-1'], now)).get('node-1'), { avg: null, max: null, min: null })
+  await recordNodeCleaningSpeed(redis, 'node-1', 1400, 1000, now)
+  assert.equal(nodeCleaningMetricsKey('node-1', '2026-09-29'), 'probe-x:overview:v2:nodeCleaning:2026-09-29:node-1')
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['node-1'], now)).get('node-1'), { avg: 1400, max: 1400, min: 1400 })
+  assert.deepEqual(redis.data.get(oldKey), oldRow)
+})
+
+test('atomic node interval writes preserve counters and extrema across concurrent callers', async () => {
+  const redis = new MemoryRedis()
+  const now = at('2026-09-29T10:00:00')
+  // Arrival order may overlap even though the sampled busy intervals are disjoint.
+  await Promise.all([[200, 1000], [100, 1000], [600, 2000]].map(([events, duration]) =>
+    recordNodeCleaningSpeed(redis, 'node-1', events, duration, now)))
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['node-1'], now)).get('node-1'), { avg: 225, max: 300, min: 100 })
+  const key = nodeCleaningMetricsKey('node-1', '2026-09-29')
+  assert.equal(redis.data.get(key).samples, '3')
+  assert.equal(redis.evalCalls, 3)
+  assert.equal(redis.expiry.get(key), METRICS_TTL_SECONDS)
+})
+
+test('node total speed statistics are isolated by node and Shanghai calendar day', async () => {
+  const redis = new MemoryRedis()
+  const beforeMidnight = at('2026-09-29T23:59:59')
+  const afterMidnight = at('2026-09-30T00:00:00')
+  // The caller splits intervals at midnight and assigns each part to its own day.
+  await recordNodeCleaningSpeed(redis, 'node-1', 100, 1000, beforeMidnight)
+  await recordNodeCleaningSpeed(redis, 'node-1', 300, 1000, afterMidnight)
+  await recordNodeCleaningSpeed(redis, 'node-2', 800, 1000, afterMidnight)
+  assert.deepEqual((await readNodeCleaningSpeeds(redis, ['node-1', 'node-2'], beforeMidnight)).get('node-1'), { avg: 100, max: 100, min: 100 })
+  const stats = await readNodeCleaningSpeeds(redis, ['node-1', 'node-2'], afterMidnight)
+  assert.deepEqual(stats.get('node-1'), { avg: 300, max: 300, min: 300 })
+  assert.deepEqual(stats.get('node-2'), { avg: 800, max: 800, min: 800 })
+  assert.deepEqual(await readNodeCleaningSpeeds(redis, [], afterMidnight), new Map())
+})
+
+test('node speed write and read failures remain observable to telemetry callers', async () => {
+  const redis = new MemoryRedis()
+  redis.status = 'reconnecting'
+  await assert.rejects(recordNodeCleaningSpeed(redis, 'node-1', 100, 1000), /未就绪/)
+  await assert.rejects(readNodeCleaningSpeeds(redis, ['node-1']), /未就绪/)
+  redis.status = 'ready'
+  redis.eval = async () => { throw new Error('Redis eval unavailable') }
+  await assert.rejects(recordNodeCleaningSpeed(redis, 'node-1', 100, 1000), /Redis eval unavailable/)
+  redis.eval = async () => null
+  await assert.rejects(recordNodeCleaningSpeed(redis, 'node-1', 100, 1000), /节点清洗速度写入失败/)
 })
 
 test('HTTP middleware observes guard errors and business errors while excluding monitoring polls', () => {

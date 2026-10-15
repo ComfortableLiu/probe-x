@@ -9,9 +9,14 @@
 import { IAttribution, IPreEventLog } from '@probe-x/shared-types/src'
 import { convertObjectToAttribution } from '@probe-x/shared-utils/src'
 
-export interface AttributionEngineResult {
+/** 归因只依赖事件自身的这些字段，可以独立分块计算。 */
+export type AttributionEvent = Pick<IPreEventLog,
+  '$is_attribution_event' | '$target_page_id' | '$ex_attribution_params'
+  | '$service_time' | '$event_id' | '$session_id'>
+
+export interface AttributionEngineResult<T extends AttributionEvent = IPreEventLog> {
   /** 最终事件列表（透传，结构不变） */
-  finalEvents: IPreEventLog[]
+  finalEvents: T[]
   /** 归因 KV 数据 */
   attributions: IAttribution[]
 }
@@ -52,10 +57,10 @@ function parseExAttributionParams(raw: unknown): Record<string, unknown> {
  * @param eventList 按时间排序的事件列表
  * @param onProgress 可选的进度回调，每处理完一个事件调用一次
  */
-export function computeAttribution(
-  eventList: IPreEventLog[],
+export function computeAttribution<T extends AttributionEvent>(
+  eventList: T[],
   onProgress?: (processed: number, total: number) => void,
-): AttributionEngineResult {
+): AttributionEngineResult<T> {
   const attributionList: IAttribution[] = []
 
   eventList.forEach((item, index) => {

@@ -71,6 +71,58 @@ yarn start:final-cleaning
 
 前提是总服务已在本地跑起来（`yarn start:dashboard-api`），并且 MySQL / ClickHouse / Redis 可达。
 
+### 单节点的 CPU 并行计算
+
+每个节点有一个常驻 Worker Threads 池，并发上限由
+[`os.availableParallelism()`](https://nodejs.org/download/release/v22.20.0/docs/api/os.html#osavailableparallelism)
+自动读取进程可用的 CPU 并行度，无需增加环境变量。节点通过注册/心跳的 `task_capacity`
+上报此容量，调度器按剩余槽位同时下发多个独立的 `(date, session)` 任务。
+例如节点可用 8 个线程、有 100 个待清洗 session 时，先下发 8 个任务；任意一个完成后立即补发一个。
+每个任务的完整事件列表由一个 worker 计算，即使 session 只有几条事件，也能与其他 session 并行。
+线程按需创建并复用，节点关闭时统一终止；一个大 session 同样占用一个 worker。
+
+主线程负责查询、汇总进度、查重和写入 ClickHouse；worker 只接收归因需要的六个字段，
+并独立展开扩展参数。每个任务的结果保持原始事件顺序，清洗事件保留原数组和全部字段。
+worker 每 500 条事件汇报一次进度，主线程按任务最多每 100ms 向总服务发送一次中间进度；
+每个任务的进度和开始时间相互独立；节点实时速度使用近 6 秒所有任务的合计处理进度，
+跨连续 session 累计，避免短任务来不及产生一秒样本就结束而始终显示横线。
+完成帧只补齐尚未统计的处理量，不重复计算已有进度；失败帧不补齐剩余量，幂等空重放不增加速度。
+任务刚开始或最近没有事件处理时显示 0，空闲、离线时显示横线。
+今日平均速度为所有任务的总新增处理量除以节点忙碌墙钟时长，并发重叠时间只计一次，空闲时间不计。
+今日最快/最慢速度为节点约每秒合计采样的极值，忙碌开始和结束的不足一秒区间按实际时长计算；
+时钟精度为 1ms，同毫秒到达的非空尾段按 1ms 计入，避免漏掉最终处理量。
+忙碌但没有处理进度的有效区间速度为 0。处理量包含失败前已观察到的工作，失败不补未处理目标量。
+采样不依赖页面轮询，按上海自然日拆分，断连时结束观察，重连首帧只建立基线。
+历史统计使用 Redis `probe-x:overview:v2:nodeCleaning:*`，通过 Lua 原子更新累计量与极值。
+旧版单任务统计无法还原节点的重叠时长，保留原 key 但不再展示；升级后从新口径的首个有效采样重新累计。
+只有落库成功才标记任务完成，并释放对应槽位。
+
+节点限制整个查询、计算、落库流程的并发数，超发任务在读取数据前等待。
+同一 `(date, session)` 的不同任务在节点内依次执行，相同 `task_id` 重放时共享正在执行的任务结果。
+一个任务失败只释放自己的槽位，双表写入等待全部结束后再触发重试，其他任务继续执行。
+节点离线时，总服务分别落定全部在途任务；重新连接时，节点上报 `active_task_ids`，恢复容量占用。
+`/health` 提供 `taskCapacity`、`activeTaskCount` 和 `currentTaskIds`；拓扑页面显示并发占用及全部任务 ID。
+首次启动有线程通信和启动成本，实际吞吐还取决于 ClickHouse 查询、写入和可用内存。
+
+构建时会同时生成 `dist/apps/final-data-cleaning-service/main.js` 和 `attribution-worker.js`，
+发布时需保留同一目录内的完整产物。现有 Dockerfile 会复制整个 `dist` 目录，无需额外部署步骤。
+本次协议增加 `NodeInfo.task_capacity`（字段 12）和 `active_task_ids`（字段 13），需要同时更新总服务、
+计算节点和共享 proto。新版总服务对未上报容量的旧节点保守按 1 个任务调度；旧总服务仍每节点下发 1 个任务。
+
+本地开发使用的服务运行插件会在成功编译后先等待旧进程退出，再启动新产物，编译失败时保留当前服务。
+两个服务均禁止输出失败构建，保留上次成功的主程序、worker 和协议产物，供当前服务继续使用。
+已使用旧配置启动的开发 watcher 需要重启一次才能加载新的自动重启插件。
+仅更新 `dist` 文件不会让仍在内存中运行的旧进程加载新代码或重新读取 gRPC 协议。
+
+并发验收命令（使用内存数据库替身、真实 Worker Threads 和 protobuf 编解码）：
+
+```bash
+node --test scripts/cleaning-scheduler.test.cjs scripts/cleaning-concurrency.test.cjs scripts/restart-service-plugin.test.cjs
+yarn workspace final-data-cleaning-service test --runInBand
+yarn workspace final-data-cleaning-service build
+yarn workspace data-dashboard-api-service build
+```
+
 ---
 
 ## 二、配置速查
@@ -217,6 +269,7 @@ proto 单一来源在 [libs/shared-utils/.../proto/final_data_cleaning_control_b
 | 节点接入客户端（拨出、心跳、重连、日志上行） | [node-connection.service.ts](../apps/final-data-cleaning-service/src/service/node-connection.service.ts) |
 | 节点日志捕获缓冲（包装 console，环形缓冲） | [node-log-buffer.ts](../apps/final-data-cleaning-service/src/lib/node-log-buffer.ts) |
 | 节点计算本体 | [node.service.ts](../apps/final-data-cleaning-service/src/service/node.service.ts) |
+| CPU 归因线程池与 worker 入口 | [attribution-worker-pool.ts](../apps/final-data-cleaning-service/src/lib/attribution-worker-pool.ts)、[attribution-worker.ts](../apps/final-data-cleaning-service/src/lib/attribution-worker.ts) |
 | 节点 `/health` | [main.ts](../apps/final-data-cleaning-service/src/main.ts) |
 | 总服务在线注册表（含 logs 帧落 Redis、日志查询） | [node-registry.service.ts](../apps/data-dashboard-api-service/src/api/compute-node/node-registry.service.ts) |
 | 总服务 gRPC 双向流入口 | [node-control.controller.ts](../apps/data-dashboard-api-service/src/api/compute-node/node-control.controller.ts) |

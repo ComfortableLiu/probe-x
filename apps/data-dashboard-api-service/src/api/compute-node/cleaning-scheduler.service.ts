@@ -66,6 +66,9 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
   private queue: ComputeTask[] = []
   /** 已下发待落定的切片（`${date}|${session_id}`），防止在途任务被 cleanNow 重发给另一台节点 */
   private readonly inflight = new Set<string>()
+  /** 精确记录下发 id，忽略重复或不属于本调度器的落定通知。 */
+  private readonly dispatchedTasks = new Map<string, ComputeTask>()
+  private readonly retryBases = new Map<string, string>()
   /** 任务 base id（不含 :r{n} 后缀）-> 已尝试次数，失败重试用 :r{n} 后缀 */
   private readonly attempts = new Map<string, number>()
   private draining = false
@@ -80,6 +83,7 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     this.registry.onTaskSettled((taskId, failed) => this.onTaskSettled(taskId, failed))
+    this.registry.onCapacityAvailable(() => this.drain())
     this.timer = setInterval(() => {
       this.tick().catch((error: unknown) => {
         console.error(`[清洗调度] 检查失败：${error instanceof Error ? error.message : String(error)}`)
@@ -168,26 +172,35 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
     `, params)
     const queuedKeys = new Set(this.queue.map(task => backlogKey(task)))
     const tasks = planCleaningTasks(rows, runDate)
-      .filter(task => !queuedKeys.has(backlogKey(task)) && !this.inflight.has(backlogKey(task)))
+      .filter(task => !queuedKeys.has(backlogKey(task)) && !this.inflight.has(backlogKey(task))
+        && !this.registry.hasActiveSlice(task.date, task.session_id))
     this.queue.push(...tasks)
     console.log(`[清洗调度] 枚举到 ${rows.length} 个欠账 session，新入队 ${tasks.length} 个任务`)
     return tasks.length
   }
 
-  /** 把队列中的任务逐个下发给在线空闲节点，直到没有任务或没有空闲节点 */
+  /** 按节点上报的容量填满任务槽，每个切片仍只允许一份任务在途。 */
   private drain(): void {
     if (this.draining) return
     this.draining = true
     try {
       while (this.queue.length > 0) {
+        // 重连恢复的旧任务可能仍占用一个待重试切片，保留它等待终态，
+        // 同时允许队列中其他未占用的切片使用剩余容量。
+        const taskIndex = this.queue.findIndex(task => !this.registry.hasActiveSlice(task.date, task.session_id))
+        if (taskIndex < 0) return
         const nodeId = this.registry.pickIdleNode()
         if (!nodeId) return
-        const task = this.queue.shift()!
+        const [task] = this.queue.splice(taskIndex, 1)
+        // 与节点槽位一样先预占，兼容 send 同步触发完成回调的通道实现。
+        this.inflight.add(backlogKey(task))
+        this.dispatchedTasks.set(task.task_id, task)
         if (this.registry.dispatchTask(nodeId, task)) {
-          this.inflight.add(backlogKey(task))
           console.log(`[清洗调度] 任务 ${task.task_id} 已下发到节点 ${nodeId}`)
         } else {
-          this.queue.unshift(task)
+          this.inflight.delete(backlogKey(task))
+          this.dispatchedTasks.delete(task.task_id)
+          this.queue.splice(taskIndex, 0, task)
           return
         }
       }
@@ -198,24 +211,23 @@ export class CleaningSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   /** 任务落定：失败则换 :r{n} 后缀重新入队（同日限重试 MAX_ATTEMPTS 次），然后立刻补发 */
   private onTaskSettled(taskId: string, failed: boolean): void {
-    // 只处理本调度器发出的清洗任务，未来其他任务类型落定不得被误解析成垃圾任务重入队
-    if (!taskId.startsWith('clean:')) return
-    // 从 task_id 还原任务：clean:{runDate}:{taskDate}:{sessionId}[:r{n}]
-    // 计数键必须是剥离后缀的 base，否则 A:r1 失败会重新算成第 1 次、:r{n} 永不递增
-    const base = taskId.replace(/:r\d+$/, '')
-    const parts = base.split(':')
-    const sessionId = parts.slice(3).join(':')
-    this.inflight.delete(`${parts[2]}|${sessionId}`)
+    const dispatched = this.dispatchedTasks.get(taskId)
+    if (!dispatched) return
+    this.dispatchedTasks.delete(taskId)
+    const base = this.retryBases.get(taskId) || taskId
+    this.retryBases.delete(taskId)
+    this.inflight.delete(backlogKey(dispatched))
     if (failed) {
       const attempt = (this.attempts.get(base) || 0) + 1
       this.attempts.set(base, attempt)
       if (attempt <= MAX_ATTEMPTS) {
         const task: ComputeTask = {
           task_id: `${base}:r${attempt}`,
-          session_id: sessionId,
-          date: parts[2],
+          session_id: dispatched.session_id,
+          date: dispatched.date,
         }
         console.warn(`[清洗调度] 任务 ${taskId} 失败，第 ${attempt} 次重试`)
+        this.retryBases.set(task.task_id, base)
         this.queue.push(task)
       } else {
         console.error(`[清洗调度] 任务 ${base} 重试 ${MAX_ATTEMPTS} 次仍失败，放弃，次日自动补洗`)

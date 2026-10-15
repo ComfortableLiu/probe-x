@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, Descriptions, Row, Tag, theme } from 'antd'
+import { Button, Card, Col, Descriptions, Row, Tag, Tooltip, theme } from 'antd'
 import { FileSearchOne } from '@icon-park/react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
@@ -171,6 +171,7 @@ const NodeTooltip: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ no
       <div>链接状态：{linkLabelMap[node.link]}</div>
       <div>状态灯：{statusLightLabelMap[light]}</div>
       <div>最近心跳：{secondsAgo(node.lastHeartbeat, now)}</div>
+      <div>并发任务：{node.activeTaskCount ?? (node.busy ? 1 : 0)} / {node.taskCapacity ?? 1}</div>
       {node.busy && node.busyTaskId && <div>当前任务：{node.busyTaskId}</div>}
       {node.busy && <div>实时速度：{formatSpeed(node.cleaningSpeed?.current)}</div>}
     </div>
@@ -180,6 +181,7 @@ const NodeTooltip: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ no
 /** 节点详情卡 */
 const NodeDetail: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ node, now }) => {
   const light = resolveNodeLight(node)
+  const taskIds = node.busyTaskIds ?? (node.busyTaskId ? [node.busyTaskId] : [])
 
   return (
     <Descriptions column={1} size="small" colon={false}>
@@ -202,22 +204,45 @@ const NodeDetail: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ nod
         {formatDuration(node.connectedAt, now)}
       </Descriptions.Item>
       <Descriptions.Item label="CPU">{node.cpuCount ? `${node.cpuCount} 核` : '—'}</Descriptions.Item>
+      <Descriptions.Item label="并发任务">
+        {node.activeTaskCount ?? (node.busy ? 1 : 0)} / {node.taskCapacity ?? 1}
+      </Descriptions.Item>
       <Descriptions.Item label="内存">
         {formatMemory(node.availableMemorySize, node.memorySize)}
       </Descriptions.Item>
       <Descriptions.Item label="当前任务">
-        {node.busy && node.busyTaskId ? node.busyTaskId : node.busy ? '执行中' : '空闲'}
+        {node.busy && taskIds.length > 0
+          ? <div style={{ maxHeight: 160, overflowY: 'auto', overflowWrap: 'anywhere' }}>
+            {taskIds.map(taskId => <div key={taskId}>{taskId}</div>)}
+          </div>
+          : node.busy ? '执行中' : '空闲'}
       </Descriptions.Item>
-      <Descriptions.Item label="实时速度">
+      <Descriptions.Item label={
+        <Tooltip title="近6秒所有任务处理事件的合计速度。任务刚开始时可为0，空闲时显示横线。">
+          <span>实时速度</span>
+        </Tooltip>
+      }>
         {node.busy ? formatSpeed(node.cleaningSpeed?.current) : '—'}
       </Descriptions.Item>
-      <Descriptions.Item label="今日平均速度">
+      <Descriptions.Item label={
+        <Tooltip title="今日所有任务的总处理量除以节点忙碌时长；并发任务的重叠时间只计一次，空闲时间不计入。">
+          <span>今日平均速度</span>
+        </Tooltip>
+      }>
         {formatSpeed(node.cleaningSpeed?.avg)}
       </Descriptions.Item>
-      <Descriptions.Item label="今日最快速度">
+      <Descriptions.Item label={
+        <Tooltip title="今日节点约每秒采样的最高合计处理速度，首尾不足一秒时按实际忙碌时长计算。">
+          <span>今日最快速度</span>
+        </Tooltip>
+      }>
         {formatSpeed(node.cleaningSpeed?.max)}
       </Descriptions.Item>
-      <Descriptions.Item label="今日最慢速度">
+      <Descriptions.Item label={
+        <Tooltip title="今日节点约每秒采样的最低合计处理速度，首尾按实际时长计算；忙碌但没有处理进度时可为0。">
+          <span>今日最慢速度</span>
+        </Tooltip>
+      }>
         {formatSpeed(node.cleaningSpeed?.min)}
       </Descriptions.Item>
       <Descriptions.Item label="最近错误">

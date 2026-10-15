@@ -1,14 +1,11 @@
 import type { Configuration } from "@rspack/cli"
 import { CopyRspackPlugin, rspack } from "@rspack/core"
-import { RunScriptWebpackPlugin } from "run-script-webpack-plugin"
-import { fileURLToPath } from "node:url"
 import * as path from "node:path"
+
+const RestartServicePlugin = require('../../scripts/restart-service-plugin.cjs')
 
 const PORT = 3001
 
-// 由于在 ES 模块中没有 __dirname，所以我们需要创建它
-// @ts-ignore
-const __filename = fileURLToPath(import.meta.url)
 const dataDashboardServicePath = path.dirname(__filename)
 // 根目录路径
 const rootDir = path.resolve(dataDashboardServicePath, '../..')
@@ -55,6 +52,7 @@ const config: Configuration = {
     ],
   },
   optimization: {
+    emitOnErrors: false,
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
         minimizerOptions: {
@@ -105,9 +103,8 @@ const config: Configuration = {
       ],
     }),
     !process.env.BUILD &&
-    new RunScriptWebpackPlugin({
+    new RestartServicePlugin({
       name: 'main.js',
-      autoRestart: false,
     }),
   ].filter(Boolean),
   devServer: {

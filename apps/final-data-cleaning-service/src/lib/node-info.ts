@@ -21,7 +21,8 @@ function networkBytes(): number | null {
 }
 
 /** Heartbeat CPU deltas, physical memory, 1-minute load, and RX+TX interface deltas. */
-export const collectNodeInfo = (busyTaskId: string): NodeInfo => {
+export const collectNodeInfo = (taskIds: string | string[], taskCapacity = os.availableParallelism()): NodeInfo => {
+  const activeTaskIds = (Array.isArray(taskIds) ? taskIds : [taskIds]).filter(Boolean)
   const cpus = os.cpus()
   const idle = cpus.reduce((sum, cpu) => sum + cpu.times.idle, 0)
   const total = cpus.reduce((sum, cpu) => sum + Object.values(cpu.times).reduce((a, b) => a + b, 0), 0)
@@ -34,8 +35,10 @@ export const collectNodeInfo = (busyTaskId: string): NodeInfo => {
     memory_size: toMB(os.totalmem()),
     available_memory_size: toMB(os.freemem()),
     available: true,
-    busy: Boolean(busyTaskId),
-    busy_task_id: busyTaskId,
+    busy: activeTaskIds.length > 0,
+    busy_task_id: activeTaskIds[0] || '',
+    task_capacity: Math.max(1, Math.floor(taskCapacity)),
+    active_task_ids: activeTaskIds,
     resource_sampled: resourceSampled,
     cpu_usage: resourceSampled ? Math.max(0, Math.min(100, (1 - (idle - previous.idle) / (total - previous.total)) * 100)) : 0,
     load_average: os.loadavg()[0],

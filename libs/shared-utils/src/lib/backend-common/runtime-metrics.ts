@@ -100,22 +100,42 @@ export async function recordCleaningSessionCompletion(client: Redis, now = Date.
 }
 
 export const nodeCleaningMetricsKey = (nodeId: string, day: string) =>
-  `probe-x:overview:v1:nodeCleaning:${day}:${nodeId}`
+  `probe-x:overview:v2:nodeCleaning:${day}:${nodeId}`
 
 export interface INodeCleaningSpeedStats {
-  /** 今日已完成任务平均速度（条/s） */
+  /** 今日节点总处理量 / 忙碌墙钟时长（条/s），并发时间仅计一次 */
   avg: number | null
-  /** 今日已完成任务最快速度（条/s） */
+  /** 今日节点采样区间的最高总处理速度（条/s） */
   max: number | null
-  /** 今日已完成任务最慢速度（条/s） */
+  /** 今日节点采样区间的最低总处理速度（条/s），含忙碌停滞的 0 */
   min: number | null
 }
 
+const RECORD_NODE_CLEANING_SPEED = `
+local events = tonumber(ARGV[1])
+local durationMs = tonumber(ARGV[2])
+local speed = events * 1000 / durationMs
+redis.call('HINCRBY', KEYS[1], 'samples', 1)
+redis.call('HINCRBYFLOAT', KEYS[1], 'events', ARGV[1])
+redis.call('HINCRBYFLOAT', KEYS[1], 'durationMs', ARGV[2])
+local maxSpeed = redis.call('HGET', KEYS[1], 'maxSpeed')
+local minSpeed = redis.call('HGET', KEYS[1], 'minSpeed')
+if not maxSpeed or speed > tonumber(maxSpeed) then
+  redis.call('HSET', KEYS[1], 'maxSpeed', tostring(speed))
+end
+if not minSpeed or speed < tonumber(minSpeed) then
+  redis.call('HSET', KEYS[1], 'minSpeed', tostring(speed))
+end
+redis.call('EXPIRE', KEYS[1], ARGV[3])
+return 1
+`
+
 /**
- * 记录一个节点完成任务的端到端速度（事件数 / 下发到完成时长）。
+ * 记录节点一个采样区间的总新增处理量及忙碌墙钟时长；并发任务重叠时间仅计一次。
  *
- * max/min 的读改写依赖「同一节点同一时刻只执行一个任务」这一调度约束，
- * 同一节点的完成事件天然串行，不会产生并发竞争。
+ * 调用端按自然日拆分互不重叠的采样区间，now 指定该区间所属日期。
+ * events 为 0 仍是有效忙碌采样。Lua 原子更新累计量、区间极值和 TTL，
+ * v2 key 隔离无法换算成节点墙钟时长的旧版单任务统计。
  */
 export async function recordNodeCleaningSpeed(
   client: Redis,
@@ -125,24 +145,17 @@ export async function recordNodeCleaningSpeed(
   now = Date.now(),
 ): Promise<void> {
   if (client.status !== 'ready') throw new Error('监控 Redis 未就绪')
-  if (events <= 0 || durationMs <= 0) return
+  if (!Number.isFinite(events) || events < 0 || !Number.isFinite(durationMs) || durationMs <= 0) return
   const key = nodeCleaningMetricsKey(nodeId, metricsWindow(now).today)
-  const speed = events * 1000 / durationMs
-  const result = await client.multi()
-    .hincrby(key, 'tasks', 1)
-    .hincrby(key, 'events', events)
-    .hincrbyfloat(key, 'durationMs', durationMs)
-    .hget(key, 'maxSpeed')
-    .hget(key, 'minSpeed')
-    .expire(key, METRICS_TTL_SECONDS)
-    .exec()
-  if (!result || result.some(([error]) => error)) throw new Error('节点清洗速度写入失败')
-  const currentMax = Number((result[3][1] as string | null) ?? -1)
-  const minRaw = result[4][1] as string | null
-  const writes: Promise<unknown>[] = []
-  if (speed > currentMax) writes.push(client.hset(key, 'maxSpeed', String(speed)))
-  if (minRaw === null || speed < Number(minRaw)) writes.push(client.hset(key, 'minSpeed', String(speed)))
-  await Promise.all(writes)
+  const result = await client.eval(
+    RECORD_NODE_CLEANING_SPEED,
+    1,
+    key,
+    String(events),
+    String(durationMs),
+    String(METRICS_TTL_SECONDS),
+  )
+  if (result !== 1) throw new Error('节点清洗速度写入失败')
 }
 
 /** 批量读取多个节点当日的清洗速度统计；无记录的节点返回全 null */
@@ -161,10 +174,11 @@ export async function readNodeCleaningSpeeds(
   if (!result || result.some(([error]) => error)) throw new Error('节点清洗速度读取失败')
   nodeIds.forEach((nodeId, index) => {
     const row = result[index][1] as Record<string, string>
+    const samples = Number(row.samples || 0)
     const events = Number(row.events || 0)
     const durationMs = Number(row.durationMs || 0)
     stats.set(nodeId, {
-      avg: events > 0 && durationMs > 0 ? events * 1000 / durationMs : null,
+      avg: samples > 0 && durationMs > 0 ? events * 1000 / durationMs : null,
       max: row.maxSpeed !== undefined ? Number(row.maxSpeed) : null,
       min: row.minSpeed !== undefined ? Number(row.minSpeed) : null,
     })

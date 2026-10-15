@@ -184,6 +184,10 @@ export interface NodeInfo {
   busy: boolean
   /** 忙碌任务 id */
   busy_task_id: string
+  /** 可同时执行的任务数，等于节点线程池容量；旧节点未上报时按 1 处理 */
+  task_capacity?: number
+  /** 已接受且尚未结束的任务，包含本地排队任务；busy_task_id 保留首项兼容旧端 */
+  active_task_ids?: string[]
 }
 
 /** 节点注册/心跳帧 */
@@ -238,15 +242,15 @@ export interface IComputeNodeLogsRes {
   entries: NodeLogEntry[]
 }
 
-/** 计算节点清洗速度（条/s），avg/max/min 为今日已完成任务口径 */
+/** 计算节点清洗速度（条/s），所有指标均合计节点的全部并发任务 */
 export interface IComputeNodeCleaningSpeed {
-  /** 实时速度（条/s），仅正在清洗时由近期进度帧差分估算，否则为 null */
+  /** 实时处理速度（条/s），忙碌期间按节点近 6 秒合计进度估算，空闲/离线为 null */
   current: number | null
-  /** 今日已完成任务平均速度（条/s），今日尚无完成任务为 null */
+  /** 今日总处理量 / 节点忙碌墙钟时长（条/s），无有效采样为 null */
   avg: number | null
-  /** 今日已完成任务最快速度（条/s） */
+  /** 今日节点采样区间最高总处理速度（条/s），首尾按实际时长采样 */
   max: number | null
-  /** 今日已完成任务最慢速度（条/s） */
+  /** 今日节点采样区间最低总处理速度（条/s），忙碌停滞可为 0 */
   min: number | null
 }
 
@@ -266,6 +270,12 @@ export interface IComputeNodeLinkInfo {
   busy: boolean
   /** 正在执行的任务 id */
   busyTaskId: string
+  /** 节点任务并发上限 */
+  taskCapacity?: number
+  /** 已占用的任务槽位数 */
+  activeTaskCount?: number
+  /** 全部在途任务 id，busyTaskId 保留首项兼容旧版页面 */
+  busyTaskIds?: string[]
   /** CPU 核心数 */
   cpuCount: number
   cpuUsage?: number | null

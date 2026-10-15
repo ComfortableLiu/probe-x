@@ -6,7 +6,7 @@ package final_data_cleaning_control_bi_stream;
 message ComputeTask {
     // 任务唯一标识
     string task_id = 1;
-    // 需要计算的 SessionId，未来支持线程池复用后可以传个数组
+    // 需要计算的 SessionId，每个任务使用一个计算线程
     string session_id = 2;
     // 需要计算的日期，格式为 YYYY-MM-DD
     string date = 3;
@@ -51,6 +51,10 @@ message NodeInfo {
     double load_average = 9;
     bool network_sampled = 10;
     double network_bytes_per_second = 11;
+    // 节点可同时执行的任务数，等于 CPU 线程池容量；未上报的旧节点按 1 处理
+    int32 task_capacity = 12;
+    // 已接受且尚未结束的全部任务，包含本地排队任务
+    repeated string active_task_ids = 13;
 }
 
 // 节点注册/心跳指令：连上总服务时必发一次，之后周期性重发兼作心跳
