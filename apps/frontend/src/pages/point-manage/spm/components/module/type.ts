@@ -1,7 +1,6 @@
 import { ITrackingSpmListItem } from "@pages/point-manage/spm/type"
 
 export interface IModuleProps {
-  containerHeight: number
   selectedPage?: ITrackingSpmListItem
   selectedModule?: ITrackingSpmListItem
   selectModule: (module: ITrackingSpmListItem) => void

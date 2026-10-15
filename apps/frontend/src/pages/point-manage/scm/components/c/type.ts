@@ -1,7 +1,6 @@
 import { ITrackingScmListItem } from "@pages/point-manage/scm/type"
 
 export interface ICProps {
-  containerHeight: number
   selectedA?: ITrackingScmListItem
   selectedB?: ITrackingScmListItem
   selectedC?: ITrackingScmListItem

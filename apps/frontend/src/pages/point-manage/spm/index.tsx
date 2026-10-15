@@ -33,11 +33,6 @@ function ScmManage() {
     }
   })
 
-  const containerHeight = useMemo(() => {
-    // 窗口高度 - form高度 - 标题高度 - 内容边框 - 上下两个内边距 - 按钮高度 - 内容详情 - 内容详情上下边距 - 列表边框
-    return window.innerHeight - 150 - 47 - 2 - 24 - 32 - 156 - 24 - 2
-  }, [])
-
   const businessData = useMemo(() => {
     if (!businessList?.length) return null
     return businessList.find(data => data.code === query.businessCode)
@@ -175,10 +170,9 @@ function ScmManage() {
         ]}
       />
 
-      <Splitter style={{ border: '1px solid var(--px-color-border-secondary)', height: "calc(100vh - 47px - 150px - 48px)" }}>
-        <Splitter.Panel style={{ height: '100%' }}>
+      <Splitter className={styles.splitter}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <Page
-            containerHeight={containerHeight}
             selectedPage={selectedPage}
             openPageAdd={() => openPageEdit()}
             openPageEdit={(page: ITrackingSpmListItem) => openPageEdit(page)}
@@ -189,9 +183,8 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel style={{ height: '100%' }}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <Module
-            containerHeight={containerHeight}
             selectedPage={selectedPage}
             selectedModule={selectedModule}
             openPageEdit={(page) => openPageEdit(page)}
@@ -203,9 +196,8 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel style={{ height: '100%' }}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <Point
-            containerHeight={containerHeight}
             selectedPage={selectedPage}
             selectedModule={selectedModule}
             selectedPoint={selectedPoint}

@@ -1,7 +1,7 @@
-import React, { memo, useEffect, useMemo, useState } from "react"
+import React, { memo, useEffect, useMemo, useRef, useState } from "react"
 import { Button, Descriptions, DescriptionsProps, Empty, List, Popover, Space } from "antd"
 import { AddOne } from "@icon-park/react"
-import VirtualList from "rc-virtual-list"
+import TrackingNodePanel from "@pages/point-manage/components/TrackingNodePanel"
 import { IPointManageScmState, ITrackingScmListItem } from "@pages/point-manage/scm/type"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -16,7 +16,6 @@ function C(props: ICProps) {
     selectedA,
     selectedB,
     selectedC,
-    containerHeight,
     openCEdit,
     openCAdd,
     openBEdit,
@@ -29,6 +28,7 @@ function C(props: ICProps) {
 
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
+  const loadMoreInFlight = useRef(false)
 
   const children = useMemo(() => (trackingScmList.find((item) => item.code === selectedA?.code)?.child?.trackingScmList || []).find(item => item.code === selectedB?.code)?.child, [selectedB?.code, selectedA?.code, trackingScmList])
 
@@ -53,15 +53,20 @@ function C(props: ICProps) {
   }, [dispatch.pointManageScmModel, selectedB])
 
   const onScrollC = async (e: React.UIEvent<HTMLElement, UIEvent>) => {
-    if (
-      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
-    ) {
-      if (isFinish) return
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight > 16 || !selectedB || isFinish || loading || loadMoreInFlight.current) return
+
+    loadMoreInFlight.current = true
+    setLoading(true)
+    try {
       await dispatch.pointManageScmModel.getScmNodeList({
         parentCode: selectedB.code,
         page: page + 1,
         pageSize,
       })
+    } finally {
+      loadMoreInFlight.current = false
+      setLoading(false)
     }
   }
 
@@ -80,85 +85,68 @@ function C(props: ICProps) {
     },
   ], [selectedB])
 
-  const renderListView = useMemo(() => {
-    if ((!selectedB || !list?.length) && !loading) return null
-    return (
-      <VirtualList
-        data={list}
-        height={containerHeight}
-        itemHeight={47}
-        onScroll={onScrollC}
-        itemKey="code"
-      >
-        {(item: ITrackingScmListItem) => (
-          <List.Item
-            key={item.code}
-            style={{ padding: 0 }}
-            className={classnames(styles.listItem, {
-              [styles.selected]: selectedC?.code === item.code,
-            })}
-          >
-            <Popover
-              trigger="contextMenu"
-              placement="right"
-              content={(
-                <Space direction="vertical">
-                  <a onClick={() => openCEdit(item, selectedB)}>修改</a>
-                  {/*<a>删除</a>*/}
-                </Space>
-              )}
-            >
-              <a
-                className={styles.link}
-                onClick={() => selectC(item)}
-              >
-                {item.name}（{item.code}）
-              </a>
-            </Popover>
-          </List.Item>
-        )}
-      </VirtualList>
-    )
-  }, [containerHeight, list, loading, onScrollC, openCEdit, selectedB, selectedC?.code])
-
   return (
-    <div style={{ padding: 12 }}>
-      <Space>
-        <Button
-          type="primary"
-          onClick={() => openCAdd(selectedB)}
+    <TrackingNodePanel
+      actions={(
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => openCAdd(selectedB)}
+          >
+            新增C
+            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+          </Button>
+        </Space>
+      )}
+      data={list}
+      loading={loading}
+      onScroll={onScrollC}
+      emptyText={selectedB ? <Empty description="暂无C" /> : <Empty description="请先选择一个B" />}
+      header={selectedB ? (
+        <Descriptions
+          bordered
+          title={selectedB.name}
+          size="small"
+          extra={
+            <Button
+              type="primary"
+              onClick={() => openBEdit(selectedB, selectedA)}
+            >
+              编辑B
+            </Button>
+          }
+          items={borderedItems}
+        />
+      ) : null}
+    >
+      {(item: ITrackingScmListItem) => (
+        <List.Item
+          key={item.code}
+          style={{ padding: 0 }}
+          className={classnames(styles.listItem, {
+            [styles.selected]: selectedC?.code === item.code,
+          })}
         >
-          新增C
-          <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-        </Button>
-      </Space>
-
-      <List
-        locale={{
-          emptyText: selectedB ? <Empty description="暂无C" /> : <Empty description="请先选择一个B" />,
-        }}
-        loading={loading}
-        header={selectedB ? (
-          <Descriptions
-            bordered
-            title={selectedB.name}
-            size="small"
-            style={{ height: 156 }}
-            extra={
-              <Button
-                type="primary"
-                onClick={() => openBEdit(selectedB, selectedA)}
-              >
-                编辑B
-              </Button>
-            }
-            items={borderedItems}
-          />
-        ) : null}
-      >
-        {renderListView}
-      </List>
-    </div>
+          <Popover
+            trigger="contextMenu"
+            placement="right"
+            content={(
+              <Space direction="vertical">
+                <a onClick={() => openCEdit(item, selectedB)}>修改</a>
+                {/*<a>删除</a>*/}
+              </Space>
+            )}
+          >
+            <a
+              className={styles.link}
+              onClick={() => selectC(item)}
+            >
+              {item.name}（{item.code}）
+            </a>
+          </Popover>
+        </List.Item>
+      )}
+    </TrackingNodePanel>
   )
 }
 

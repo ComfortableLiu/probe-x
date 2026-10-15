@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
+import React, { memo, useEffect, useMemo, useRef, useState } from "react"
 import { Button, Descriptions, DescriptionsProps, Empty, List, Popover, Space } from "antd"
 import { AddOne } from "@icon-park/react"
-import VirtualList from "rc-virtual-list"
+import TrackingNodePanel from "@pages/point-manage/components/TrackingNodePanel"
 import { IPointManageScmState, ITrackingScmListItem } from "@pages/point-manage/scm/type"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -15,7 +15,6 @@ function B(props: IBProps) {
   const {
     selectedA,
     selectedB,
-    containerHeight,
     openBEdit,
     openBAdd,
     openAEdit,
@@ -28,6 +27,7 @@ function B(props: IBProps) {
 
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
+  const loadMoreInFlight = useRef(false)
 
   const children = useMemo(() => trackingScmList.find((item) => item.code === selectedA?.code)?.child, [selectedA?.code, trackingScmList])
 
@@ -51,18 +51,23 @@ function B(props: IBProps) {
     })
   }, [dispatch.pointManageScmModel, selectedA])
 
-  const onScrollB = useCallback(async (e: React.UIEvent<HTMLElement, UIEvent>) => {
-    if (
-      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
-    ) {
-      if (isFinish) return
+  const onScrollB = async (e: React.UIEvent<HTMLElement, UIEvent>) => {
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight > 16 || !selectedA || isFinish || loading || loadMoreInFlight.current) return
+
+    loadMoreInFlight.current = true
+    setLoading(true)
+    try {
       await dispatch.pointManageScmModel.getScmNodeList({
         parentCode: selectedA.code,
         page: page + 1,
         pageSize,
       })
+    } finally {
+      loadMoreInFlight.current = false
+      setLoading(false)
     }
-  }, [containerHeight, dispatch.pointManageScmModel, isFinish, page, pageSize, selectedA?.code])
+  }
 
   const borderedItems: DescriptionsProps['items'] = useMemo(() => [
     {
@@ -79,84 +84,67 @@ function B(props: IBProps) {
     },
   ], [selectedA])
 
-  const renderListView = useMemo(() => {
-    if ((!selectedA || !list?.length) && !loading) return null
-    return (
-      <VirtualList
-        data={list}
-        height={containerHeight}
-        itemHeight={47}
-        onScroll={onScrollB}
-        itemKey="code"
-      >
-        {(item: ITrackingScmListItem) => (
-          <List.Item
-            key={item.code}
-            style={{ padding: 0 }}
-            className={classnames(styles.listItem, {
-              [styles.selected]: selectedB?.code === item.code,
-            })}
-          >
-            <Popover
-              trigger="contextMenu"
-              content={(
-                <Space direction="vertical">
-                  <a onClick={() => openBEdit(item, selectedA)}>修改</a>
-                  {/*<a>删除</a>*/}
-                </Space>
-              )}
-            >
-              <a
-                className={styles.link}
-                onClick={() => selectB(item)}
-              >
-                {item.name}（{item.code}）
-              </a>
-            </Popover>
-          </List.Item>
-        )}
-      </VirtualList>
-    )
-  }, [containerHeight, list, loading, onScrollB, openBEdit, selectB, selectedB?.code, selectedA])
-
   return (
-    <div style={{ padding: 12 }}>
-      <Space>
-        <Button
-          type="primary"
-          onClick={() => openBAdd(selectedA)}
+    <TrackingNodePanel
+      actions={(
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => openBAdd(selectedA)}
+          >
+            新增B
+            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+          </Button>
+        </Space>
+      )}
+      data={list}
+      loading={loading}
+      onScroll={onScrollB}
+      emptyText={selectedA ? <Empty description="暂无B" /> : <Empty description="请先选择一个A" />}
+      header={selectedA ? (
+        <Descriptions
+          bordered
+          title={selectedA.name}
+          size="small"
+          extra={
+            <Button
+              type="primary"
+              onClick={() => openAEdit(selectedA)}
+            >
+              编辑A
+            </Button>
+          }
+          items={borderedItems}
+        />
+      ) : null}
+    >
+      {(item: ITrackingScmListItem) => (
+        <List.Item
+          key={item.code}
+          style={{ padding: 0 }}
+          className={classnames(styles.listItem, {
+            [styles.selected]: selectedB?.code === item.code,
+          })}
         >
-          新增B
-          <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-        </Button>
-      </Space>
-
-      <List
-        locale={{
-          emptyText: selectedA ? <Empty description="暂无B" /> : <Empty description="请先选择一个A" />,
-        }}
-        loading={loading}
-        header={selectedA ? (
-          <Descriptions
-            bordered
-            title={selectedA.name}
-            size="small"
-            style={{ height: 156 }}
-            extra={
-              <Button
-                type="primary"
-                onClick={() => openAEdit(selectedA)}
-              >
-                编辑A
-              </Button>
-            }
-            items={borderedItems}
-          />
-        ) : null}
-      >
-        {renderListView}
-      </List>
-    </div>
+          <Popover
+            trigger="contextMenu"
+            content={(
+              <Space direction="vertical">
+                <a onClick={() => openBEdit(item, selectedA)}>修改</a>
+                {/*<a>删除</a>*/}
+              </Space>
+            )}
+          >
+            <a
+              className={styles.link}
+              onClick={() => selectB(item)}
+            >
+              {item.name}（{item.code}）
+            </a>
+          </Popover>
+        </List.Item>
+      )}
+    </TrackingNodePanel>
   )
 }
 

@@ -1,7 +1,7 @@
-import React, { memo, useEffect, useMemo, useState } from "react"
+import React, { memo, useEffect, useMemo, useRef, useState } from "react"
 import { Button, Descriptions, DescriptionsProps, Empty, List, Popover, Space } from "antd"
 import { AddOne } from "@icon-park/react"
-import VirtualList from "rc-virtual-list"
+import TrackingNodePanel from "@pages/point-manage/components/TrackingNodePanel"
 import { IPointManageSpmState, ITrackingSpmListItem } from "@pages/point-manage/spm/type"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -16,7 +16,6 @@ function Point(props: IPointProps) {
     selectedPage,
     selectedModule,
     selectedPoint,
-    containerHeight,
     openPointEdit,
     openPointAdd,
     openModuleEdit,
@@ -28,6 +27,7 @@ function Point(props: IPointProps) {
 
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
+  const loadingMore = useRef(false)
 
   const children = useMemo(() => (trackingSpmList.find((item) => item.code === selectedPage?.code)?.child?.trackingSpmList || []).find(item => item.code === selectedModule?.code)?.child, [selectedModule?.code, selectedPage?.code, trackingSpmList])
 
@@ -52,15 +52,19 @@ function Point(props: IPointProps) {
   }, [dispatch.pointManageSpmModel, selectedModule])
 
   const onScrollPage = async (e: React.UIEvent<HTMLElement, UIEvent>) => {
-    if (
-      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
-    ) {
-      if (isFinish) return
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight > 16 || !selectedModule || isFinish || loading || loadingMore.current) return
+    loadingMore.current = true
+    setLoading(true)
+    try {
       await dispatch.pointManageSpmModel.getSpmNodeList({
         parentCode: selectedModule.code,
         page: page + 1,
         pageSize,
       })
+    } finally {
+      loadingMore.current = false
+      setLoading(false)
     }
   }
 
@@ -79,84 +83,65 @@ function Point(props: IPointProps) {
     },
   ], [selectedModule])
 
-  const renderListView = useMemo(() => {
-    if ((!selectedModule || !list?.length) && !loading) return null
-    return (
-      <VirtualList
-        data={list}
-        height={containerHeight}
-        itemHeight={47}
-        onScroll={onScrollPage}
-        itemKey="code"
-      >
-        {(item: ITrackingSpmListItem) => (
-          <List.Item
-            key={item.code}
-            style={{ padding: 0 }}
-            className={classnames(styles.listItem, {
-              [styles.selected]: selectedPoint?.code === item.code,
-            })}
-          >
-            <Popover
-              trigger="contextMenu"
-              placement="right"
-              content={(
-                <Space direction="vertical">
-                  <a onClick={() => openPointEdit(item, selectedModule)}>修改</a>
-                  {/*<a>删除</a>*/}
-                </Space>
-              )}
-            >
-              <a
-                className={styles.link}
-              >
-                {item.name}（{item.code}）
-              </a>
-            </Popover>
-          </List.Item>
-        )}
-      </VirtualList>
-    )
-  }, [containerHeight, list, loading, onScrollPage, openPointEdit, selectedModule, selectedPoint?.code])
-
   return (
-    <div style={{ padding: 12 }}>
-      <Space>
-        <Button
-          type="primary"
-          onClick={() => openPointAdd(selectedModule)}
+    <TrackingNodePanel
+      actions={(
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => openPointAdd(selectedModule)}
+          >
+            新增点位
+            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+          </Button>
+        </Space>
+      )}
+      data={list}
+      loading={loading}
+      onScroll={onScrollPage}
+      emptyText={selectedModule ? <Empty description="暂无点位" /> : <Empty description="请先选择一个模块" />}
+      header={selectedModule ? (
+        <Descriptions
+          bordered
+          title={selectedModule.name}
+          size="small"
+          extra={
+            <Button
+              type="primary"
+              onClick={() => openModuleEdit(selectedModule, selectedPage)}
+            >
+              编辑模块
+            </Button>
+          }
+          items={borderedItems}
+        />
+      ) : null}
+    >
+      {(item: ITrackingSpmListItem) => (
+        <List.Item
+          key={item.code}
+          style={{ padding: 0 }}
+          className={classnames(styles.listItem, {
+            [styles.selected]: selectedPoint?.code === item.code,
+          })}
         >
-          新增点位
-          <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-        </Button>
-      </Space>
-
-      <List
-        locale={{
-          emptyText: selectedModule ? <Empty description="暂无点位" /> : <Empty description="请先选择一个模块" />,
-        }}
-        loading={loading}
-        header={selectedModule ? (
-          <Descriptions
-            bordered
-            title={selectedModule.name}
-            size="small"
-            style={{ height: 156 }}
-            extra={
-              <Button
-                type="primary"
-                onClick={() => openModuleEdit(selectedModule, selectedPage)}
-              >
-                编辑模块
-              </Button>
-            }
-            items={borderedItems}
-          />
-        ) : null}
-      >
-        {renderListView}
-      </List>
-    </div>
+          <Popover
+            trigger="contextMenu"
+            placement="right"
+            content={(
+              <Space direction="vertical">
+                <a onClick={() => openPointEdit(item, selectedModule)}>修改</a>
+                {/*<a>删除</a>*/}
+              </Space>
+            )}
+          >
+            <a className={styles.link}>
+              {item.name}（{item.code}）
+            </a>
+          </Popover>
+        </List.Item>
+      )}
+    </TrackingNodePanel>
   )
 }
 

@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button, Descriptions, DescriptionsProps, Empty, List, Popover, Space } from "antd"
 import { AddOne } from "@icon-park/react"
-import VirtualList from "rc-virtual-list"
+import TrackingNodePanel from "@pages/point-manage/components/TrackingNodePanel"
 import { IPointManageSpmState, ITrackingSpmListItem } from "@pages/point-manage/spm/type"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
@@ -15,7 +15,6 @@ function Module(props: IModuleProps) {
   const {
     selectedPage,
     selectedModule,
-    containerHeight,
     openModuleEdit,
     openModuleAdd,
     openPageEdit,
@@ -28,6 +27,7 @@ function Module(props: IModuleProps) {
 
   const dispatch = useDispatch<Dispatch>()
   const [loading, setLoading] = useState(false)
+  const loadingMore = useRef(false)
 
   const children = useMemo(() => trackingSpmList.find((item) => item.code === selectedPage?.code)?.child, [selectedPage?.code, trackingSpmList])
 
@@ -52,17 +52,21 @@ function Module(props: IModuleProps) {
   }, [dispatch.pointManageSpmModel, selectedPage])
 
   const onScrollPage = useCallback(async (e: React.UIEvent<HTMLElement, UIEvent>) => {
-    if (
-      Math.abs(e.currentTarget.scrollHeight - e.currentTarget.scrollTop - containerHeight) <= 1
-    ) {
-      if (isFinish) return
+    const { scrollHeight, scrollTop, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight > 16 || !selectedPage || isFinish || loading || loadingMore.current) return
+    loadingMore.current = true
+    setLoading(true)
+    try {
       await dispatch.pointManageSpmModel.getSpmNodeList({
         parentCode: selectedPage.code,
         page: page + 1,
         pageSize,
       })
+    } finally {
+      loadingMore.current = false
+      setLoading(false)
     }
-  }, [containerHeight, dispatch.pointManageSpmModel, isFinish, page, pageSize, selectedPage?.code])
+  }, [dispatch.pointManageSpmModel, isFinish, loading, page, pageSize, selectedPage])
 
   const borderedItems: DescriptionsProps['items'] = useMemo(() => [
     {
@@ -79,84 +83,67 @@ function Module(props: IModuleProps) {
     },
   ], [selectedPage])
 
-  const renderListView = useMemo(() => {
-    if ((!selectedPage || !list?.length) && !loading) return null
-    return (
-      <VirtualList
-        data={list}
-        height={containerHeight}
-        itemHeight={47}
-        onScroll={onScrollPage}
-        itemKey="code"
-      >
-        {(item: ITrackingSpmListItem) => (
-          <List.Item
-            key={item.code}
-            style={{ padding: 0 }}
-            className={classnames(styles.listItem, {
-              [styles.selected]: selectedModule?.code === item.code,
-            })}
-          >
-            <Popover
-              trigger="contextMenu"
-              content={(
-                <Space direction="vertical">
-                  <a onClick={() => openModuleEdit(item, selectedPage)}>修改</a>
-                  {/*<a>删除</a>*/}
-                </Space>
-              )}
-            >
-              <a
-                className={styles.link}
-                onClick={() => selectModule(item)}
-              >
-                {item.name}（{item.code}）
-              </a>
-            </Popover>
-          </List.Item>
-        )}
-      </VirtualList>
-    )
-  }, [containerHeight, list, loading, onScrollPage, openModuleEdit, selectModule, selectedModule?.code, selectedPage])
-
   return (
-    <div style={{ padding: 12 }}>
-      <Space>
-        <Button
-          type="primary"
-          onClick={() => openModuleAdd(selectedPage)}
+    <TrackingNodePanel
+      actions={(
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => openModuleAdd(selectedPage)}
+          >
+            新增模块
+            <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
+          </Button>
+        </Space>
+      )}
+      data={list}
+      loading={loading}
+      onScroll={onScrollPage}
+      emptyText={selectedPage ? <Empty description="暂无模块" /> : <Empty description="请先选择一个页面" />}
+      header={selectedPage ? (
+        <Descriptions
+          bordered
+          title={selectedPage.name}
+          size="small"
+          extra={
+            <Button
+              type="primary"
+              onClick={() => openPageEdit(selectedPage)}
+            >
+              编辑页面
+            </Button>
+          }
+          items={borderedItems}
+        />
+      ) : null}
+    >
+      {(item: ITrackingSpmListItem) => (
+        <List.Item
+          key={item.code}
+          style={{ padding: 0 }}
+          className={classnames(styles.listItem, {
+            [styles.selected]: selectedModule?.code === item.code,
+          })}
         >
-          新增模块
-          <AddOne style={{ display: "flex" }} theme="outline" size="14" fill="#FFFFFF" />
-        </Button>
-      </Space>
-
-      <List
-        locale={{
-          emptyText: selectedPage ? <Empty description="暂无模块" /> : <Empty description="请先选择一个页面" />,
-        }}
-        loading={loading}
-        header={selectedPage ? (
-          <Descriptions
-            bordered
-            title={selectedPage.name}
-            size="small"
-            style={{ height: 156 }}
-            extra={
-              <Button
-                type="primary"
-                onClick={() => openPageEdit(selectedPage)}
-              >
-                编辑页面
-              </Button>
-            }
-            items={borderedItems}
-          />
-        ) : null}
-      >
-        {renderListView}
-      </List>
-    </div>
+          <Popover
+            trigger="contextMenu"
+            content={(
+              <Space direction="vertical">
+                <a onClick={() => openModuleEdit(item, selectedPage)}>修改</a>
+                {/*<a>删除</a>*/}
+              </Space>
+            )}
+          >
+            <a
+              className={styles.link}
+              onClick={() => selectModule(item)}
+            >
+              {item.name}（{item.code}）
+            </a>
+          </Popover>
+        </List.Item>
+      )}
+    </TrackingNodePanel>
   )
 }
 

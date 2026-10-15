@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from "react"
-import { useHistoryListener, useLoading, useModel } from "@/hooks"
-import { IPointManageScmState, ITrackingScmListItem } from "@pages/point-manage/scm/type"
+import React, { useCallback, useState } from "react"
+import { useHistoryListener, useLoading } from "@/hooks"
+import { ITrackingScmListItem } from "@pages/point-manage/scm/type"
 import { useDispatch } from "react-redux"
 import { Dispatch } from "@/store/storeContext"
 import SpmScmEditPopup from "@pages/point-manage/components/SpmScmEditPopup"
@@ -24,11 +24,6 @@ function ScmManage() {
       dispatch.pointManageScmModel.init()
     }
   })
-
-  const containerHeight = useMemo(() => {
-    // 窗口高度 - 标题高度 - 提示框高度 - 内容边框 - 上下两个内边距 - 按钮高度 - 内容详情 - 内容详情上下边距 - 列表边框
-    return window.innerHeight - 47 - 48 - 2 - 24 - 32 - 156 - 24 - 2
-  }, [])
 
   const [showEditPopup, setShowEditPopup] = useState(false)
   const [editPopupInfo, setEditPopupInfo] = useState<{
@@ -130,7 +125,7 @@ function ScmManage() {
 
       <Collapse
         ghost
-        style={{ marginBottom: 12 }}
+        style={{ marginBottom: 12, flexShrink: 0 }}
         items={[
           {
             key: '1',
@@ -152,10 +147,9 @@ function ScmManage() {
         ]}
       />
 
-      <Splitter style={{ border: '1px solid var(--px-color-border-secondary)', height: "calc(100vh - 47px - 48px)" }}>
-        <Splitter.Panel style={{ height: '100%' }}>
+      <Splitter className={styles.splitter}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <A
-            containerHeight={containerHeight}
             selectedA={selectedA}
             openAAdd={() => openAEdit()}
             openAEdit={(a: ITrackingScmListItem) => openAEdit(a)}
@@ -167,9 +161,8 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel style={{ height: '100%' }}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <B
-            containerHeight={containerHeight}
             selectedA={selectedA}
             selectedB={selectedB}
             openAEdit={(a) => openAEdit(a)}
@@ -182,9 +175,8 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel style={{ height: '100%' }}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <C
-            containerHeight={containerHeight}
             selectedA={selectedA}
             selectedB={selectedB}
             selectedC={selectedC}
@@ -197,9 +189,8 @@ function ScmManage() {
             }}
           />
         </Splitter.Panel>
-        <Splitter.Panel style={{ height: '100%' }}>
+        <Splitter.Panel style={{ height: '100%', overflow: 'hidden' }}>
           <D
-            containerHeight={containerHeight}
             selectedA={selectedA}
             selectedB={selectedB}
             selectedC={selectedC}
