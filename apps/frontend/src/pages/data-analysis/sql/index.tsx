@@ -52,6 +52,7 @@ function SqlAnalysis() {
     <div className={styles.container}>
       <DataAnalysisHeader
         title="SQL 查询"
+        guidePath="/guide/data-analysis/sql"
         updateTime={updateTime}
       />
       <div className={styles.editorSection}>
@@ -62,7 +63,7 @@ function SqlAnalysis() {
         />
         <div className={styles.editorFooter}>
           <Typography.Text type="secondary">
-            示例：SELECT * FROM `$final_event_log` LIMIT 100（$ 开头的列名需用反引号包裹），支持 Cmd/Ctrl + Enter 快捷执行
+            示例：SELECT * FROM probe_x.final_event_log LIMIT 100（$ 开头的列名需用反引号包裹），支持 Cmd/Ctrl + Enter 快捷执行
           </Typography.Text>
           <Button
             type="primary"

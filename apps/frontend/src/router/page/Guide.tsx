@@ -67,6 +67,13 @@ export default {
         isHidden: true,
       },
     },
+    {
+      path: '/data-analysis/sql',
+      name: 'SQL 查询说明',
+      key: 'guide-data-analysis-sql',
+      component: lazy(() => import('@pages/guide/pages/data-analysis/sql/index')),
+      meta: { isHidden: true },
+    },
     // 系统数据说明
     {
       path: '/system-data/overview',
@@ -85,6 +92,20 @@ export default {
       meta: {
         isHidden: true,
       },
+    },
+    {
+      path: '/system-data/meta',
+      name: '元数据说明',
+      key: 'guide-system-data-meta',
+      component: lazy(() => import('@pages/guide/pages/system-data/meta/index')),
+      meta: { isHidden: true },
+    },
+    {
+      path: '/system-data/computing-node',
+      name: '计算节点说明',
+      key: 'guide-system-data-computing-node',
+      component: lazy(() => import('@pages/guide/pages/system-data/computing-node/index')),
+      meta: { isHidden: true },
     },
     // 点位管理说明
     {
