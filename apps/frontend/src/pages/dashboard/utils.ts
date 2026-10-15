@@ -642,13 +642,13 @@ const ANALYSIS_DETAIL_ROUTE: Record<AnalysisType, string> = {
 
 /**
  * 构建看板对应的分析详情页 URL
- * 把看板 config 里的分析参数序列化成 URL query 并带上 dashboardId，
- * 与 dashboard-config 页的编辑跳转逻辑保持一致
+ * 使用卡片当前生效的时间覆盖保存时的日期，其余分析参数及 dashboardId 保持一致。
  */
-export function buildDetailUrl(dashboard: IDashboard): string | null {
+export function buildDetailUrl(dashboard: IDashboard, timeRange?: [string, string]): string | null {
   const route = ANALYSIS_DETAIL_ROUTE[dashboard.analysisType]
-  const queryParams = dashboard.config?.[ANALYSIS_CONFIG_KEY[dashboard.analysisType]] as Record<string, unknown> | undefined
-  if (!route || !queryParams || !Object.keys(queryParams).length) return null
+  const savedParams = dashboard.config?.[ANALYSIS_CONFIG_KEY[dashboard.analysisType]] as Record<string, unknown> | undefined
+  if (!route || !savedParams || !Object.keys(savedParams).length) return null
+  const queryParams = timeRange ? { ...savedParams, timeRange } : savedParams
 
   // 对象参数序列化为 JSON 字符串，与 useRouter 的 refresh 方法解析方式一致
   const obj: Record<string, unknown> = {}

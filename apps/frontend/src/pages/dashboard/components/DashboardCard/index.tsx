@@ -92,7 +92,7 @@ function DashboardCard(props: IDashboardCardProps) {
 
   // 跳转到对应分析页详情
   const handleGoDetail = () => {
-    const url = buildDetailUrl(dashboard)
+    const url = buildDetailUrl(dashboard, effectiveTimeRange)
     if (!url) {
       message.warning('看板配置为空，无法跳转')
       return
