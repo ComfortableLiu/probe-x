@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
+const { test, afterEach } = require('node:test')
+const { setImmediate: nextTurn } = require('node:timers/promises')
 const dayjs = require('dayjs')
 require('reflect-metadata')
 require('ts-node').register({ transpileOnly: true, skipProject: true, compilerOptions: {
@@ -7,6 +8,62 @@ require('ts-node').register({ transpileOnly: true, skipProject: true, compilerOp
 } })
 const { buildTaskId, planCleaningTasks, CleaningSchedulerService } = require('../apps/data-dashboard-api-service/src/api/compute-node/cleaning-scheduler.service.ts')
 const { NodeRegistryService } = require('../apps/data-dashboard-api-service/src/api/compute-node/node-registry.service.ts')
+
+const schedulers = new Set()
+afterEach(() => {
+  for (const scheduler of schedulers) scheduler.onModuleDestroy()
+  schedulers.clear()
+})
+
+function createScheduler(...dependencies) {
+  const scheduler = new CleaningSchedulerService(...dependencies)
+  schedulers.add(scheduler)
+  return scheduler
+}
+
+async function waitFor(condition, message = '后台清洗扫描应推进', turns = 100) {
+  for (let turn = 0; turn < turns; turn++) {
+    if (condition()) return
+    await nextTurn()
+  }
+  assert.ok(condition(), message)
+}
+
+/** 小数据 IO 桩遵循真实 reader 的物理键分页，最终表返回未清洗。 */
+function backlogClickhouse(rows = []) {
+  const source = rows.map((row, index) => ({
+    ...row,
+    service_time: new Date(Date.parse(`${row.date}T00:00:00.000Z`) + index).toISOString().replace('T', ' ').replace('Z', ''),
+    event_name: `event-${index}`,
+  })).sort((left, right) => tupleOf(left).localeCompare(tupleOf(right)))
+  return {
+    async query(sql, params) {
+      if (/FROM final_event_log/.test(sql)) return []
+      assert.match(sql, /FROM event_log/)
+      return source.filter(row => (!params.targetDate || row.date === params.targetDate)
+        && row.date <= params.throughDate
+        && (!params.afterTime || tupleOf(row) > [params.afterTime, params.afterSession, params.afterEvent].join('|')))
+        .slice(0, params.pageSize)
+    },
+  }
+}
+
+function tupleOf(row) {
+  return [row.service_time, row.session_id, row.event_name].join('|')
+}
+
+async function loadFirstPage(scheduler, date = '2026-09-28') {
+  await scheduler.cleanNow(date)
+  await nextTurn()
+  await nextTurn()
+}
+
+function bufferRows(scheduler, rows) {
+  for (const row of rows) scheduler.enqueueTask({
+    ...row,
+    task_id: buildTaskId(dayjs().format('YYYY-MM-DD'), row.date, row.session_id),
+  })
+}
 
 test('task_id 确定性生成，重试追加 :r{n} 后缀', () => {
   assert.equal(buildTaskId('2026-09-29', '2026-09-28', 's-1'), 'clean:2026-09-29:2026-09-28:s-1')
@@ -34,21 +91,21 @@ function stubScheduler({ rows = [], idle = true } = {}) {
     pickIdleNode() { return idle ? 'node-1' : null },
     dispatchTask(nodeId, task) { dispatched.push(task.task_id); return true },
   }
-  const clickhouse = { query: async () => rows }
-  const scheduler = new CleaningSchedulerService(registry, clickhouse, {}, {})
+  const clickhouse = backlogClickhouse(rows)
+  const scheduler = createScheduler(registry, clickhouse, {}, {})
   return { scheduler, dispatched, registry }
 }
 
 test('连续失败时重试 task_id 按 :r1、:r2 递增，超过上限后放弃', () => {
   const { scheduler, dispatched } = stubScheduler()
   const base = 'clean:2026-09-29:2026-09-28:s-1'
-  scheduler.queue.push({ task_id: base, session_id: 's-1', date: '2026-09-28' })
+  scheduler.enqueueTask({ task_id: base, session_id: 's-1', date: '2026-09-28' })
   scheduler.drain()
   scheduler.onTaskSettled(base, true)
   scheduler.onTaskSettled(`${base}:r1`, true)
   scheduler.onTaskSettled(`${base}:r2`, true)
   assert.deepEqual(dispatched, [base, `${base}:r1`, `${base}:r2`])
-  assert.equal(scheduler.queue.length, 0)
+  assert.equal(scheduler.queue.size, 0)
 })
 
 test('同一 (date, session) 在队列积压或任务在途时不重复入队', async () => {
@@ -58,16 +115,19 @@ test('同一 (date, session) 在队列积压或任务在途时不重复入队', 
   ]
   const { scheduler, dispatched, registry } = stubScheduler({ rows, idle: false })
   // 场景 a：节点全天离线，队列里积压着昨日 runDate 的旧任务；换天后同一切片不得重复入队，旧任务保留
-  scheduler.queue.push({ task_id: 'clean:2026-09-28:2026-09-28:s-old', session_id: 's-old', date: '2026-09-28' })
-  await scheduler.enqueueBacklog()
-  assert.equal(scheduler.queue.filter(task => task.session_id === 's-old').length, 1)
-  assert.equal(scheduler.queue[0].task_id, 'clean:2026-09-28:2026-09-28:s-old')
+  scheduler.enqueueTask({ task_id: 'clean:2026-09-28:2026-09-28:s-old', session_id: 's-old', date: '2026-09-28' })
+  scheduler.enqueueBacklog()
+  bufferRows(scheduler, rows)
+  assert.equal([...scheduler.queue.values()].filter(task => task.session_id === 's-old').length, 1)
+  assert.equal(scheduler.queue.values().next().value.task_id, 'clean:2026-09-28:2026-09-28:s-old')
   // 场景 b：s-fly 下发在途（final_event_log 尚未写入），cleanNow 重新枚举到也不得重发
   registry.pickIdleNode = () => 'node-1'
   scheduler.drain()
   assert.equal(dispatched.length, 2)
-  await scheduler.enqueueBacklog()
-  assert.equal(scheduler.queue.length, 0)
+  scheduler.enqueueBacklog()
+  await nextTurn()
+  await nextTurn()
+  assert.equal(scheduler.queue.size, 0)
   assert.equal(dispatched.filter(id => id.includes('s-fly')).length, 1)
 })
 
@@ -76,7 +136,7 @@ test('同一 (date, session) 在队列积压或任务在途时不重复入队', 
  * （computeNodeService 写库、ClickHouse 查询、心跳超时配置）。
  * settle 监听手工接线（与 scheduler.onModuleInit 第一行相同），避免拉起 60s 定时器拖住测试进程。
  */
-function stubWiredPair({ rows = [], heartbeatTimeoutMs = 1 } = {}) {
+function stubWiredPair({ rows = [], heartbeatTimeoutMs = 15000 } = {}) {
   const computeNodeService = {
     upsertFromRegister: async () => {},
     syncStatus: async () => {},
@@ -84,7 +144,7 @@ function stubWiredPair({ rows = [], heartbeatTimeoutMs = 1 } = {}) {
   }
   const configService = { get: key => key === 'nodeControl.heartbeatTimeoutMs' ? heartbeatTimeoutMs : undefined }
   const registry = new NodeRegistryService(computeNodeService, configService)
-  const scheduler = new CleaningSchedulerService(registry, { query: async () => rows }, {}, {})
+  const scheduler = createScheduler(registry, backlogClickhouse(rows), {}, {})
   registry.onTaskSettled((taskId, failed) => scheduler.onTaskSettled(taskId, failed))
   registry.onCapacityAvailable(() => scheduler.drain())
   return { registry, scheduler }
@@ -103,8 +163,9 @@ function connectNode(registry, nodeId = 'node-1', info = {}) {
 
 /** 枚举一条欠账并下发到已接入节点，返回已下发任务的 task_id */
 async function dispatchOne(registry, scheduler, session) {
-  await scheduler.enqueueBacklog()
+  scheduler.enqueueBacklog()
   scheduler.drain()
+  await waitFor(() => session.frames.some(frame => frame.task), '首批任务应已下发到节点')
   const frame = session.frames.find(f => f.task)
   assert.ok(frame, '任务应已下发到节点')
   assert.equal(scheduler.inflight.size, 1)
@@ -119,15 +180,15 @@ test('节点心跳超时死亡时在途任务按失败落定：inflight 释放�
 
   let settleNotifications = 0
   registry.onTaskSettled(() => { settleNotifications++ })
-  // 心跳超时配置为 1ms，稍等即死亡
-  await new Promise(resolve => setTimeout(resolve, 5))
+  // 分页 IO 是异步的，直接推进最后心跳避免依赖机器毫秒级时序。
+  registry.nodes.get('node-1').lastHeartbeat = Date.now() - 15001
   await registry.reconcileStatus()
   await registry.reconcileStatus()
 
   assert.equal(settleNotifications, 1)
   assert.equal(scheduler.inflight.size, 0)
-  assert.equal(scheduler.queue.length, 1)
-  assert.equal(scheduler.queue[0].task_id, `${taskId}:r1`)
+  assert.equal(scheduler.queue.size, 1)
+  assert.equal(scheduler.queue.values().next().value.task_id, `${taskId}:r1`)
 })
 
 test('节点断流（detach 已置离线，不走 persistedStatus 跳变）时在途任务同样按失败落定', async () => {
@@ -140,21 +201,22 @@ test('节点断流（detach 已置离线，不走 persistedStatus 跳变）时�
   await registry.reconcileStatus()
 
   assert.equal(scheduler.inflight.size, 0)
-  assert.equal(scheduler.queue.length, 1)
-  assert.equal(scheduler.queue[0].task_id, `${taskId}:r1`)
+  assert.equal(scheduler.queue.size, 1)
+  assert.equal(scheduler.queue.values().next().value.task_id, `${taskId}:r1`)
 })
 
 test('cleanNow 拒绝非法格式与今天/未来日期，过去日期正常触发', async () => {
   const { scheduler } = stubScheduler()
   await assert.rejects(scheduler.cleanNow('not-a-date'), /格式非法/)
   await assert.rejects(scheduler.cleanNow('2026-9-8'), /格式非法/)
+  await assert.rejects(scheduler.cleanNow('2026-02-30'), /日期|非法|有效/)
   await assert.rejects(scheduler.cleanNow(dayjs().format('YYYY-MM-DD')), /今天以前/)
   await assert.rejects(scheduler.cleanNow('2999-01-01'), /今天以前/)
-  // 合法过去日期不拦截（无欠账、无空闲节点 → 全部排队）
-  assert.deepEqual(await scheduler.cleanNow('2026-09-28'), { dispatched: 0, pending: 0 })
+  // 合法过去日期立即注册扫描，不等待首轮 IO。
+  assert.deepEqual(await scheduler.cleanNow('2026-09-28'), { dispatched: 0, pending: 0, loading: true, waitingForCapacity: false })
 })
 
-test('tick 枚举失败不消耗当天额度，恢复后正常触发并写入', async () => {
+test('tick 分页失败不消耗当天额度，下一次 tick 恢复后才写入', async () => {
   const writes = []
   const redis = { get: async () => null, set: async (...args) => { writes.push(args) } }
   const configRepo = {
@@ -163,23 +225,34 @@ test('tick 枚举失败不消耗当天额度，恢复后正常触发并写入', 
       { key: 'final_cleaning.daily_time', value: '00:00' },
     ],
   }
-  const registry = { onTaskSettled() {}, pickIdleNode: () => null, dispatchTask: () => true }
-  const clickhouse = { query: async () => { throw new Error('ClickHouse 挂了') } }
-  const scheduler = new CleaningSchedulerService(registry, clickhouse, redis, configRepo)
-  await assert.rejects(scheduler.tick(), /ClickHouse 挂了/)
-  assert.equal(writes.length, 0)
-  // ClickHouse 恢复后下一次 tick 正常枚举并写入额度
-  clickhouse.query = async () => []
-  await scheduler.tick()
-  assert.equal(writes.length, 1)
-  assert.equal(writes[0][0], 'clean:scheduler:last_run_date')
+  const registry = {
+    onTaskSettled() {}, onCapacityAvailable() {}, hasActiveSlice: () => false,
+    pickIdleNode: () => 'node-1', dispatchTask: () => true,
+  }
+  let queries = 0
+  const clickhouse = { async query() { queries++; throw new Error('ClickHouse 挂了') } }
+  const scheduler = createScheduler(registry, clickhouse, redis, configRepo)
+  const previousError = console.error
+  console.error = () => {}
+  try {
+    await scheduler.tick()
+    await waitFor(() => queries === 1)
+    assert.equal(writes.length, 0)
+    assert.equal(scheduler.scans.size, 1, '失败范围仍保留供下轮恢复')
+    clickhouse.query = async () => []
+    await scheduler.tick()
+    await waitFor(() => writes.length === 1, '恢复后完整扫描才记录每日执行额度')
+    assert.equal(writes[0][0], 'clean:scheduler:last_run_date')
+  } finally {
+    console.error = previousError
+  }
 })
 
 test('非 clean: 前缀的落定通知被直接忽略', () => {
   const { scheduler } = stubScheduler()
   scheduler.onTaskSettled('some-future-task-type:1', true)
   scheduler.onTaskSettled('some-future-task-type:1', false)
-  assert.equal(scheduler.queue.length, 0)
+  assert.equal(scheduler.queue.size, 0)
   assert.equal(scheduler.attempts.size, 0)
 })
 
@@ -294,7 +367,7 @@ async function withClock(fn) {
 test('节点忙碌区间记录总速度，幂等重放不计量，失败仅保留已观察进度', () => withSilentConsole(() => withClock(async clock => {
   const rows = [{ session_id: 's-1', date: '2026-09-28' }]
   const { registry, redis } = stubRegistryWithRedis()
-  const scheduler = new CleaningSchedulerService(registry, { query: async () => rows }, {}, {})
+  const scheduler = createScheduler(registry, backlogClickhouse(rows), {}, {})
   registry.onTaskSettled((taskId, failed) => scheduler.onTaskSettled(taskId, failed))
   const { session, handle } = connectNode(registry)
   const taskId = await dispatchOne(registry, scheduler, session)
@@ -307,7 +380,7 @@ test('节点忙碌区间记录总速度，幂等重放不计量，失败仅保�
   assert.equal(redis.data.has(nodeKey), false)
 
   // 重新下发后真实完成：写入节点速度与 session 分钟桶
-  await scheduler.enqueueBacklog()
+  bufferRows(scheduler, [{ session_id: 's-real', date: '2026-09-28' }])
   scheduler.drain()
   const retryTaskId = session.frames.at(-1).task.task_id
   clock.advance(5000)
@@ -326,7 +399,7 @@ test('节点忙碌区间记录总速度，幂等重放不计量，失败仅保�
   assert.equal(processingRow[sessionBuckets[0]], '1')
 
   // 失败不补剩余 60 个事件；此前已观察到的 40 个事件仍是真实处理工作。
-  await scheduler.enqueueBacklog()
+  bufferRows(scheduler, [{ session_id: 's-failed', date: '2026-09-28' }])
   scheduler.drain()
   const failedTaskId = session.frames.at(-1).task.task_id
   clock.advance(500)
@@ -345,7 +418,7 @@ test('节点忙碌区间记录总速度，幂等重放不计量，失败仅保�
 test('长 session 实时速度累计新增处理进度，任务结束后归 null 且保留今日统计', () => withSilentConsole(() => withClock(async clock => {
   const rows = [{ session_id: 's-1', date: '2026-09-28' }]
   const { registry } = stubRegistryWithRedis()
-  const scheduler = new CleaningSchedulerService(registry, { query: async () => rows }, {}, {})
+  const scheduler = createScheduler(registry, backlogClickhouse(rows), {}, {})
   registry.onTaskSettled((taskId, failed) => scheduler.onTaskSettled(taskId, failed))
   const { session, handle } = connectNode(registry)
   const taskId = await dispatchOne(registry, scheduler, session)
@@ -394,10 +467,10 @@ const heartbeatFrame = (taskCapacity, activeTaskIds = []) => ({ register: {
 test('一个节点按容量填满多个 session，完成一个仅释放一个槽并立即补位', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(5), heartbeatTimeoutMs: 15000 })
   const { session, handle } = connectNode(registry, 'node-1', { task_capacity: 3 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const initial = sentTasks(session)
   assert.equal(initial.length, 3)
-  assert.equal(scheduler.queue.length, 2)
+  assert.equal(scheduler.queue.size, 2)
   assert.equal(scheduler.inflight.size, 3)
   assert.equal(registry.pickIdleNode(), null)
   const node = registry.nodes.get('node-1')
@@ -406,7 +479,7 @@ test('一个节点按容量填满多个 session，完成一个仅释放一个槽
 
   handle.onFrame(progressFrame(initial[1].task_id, { completed: true }))
   assert.equal(sentTasks(session).length, 4)
-  assert.equal(scheduler.queue.length, 1)
+  assert.equal(scheduler.queue.size, 1)
   assert.equal(scheduler.inflight.size, 3)
   assert.equal(node.activeTasks.size, 3)
   assert.equal(node.activeTasks.get(initial[0].task_id), first)
@@ -421,7 +494,7 @@ test('一个节点按容量填满多个 session，完成一个仅释放一个槽
 test('一个任务失败只重试该任务，其余任务占用和进度保持不变', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(3), heartbeatTimeoutMs: 15000 })
   const { session, handle } = connectNode(registry, 'node-1', { task_capacity: 3 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const initial = sentTasks(session)
   handle.onFrame(progressFrame(initial[0].task_id, { progress: 40 }))
   const first = registry.nodes.get('node-1').activeTasks.get(initial[0].task_id)
@@ -440,7 +513,7 @@ test('一个任务失败只重试该任务，其余任务占用和进度保持�
 test('未知或重复进度、旧流迟到帧均不释放其他任务或重复落定', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(3), heartbeatTimeoutMs: 15000 })
   const { session, handle } = connectNode(registry, 'node-1', { task_capacity: 2 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const [first, second] = sentTasks(session)
   const settled = []
   registry.onTaskSettled((...args) => settled.push(args))
@@ -471,7 +544,7 @@ test('未知或重复进度、旧流迟到帧均不释放其他任务或重复�
 test('多任务节点离线后全部各落定一次，重复巡检不重复重试', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(3), heartbeatTimeoutMs: 15000 })
   const { session, handle } = connectNode(registry, 'node-1', { task_capacity: 3 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const initial = sentTasks(session)
   const settled = []
   registry.onTaskSettled((...args) => settled.push(args))
@@ -480,18 +553,18 @@ test('多任务节点离线后全部各落定一次，重复巡检不重复重�
   await registry.reconcileStatus()
   assert.equal(registry.nodes.get('node-1').activeTasks.size, 0)
   assert.equal(scheduler.inflight.size, 0)
-  assert.equal(scheduler.queue.length, 3)
+  assert.equal(scheduler.queue.size, 3)
   assert.deepEqual(settled, initial.map(task => [task.task_id, true]))
-  assert.deepEqual(scheduler.queue.map(task => task.task_id), initial.map(task => `${task.task_id}:r1`))
+  assert.deepEqual([...scheduler.queue.values()].map(task => task.task_id), initial.map(task => `${task.task_id}:r1`))
 }))
 
 test('未上报容量和容量为 0 的旧节点默认只能接收一个任务', () => withSilentConsole(async () => {
   for (const info of [{}, { task_capacity: 0 }]) {
     const { registry, scheduler } = stubWiredPair({ rows: backlogRows(3), heartbeatTimeoutMs: 15000 })
     const { session } = connectNode(registry, 'node-1', info)
-    await scheduler.cleanNow('2026-09-28')
+    await loadFirstPage(scheduler)
     assert.equal(sentTasks(session).length, 1)
-    assert.equal(scheduler.queue.length, 2)
+    assert.equal(scheduler.queue.size, 2)
     assert.equal(registry.pickIdleNode(), null)
     const topology = await registry.getTopology()
     assert.equal(topology.nodes[0].taskCapacity, 1)
@@ -509,18 +582,19 @@ test('下发前预占节点与切片，发送失败回滚所有占用且保留�
       throw new Error('stream write failed')
     }
   }
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   assert.equal(registry.nodes.get('node-1').activeTasks.size, 0)
   assert.equal(registry.pickIdleNode(), 'node-1')
   assert.equal(scheduler.dispatchedTasks.size, 0)
   assert.equal(scheduler.inflight.size, 0)
-  assert.equal(scheduler.queue.length, 2)
+  assert.equal(scheduler.queue.size, 2)
 }))
 
 test('新节点接入和容量增大立刻填充已有队列，滞后心跳不抹掉预占任务', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(5), heartbeatTimeoutMs: 15000 })
-  await scheduler.cleanNow('2026-09-28')
-  assert.equal(scheduler.queue.length, 5)
+  await loadFirstPage(scheduler)
+  bufferRows(scheduler, backlogRows(5))
+  assert.equal(scheduler.queue.size, 5)
   const { session, handle } = connectNode(registry, 'node-1', { task_capacity: 2 })
   assert.equal(sentTasks(session).length, 2)
   handle.onFrame(heartbeatFrame(2))
@@ -529,7 +603,7 @@ test('新节点接入和容量增大立刻填充已有队列，滞后心跳不�
   handle.onFrame(heartbeatFrame(4))
   assert.equal(sentTasks(session).length, 4)
   assert.equal(registry.nodes.get('node-1').activeTasks.size, 4)
-  assert.equal(scheduler.queue.length, 1)
+  assert.equal(scheduler.queue.size, 1)
 }))
 
 test('新 master 从活跃任务恢复容量与切片占用，恢复任务完成不重复落定', () => withSilentConsole(async () => {
@@ -537,16 +611,17 @@ test('新 master 从活跃任务恢复容量与切片占用，恢复任务完成
   const rows = [{ session_id: 's-recovered', date: '2026-09-28' }, ...backlogRows(3)]
   const { registry, scheduler } = stubWiredPair({ rows, heartbeatTimeoutMs: 15000 })
   // 先枚举、后节点接入，也必须过滤新注册帧恢复的同切片任务。
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
+  bufferRows(scheduler, rows)
   const { session, handle } = connectNode(registry, 'node-1', {
     task_capacity: 2, busy: true, busy_task_id: recoveredId, active_task_ids: [recoveredId],
   })
   assert.equal(registry.hasActiveSlice('2026-09-28', 's-recovered'), true)
   assert.equal(sentTasks(session).length, 1)
   assert.equal(sentTasks(session)[0].session_id, 's-capacity-0')
-  assert.equal(scheduler.queue.length, 3)
+  assert.equal(scheduler.queue.size, 3)
   await scheduler.enqueueBacklog()
-  assert.equal(scheduler.queue.length, 3)
+  assert.equal(scheduler.queue.size, 3)
   let settlements = 0
   registry.onTaskSettled(() => { settlements++ })
   handle.onFrame(progressFrame(recoveredId, { completed: true }))
@@ -674,10 +749,10 @@ test('同步完成回调不会残留 inflight，完成任务的历史记录有�
   session.send = frame => {
     if (frame.task) handle.onFrame(progressFrame(frame.task.task_id, { completed: true }))
   }
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   assert.equal(scheduler.inflight.size, 0)
   assert.equal(scheduler.dispatchedTasks.size, 0)
-  assert.equal(scheduler.queue.length, 0)
+  assert.equal(scheduler.queue.size, 0)
   for (let i = 0; i < 1005; i++) {
     assert.equal(registry.dispatchTask('node-1', { task_id: `task-history-${i}`, date: '2026-09-28', session_id: `s-history-${i}` }), true)
   }
@@ -687,7 +762,7 @@ test('同步完成回调不会残留 inflight，完成任务的历史记录有�
 test('新流恢复快照释放断连期间已结束的任务并安全重试，其余任务继续占用', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(2), heartbeatTimeoutMs: 15000 })
   const original = connectNode(registry, 'node-1', { task_capacity: 2 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const [first, second] = sentTasks(original.session)
   const secondState = registry.nodes.get('node-1').activeTasks.get(second.task_id)
   original.handle.onClose('短暂断连')
@@ -715,7 +790,7 @@ test('新流恢复快照释放断连期间已结束的任务并安全重试，�
 test('旧节点重连使用 busy_task_id 恢复快照，空快照释放丢失终态的预占', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(1), heartbeatTimeoutMs: 15000 })
   const original = connectNode(registry)
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const task = sentTasks(original.session)[0]
   original.handle.onClose('断开')
   const running = connectNode(registry, 'node-1', { busy: true, busy_task_id: task.task_id })
@@ -732,10 +807,10 @@ test('多个节点各按自己的容量接收任务，心跳超时后原流恢�
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(5), heartbeatTimeoutMs: 15000 })
   const first = connectNode(registry, 'node-1', { task_capacity: 2 })
   const second = connectNode(registry, 'node-2')
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   assert.equal(sentTasks(first.session).length, 2)
   assert.equal(sentTasks(second.session).length, 1)
-  assert.equal(scheduler.queue.length, 2)
+  assert.equal(scheduler.queue.size, 2)
   const firstTasks = sentTasks(first.session)
   // 强制心跳过期但保持流未关闭，模拟短暂网络阻塞后原流恢复。
   registry.nodes.get('node-1').lastHeartbeat = Date.now() - 16000
@@ -757,25 +832,25 @@ test('多个节点各按自己的容量接收任务，心跳超时后原流恢�
 test('离线后的重试被恢复中的旧任务挡住时保留排队，旧任务结束后继续派发', () => withSilentConsole(async () => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(2), heartbeatTimeoutMs: 15000 })
   const original = connectNode(registry, 'node-1', { task_capacity: 2 })
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   const [first, second] = sentTasks(original.session)
   original.handle.onClose('断流')
   await registry.reconcileStatus()
-  assert.equal(scheduler.queue.length, 2)
+  assert.equal(scheduler.queue.size, 2)
   const replacement = connectNode(registry, 'node-1', {
     task_capacity: 2, active_task_ids: [first.task_id, second.task_id],
   })
-  assert.equal(scheduler.queue.length, 2)
+  assert.equal(scheduler.queue.size, 2)
   assert.equal(scheduler.retryBases.size, 2)
   assert.equal(sentTasks(replacement.session).length, 0)
   // 恢复任务只占容量、不再次落定，但终态会唤醒容量监听继续派发原重试。
   replacement.handle.onFrame(progressFrame(first.task_id, { completed: true }))
   assert.deepEqual(sentTasks(replacement.session).map(task => task.task_id), [`${first.task_id}:r1`])
-  assert.equal(scheduler.queue.length, 1)
+  assert.equal(scheduler.queue.size, 1)
   assert.equal(registry.nodes.get('node-1').activeTasks.has(second.task_id), true)
   replacement.handle.onFrame(progressFrame(second.task_id, { failed: true, error: 'recovered task failed' }))
   assert.deepEqual(sentTasks(replacement.session).map(task => task.task_id), [`${first.task_id}:r1`, `${second.task_id}:r1`])
-  assert.equal(scheduler.queue.length, 0)
+  assert.equal(scheduler.queue.size, 0)
   replacement.handle.onFrame(progressFrame(`${first.task_id}:r1`, { completed: true }))
   replacement.handle.onFrame(progressFrame(`${second.task_id}:r1`, { completed: true }))
   assert.equal(scheduler.inflight.size, 0)
@@ -785,7 +860,7 @@ test('离线后的重试被恢复中的旧任务挡住时保留排队，旧任�
 test('连续毫秒级 session 的实时速度跨任务保留，progress 和完成帧不重复计数', () => withSilentConsole(() => withClock(async clock => {
   const { registry, scheduler } = stubWiredPair({ rows: backlogRows(20), heartbeatTimeoutMs: 15000 })
   const { session, handle } = connectNode(registry)
-  await scheduler.cleanNow('2026-09-28')
+  await loadFirstPage(scheduler)
   for (let i = 0; i < 5; i++) {
     clock.advance(10)
     const task = sentTasks(session).at(-1)

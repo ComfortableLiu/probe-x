@@ -196,8 +196,16 @@ test('单节点按 CPU 容量同时清洗 3 个完整小 session，完成一个�
     }
     const clickhouse = {
       async query(sql, params) {
-        if (/SELECT DISTINCT\s+`\$session_id` AS session_id/.test(sql)) {
-          return sessions.filter(sessionId => !finalEvents.some(event => event.$session_id === sessionId))
+        if (/FROM event_log/.test(sql) && params.pageSize !== undefined) {
+          const source = sessions.map((sessionId, index) => ({
+            session_id: sessionId, date, event_name: 'page_view',
+            service_time: `${date} 00:00:00.${String(index).padStart(3, '0')}`,
+          }))
+          return source.filter(row => !params.afterTime || row.service_time > params.afterTime)
+            .slice(0, params.pageSize)
+        }
+        if (/FROM final_event_log/.test(sql) && params.candidateSlices) {
+          return sessions.filter(sessionId => finalEvents.some(event => event.$session_id === sessionId))
             .map(sessionId => ({ session_id: sessionId, date }))
         }
         if (/SELECT \*\s+FROM event_log/.test(sql)) return eventLists.get(params.sessionId)
@@ -246,8 +254,9 @@ test('单节点按 CPU 容量同时清洗 3 个完整小 session，完成一个�
     await waitFor(() => connection.linkStatus === 'connected', '节点应通过异步 proto ACK 完成注册')
     assert.equal(bridge.upstream.find(frame => frame.register).register.info.task_capacity, 3)
 
-    assert.deepEqual(await scheduler.cleanNow(date), { dispatched: 3, pending: 4 })
+    assert.deepEqual(await scheduler.cleanNow(date), { dispatched: 0, pending: 0, loading: true, waitingForCapacity: false })
     await waitFor(() => gates.size === 3, '首批三个小 session 应同时计算并阻塞在落库')
+    assert.equal(scheduler.queue.size, 4)
     assert.equal(workers.length, 3)
     assert.equal(new Set(workers.map(worker => worker.threadId)).size, 3)
     assert.ok(workers.every(worker => worker.threadId > 0))
@@ -276,7 +285,7 @@ test('单节点按 CPU 容量同时清洗 3 个完整小 session，完成一个�
     assert.equal(bridge.downstream.filter(frame => frame.task).length, 4)
     assert.equal(computeNode.activeTaskCount, 3)
     assert.equal(registry.nodes.get(computeNode.nodeId).activeTasks.size, 3)
-    assert.equal(scheduler.queue.length, 3)
+    assert.equal(scheduler.queue.size, 3)
     assert.equal(gates.size - released.size, 3)
     assert.equal(workers.length, 3)
     const refilledTopology = await registry.getTopology()
@@ -310,10 +319,11 @@ test('单节点按 CPU 容量同时清洗 3 个完整小 session，完成一个�
       assert.equal(inserts.filter(insert => insert.table === 'event_attribution' && insert.sessionId === sessionId).length, 1)
     }
     assert.equal(new Set(finalEvents.map(event => event.$event_id)).size, finalEvents.length)
-    assert.equal(scheduler.queue.length, 0)
+    assert.equal(scheduler.queue.size, 0)
     assert.equal(scheduler.dispatchedTasks.size, 0)
     assert.equal(scheduler.retryBases.size, 0)
     assert.equal(scheduler.attempts.size, 0)
+    assert.equal(scheduler.loadedRuns.size, 0)
     assert.equal(computeNode.queuedTasks.length, 0)
     assert.equal(computeNode.runningSlices.size, 0)
     assert.equal(computeNode.runningTaskCount, 0)

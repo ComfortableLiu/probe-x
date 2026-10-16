@@ -17,13 +17,32 @@ export class ClickHouseService {
    * @param sql SQL 查询语句
    * @param params 查询参数（可选）
    */
-  async query<T>(sql: string, params?: Record<string, any>) {
+  async query<T>(sql: string, params?: Record<string, any>, settings?: ClickHouseSettings, signal?: AbortSignal) {
     const result = await this.clickhouseClient.query({
       query: sql,
       query_params: params,
       format: 'JSONEachRow', // 返回每行作为 JSON 对象
+      clickhouse_settings: settings,
+      abort_signal: signal,
     })
     return result.json<T>()
+  }
+
+  /** 按响应流逐批读取，避免把大查询的全部结果一次性保存在内存中。 */
+  async *queryBatches<T>(sql: string, params?: Record<string, any>): AsyncGenerator<T[]> {
+    const result = await this.clickhouseClient.query({
+      query: sql,
+      query_params: params,
+      format: 'JSONEachRow',
+    })
+    try {
+      for await (const rows of result.stream<T>()) {
+        yield rows.map(row => row.json())
+      }
+    } finally {
+      // 完成、调用方提前停止或解析失败时都释放底层查询连接。
+      result.close()
+    }
   }
 
   /**

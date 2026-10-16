@@ -32,7 +32,7 @@ const systemConfigGeneralModel = createModel<RootModel>()({
     },
     async cleanNow(payload: { date?: string }) {
       const { data } = await cleanNow(payload)
-      message.success(`已触发清洗：下发 ${data.dispatched} 个任务，排队 ${data.pending} 个`)
+      message.success(`已触发清洗：已下发 ${data.dispatched} 个任务，已缓冲 ${data.pending} 个${data.loading ? data.waitingForCapacity ? '，等待节点空闲后继续分片加载' : '，后台继续分片加载' : ''}`)
     },
   }),
 })
