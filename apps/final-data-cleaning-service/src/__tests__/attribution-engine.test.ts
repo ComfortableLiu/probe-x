@@ -292,6 +292,35 @@ describe('归因引擎 - 核心算法', () => {
   })
 
   describe('透传与进度', () => {
+    it('单事件包含 200000 个扩展属性时完整保留 KV 行和顺序，不受函数实参数量限制', () => {
+      const attributeCount = 200000
+      const params: Record<string, number> = {}
+      for (let index = 0; index < attributeCount; index += 1) {
+        params[`$attribute_${index}`] = index
+      }
+      const event = createBaseEvent({
+        $is_attribution_event: true,
+        $target_page_id: 'page-large-attributes',
+        $ex_attribution_params: JSON.stringify(params),
+      })
+      const events = [event]
+      const progress = jest.fn()
+
+      const result = computeAttribution(events, progress)
+
+      expect(result.finalEvents).toBe(events)
+      expect(result.attributions).toHaveLength(attributeCount)
+      expect(result.attributions.every((row, index) => (
+        row.attr_key === `$attribute_${index}`
+        && row.attr_value === String(index)
+        && row.event_id === event.$event_id
+        && row.session_id === event.$session_id
+        && row.event_time === event.$service_time
+      ))).toBe(true)
+      expect(progress).toHaveBeenCalledTimes(1)
+      expect(progress).toHaveBeenCalledWith(1, 1)
+    })
+
     it('eventList 透传验证：finalEvents 应与输入完全一致', () => {
       const events = createMultiPageNavigationScenario()
       const result = computeAttribution(events)

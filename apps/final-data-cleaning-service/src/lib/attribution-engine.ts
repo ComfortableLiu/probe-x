@@ -69,11 +69,9 @@ export function computeAttribution<T extends AttributionEvent>(
     // 只处理归因事件：把扩展归因参数展开为 KV 行
     if (item.$is_attribution_event && item.$target_page_id) {
       const exParams = parseExAttributionParams(item.$ex_attribution_params)
-      // 无扩展参数的事件不产生 KV 行
-      if (Object.keys(exParams).length > 0) {
-        attributionList.push(
-          ...convertObjectToAttribution(exParams, item.$service_time as Date, item.$event_id, item.$session_id),
-        )
+      // 逐行追加，避免扩展参数过多时数组展开超过函数实参数量上限。
+      for (const attribution of convertObjectToAttribution(exParams, item.$service_time as Date, item.$event_id, item.$session_id)) {
+        attributionList.push(attribution)
       }
     }
   })
