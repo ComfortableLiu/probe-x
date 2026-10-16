@@ -11,7 +11,6 @@ export enum PagePermission {
   SYSTEM_CONFIG_USER = 'system:config:user', // 用户管理页面
   SYSTEM_CONFIG_ROLE = 'system:config:role', // 角色管理页面
   SYSTEM_CONFIG_PERMISSION = 'system:config:permission', // 权限管理页面
-  SYSTEM_CONFIG_COMPUTING_NODE = 'system:config:computing-node', // 计算节点配置页面
 
   // 埋点管理
   POINT_MANAGE_EVENT = 'point:manage:event', // 事件管理页面
@@ -41,7 +40,6 @@ export const ROUTE_PATH_PERMISSION: Record<string, PagePermission> = {
   '/system-config/user': PagePermission.SYSTEM_CONFIG_USER,
   '/system-config/role': PagePermission.SYSTEM_CONFIG_ROLE,
   '/system-config/permission-list': PagePermission.SYSTEM_CONFIG_PERMISSION,
-  '/system-config/computing-node': PagePermission.SYSTEM_CONFIG_COMPUTING_NODE,
 }
 
 /**
@@ -68,12 +66,6 @@ export enum FunctionPermission {
   PERMISSION_UPDATE = 'permission:update', // 更新权限
   PERMISSION_DELETE = 'permission:delete', // 删除权限
   PERMISSION_VIEW = 'permission:view', // 查看权限
-
-  // 计算节点配置功能
-  COMPUTING_NODE_CREATE = 'computing:node:create', // 创建计算节点
-  COMPUTING_NODE_UPDATE = 'computing:node:update', // 更新计算节点
-  COMPUTING_NODE_DELETE = 'computing:node:delete', // 删除计算节点
-  COMPUTING_NODE_VIEW = 'computing:node:view', // 查看计算节点
 
   // 事件管理功能
   EVENT_CREATE = 'event:create', // 创建事件
@@ -139,7 +131,7 @@ export const SYSTEM_ROLE_CONFIGS: Record<SystemRoleKey, ISystemRoleConfig> = {
     pagePermissions: Object.values(PagePermission),
     functionPermissions: Object.values(FunctionPermission).filter(
       // 排除管理超管的权限
-      (perm) => perm !== FunctionPermission.USER_ASSIGN_ROLES // 这里可以根据实际需求调整
+      (perm) => perm !== FunctionPermission.USER_ASSIGN_ROLES, // 这里可以根据实际需求调整
     ),
   },
   [SystemRoleKey.DEVELOPER]: {

@@ -39,6 +39,7 @@ export default () => ({
   // 节点自身上报信息。节点标识 NODE_ID / NODE_NAME 由 ComputeNodeService 读取
   node: {
     advertiseAddress: process.env.NODE_ADVERTISE_ADDRESS || '',
+    advertisePort: process.env.NODE_ADVERTISE_PORT || undefined,
     heartbeatIntervalMs: parseInt(process.env.HEARTBEAT_INTERVAL_MS || '', 10) || 5000,
     logFlushIntervalMs: parseInt(process.env.NODE_LOG_FLUSH_INTERVAL_MS || '', 10) || 2000,
   },

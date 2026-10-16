@@ -1,8 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common'
+import { Injectable, OnModuleDestroy, OnModuleInit, Optional, ServiceUnavailableException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   ComputeTask,
   IComputeNodeCleaningSpeed,
+  IComputeNodeLogsQuery,
+  IComputeNodeLogsRes,
   IComputeNodeLinkInfo,
   IComputeNodeTopology,
   MasterFrame,
@@ -20,8 +22,9 @@ import {
   recordCleaningSessionCompletion,
   recordNodeCleaningSpeed,
 } from '@probe-x/shared-utils/src/lib/backend-common/runtime-metrics'
-import { appendNodeLogs, readNodeLogs } from '@probe-x/shared-utils/src/lib/backend-common/node-logs'
+import { appendNodeLogs, InvalidNodeLogQueryError, readNodeLogPage, readNodeLogs } from '@probe-x/shared-utils/src/lib/backend-common/node-logs'
 import { ComputeNodeService } from './compute-node.service'
+import { reportedNodePort } from './node-endpoint'
 
 /** 判定离线的心跳超时，默认 15s（3 倍于节点默认 5s 心跳间隔） */
 const DEFAULT_HEARTBEAT_TIMEOUT_MS = 15000
@@ -48,6 +51,8 @@ const toMessage = (error: unknown): string =>
 
 /** 一条双向流的下行通道，由 gRPC 控制器提供 */
 export interface NodeSession {
+  /** 已从 gRPC peer 中剥离临时端口的连接来源 IP，仅供地址展示兜底。 */
+  peerAddress?: string
   send(frame: MasterFrame): void
   close(): void
 }
@@ -72,6 +77,9 @@ interface LiveNode {
   nodeId: string
   nodeName: string
   nodeAddress: string
+  nodePort?: number
+  healthHost?: string
+  healthPort?: number
   version: string
   info: NodeInfo
   connectedAt: number
@@ -89,7 +97,7 @@ interface LiveNode {
   speedSampleHasWork: boolean
   /** 最近一次回写库里的运行状态，避免每次心跳都写库 */
   persistedStatus: NodeStatus | null
-  /** 最近一次回写库的「名称|地址」签名，一致则跳过 upsert */
+  /** 最近一次回写库的名称、地址、端口及健康监听信息签名，一致则跳过 upsert。 */
   persistedSignature: string
   /** 当前下行通道，断开后置 null（记录保留，页面显示「离线」而非消失） */
   session: NodeSession | null
@@ -179,7 +187,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
         try {
           if (frame.register) {
             const existing = this.nodes.get(frame.register.node_id)
-            const previousCapacity = existing && this.isAlive(existing)
+            const previousCapacity = existing && this.isAlive(existing) && existing.info.available !== false
               ? this.taskCapacity(existing) - existing.activeTasks.size
               : 0
             // 换流后的首帧是恢复快照：断连期间完成且终态帧丢失的任务不会再上报。
@@ -204,7 +212,8 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
                 this.settleListeners.forEach(listener => listener(taskId, true))
               }
             }
-            if (this.taskCapacity(node) - node.activeTasks.size > previousCapacity) {
+            const currentCapacity = node.info.available !== false ? this.taskCapacity(node) - node.activeTasks.size : 0
+            if (currentCapacity > previousCapacity) {
               this.capacityListeners.forEach(listener => listener())
             }
             if (node.activeTasks.size === 0) {
@@ -244,6 +253,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
         nodeId: row.nodeId,
         nodeName: row.nodeName,
         nodeAddress: row.nodeAddress,
+        nodePort: row.nodePort,
         nodeType: row.nodeType,
         link: 'disconnected',
         busy: false,
@@ -272,7 +282,11 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     }
 
     for (const node of this.nodes.values()) {
-      merged.set(node.nodeId, this.toLinkInfo(node, now, speedStats.get(node.nodeId)))
+      const registeredPort = merged.get(node.nodeId)?.nodePort
+      const live = this.toLinkInfo(node, now, speedStats.get(node.nodeId))
+      // 旧协议没有端口字段，仍保留该节点之前自动注册的已知端口。
+      if (live.nodePort === undefined) live.nodePort = registeredPort
+      merged.set(node.nodeId, live)
     }
 
     // 离线节点也带上今日历史速度（实时速度只有在线忙碌时才可能有）
@@ -308,7 +322,8 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
    */
   dispatchTask(nodeId: string, task: ComputeTask): boolean {
     const node = this.nodes.get(nodeId)
-    if (!node || !this.isAlive(node) || node.activeTasks.size >= this.taskCapacity(node)
+    if (!node || !this.isAlive(node) || node.info.available === false || node.activeTasks.size >= this.taskCapacity(node)
+      || (task.required_runtime === 'rust' && !this.isRustNode(nodeId))
       || node.activeTasks.has(task.task_id)) {
       console.warn(`[计算节点 ${nodeId}] 未在线或容量已满，任务 ${task.task_id} 下发失败`)
       return false
@@ -345,12 +360,17 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
   /**
    * 挑选一个在线且还有任务容量的节点，旧节点默认容量为 1。
    */
-  pickIdleNode(): string | null {
+  pickIdleNode(requiredRuntime?: 'rust'): string | null {
     const now = Date.now()
     for (const node of this.nodes.values()) {
-      if (this.isAlive(node, now) && node.activeTasks.size < this.taskCapacity(node)) return node.nodeId
+      if (this.isAlive(node, now) && node.info.available !== false && node.activeTasks.size < this.taskCapacity(node)
+        && (!requiredRuntime || this.isRustNode(node.nodeId))) return node.nodeId
     }
     return null
+  }
+
+  isRustNode(nodeId: string): boolean {
+    return this.nodes.get(nodeId)?.version?.startsWith('rust-') === true
   }
 
   /**
@@ -392,7 +412,7 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     const node: LiveNode = existing ?? {
       nodeId,
       nodeName: register.node_name || nodeId,
-      nodeAddress: register.node_address || '',
+      nodeAddress: register.node_address?.trim() || session.peerAddress || '',
       version: register.version || '',
       info: EMPTY_NODE_INFO,
       connectedAt: now,
@@ -430,8 +450,8 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       stale.close()
     }
 
-    // 心跳不写库：只有首次接入、断线重连或名称/地址变化时才 upsert
-    const signature = `${node.nodeName}|${node.nodeAddress}`
+    // 心跳不写库：只在首次接入、断线重连或注册端点信息变化时 upsert。
+    const signature = JSON.stringify([node.nodeName, node.nodeAddress, node.nodePort, node.healthHost, node.healthPort])
     if (node.persistedStatus !== 'running' || node.persistedSignature !== signature) {
       node.persistedStatus = 'running'
       node.persistedSignature = signature
@@ -440,7 +460,15 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
           nodeId,
           nodeName: node.nodeName,
           nodeAddress: node.nodeAddress,
+          nodePort: node.nodePort,
           status: 'running',
+        }).catch((error: unknown) => {
+          // 旧请求失败不能覆盖更新的注册快照，当前请求失败则允许后续心跳重试。
+          if (node.persistedStatus === 'running' && node.persistedSignature === signature) {
+            node.persistedStatus = null
+            node.persistedSignature = ''
+          }
+          throw error
         }),
         '自动注册',
       )
@@ -454,7 +482,19 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
 
   private applyRegister(node: LiveNode, register: NodeRegister, restoreTasks: boolean): void {
     if (register.node_name) node.nodeName = register.node_name
-    if (register.node_address) node.nodeAddress = register.node_address
+    const address = register.node_address?.trim() || node.session?.peerAddress
+    if (address) node.nodeAddress = address
+    const port = reportedNodePort(register.node_port)
+    if (port !== undefined) node.nodePort = port
+    const healthPort = reportedNodePort(register.health_port)
+    if (restoreTasks) {
+      // 新流没有上报实际绑定信息时应显示未知，不能沿用旧进程的健康检查监听。
+      node.healthHost = register.health_host?.trim() || undefined
+      node.healthPort = healthPort
+    } else {
+      if (register.health_host?.trim()) node.healthHost = register.health_host.trim()
+      if (healthPort !== undefined) node.healthPort = healthPort
+    }
     if (register.version) node.version = register.version
     if (register.info) {
       node.info = register.info
@@ -679,6 +719,18 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** 分页查询不能把 Redis 故障伪装成历史结束，由 UI 保留已加载页面并提示重试。 */
+  async getNodeLogPage(nodeId: string, query: IComputeNodeLogsQuery = {}): Promise<IComputeNodeLogsRes> {
+    if (!this.redisService) throw new ServiceUnavailableException('节点日志暂不可用，请稍后重试')
+    try {
+      return await readNodeLogPage(this.redisService.getClient(), nodeId, query)
+    } catch (error: unknown) {
+      if (error instanceof InvalidNodeLogQueryError) throw error
+      console.warn(`[计算节点 ${nodeId}] 日志读取失败：${toMessage(error)}`)
+      throw new ServiceUnavailableException('节点日志暂不可用，请稍后重试')
+    }
+  }
+
   /** 近 6 秒处理事件数 / 观察时长；启动阶段至少使用 500ms 分母，避免瞬时尖峰。 */
   private currentSpeed(node: LiveNode, now: number): number | null {
     if (node.speedWindowStartedAt === null) return null
@@ -707,6 +759,9 @@ export class NodeRegistryService implements OnModuleInit, OnModuleDestroy {
       nodeId: node.nodeId,
       nodeName: node.nodeName,
       nodeAddress: node.nodeAddress,
+      nodePort: node.nodePort,
+      healthHost: node.healthHost,
+      healthPort: node.healthPort,
       // 拨出接入的节点一律走 gRPC 双向流
       nodeType: 'grpc',
       link: alive ? 'connected' : 'disconnected',

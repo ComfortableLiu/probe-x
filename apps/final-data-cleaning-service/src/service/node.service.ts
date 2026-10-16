@@ -34,6 +34,7 @@ export class ComputeNodeService {
   /** 节点展示名 */
   nodeName: string
   private readonly logger = new Logger(ComputeNodeService.name)
+  private readonly detailLogsEnabled = process.env.CLEANING_DETAIL_LOG_ENABLED === 'true'
   private lastMetricsWarning = 0
   private readonly activeTasks = new Map<string, ActiveTask>()
   private readonly queuedTasks: ActiveTask[] = []
@@ -183,13 +184,17 @@ export class ComputeNodeService {
     const progressSubject = { next: (progress: ProgressUpdate) => this.sendProgress(active, progress) }
     const startTime = Date.now()
     try {
-      this.logger.log(`[清洗] 任务 ${task.task_id} 开始执行（session: ${task.session_id}，日期: ${task.date}）`)
+      if (this.detailLogsEnabled) {
+        this.logger.log(`[清洗] 任务 ${task.task_id} 开始执行（session: ${task.session_id}，日期: ${task.date}）`)
+      }
       // 任务级幂等：总服务重复下发同一 task_id 时只执行一次，
       // SET NX EX 86400 已存在则视为已成功重放，跳过执行并直接推 completed:true 进度
       if (this.redisService) {
         const isNewTask = await this.redisService.setNx(`clean:task:${task.task_id}`, '1', 86400)
         if (!isNewTask) {
-          this.logger.log(`[清洗] 任务 ${task.task_id} 已处理过（重复下发），直接标记完成`)
+          if (this.detailLogsEnabled) {
+            this.logger.log(`[清洗] 任务 ${task.task_id} 已处理过（重复下发），直接标记完成`)
+          }
           return {
             task_id: task.task_id,
             node_id: this.nodeId,
@@ -205,7 +210,9 @@ export class ComputeNodeService {
 
       // 拿到所有事件
       const eventList = await this.getAllEvents(task.date, task.session_id)
-      this.logger.log(`[清洗] 任务 ${task.task_id} 拉取到 ${eventList.length} 条事件，开始归因计算`)
+      if (this.detailLogsEnabled) {
+        this.logger.log(`[清洗] 任务 ${task.task_id} 拉取到 ${eventList.length} 条事件，开始归因计算`)
+      }
 
       // 任务开始即推送初始进度，保证总服务能感知任务已被接收
       progressSubject.next({
@@ -240,7 +247,9 @@ export class ComputeNodeService {
         ? await this.attributionWorkerPool.compute(eventList, reportProgress)
         : computeAttribution(eventList, reportProgress)
 
-      this.logger.log(`[清洗] 任务 ${task.task_id} 归因完成：${result.finalEvents.length} 条清洗事件、${result.attributions.length} 条归因记录，开始落库`)
+      if (this.detailLogsEnabled) {
+        this.logger.log(`[清洗] 任务 ${task.task_id} 归因完成：${result.finalEvents.length} 条清洗事件、${result.attributions.length} 条归因记录，开始落库`)
+      }
 
       // 事件级幂等：双表并行落库不具备原子性，一成一败后调度器会以新 task_id（:rN）重试，
       // 任务级幂等键拦截不到；MergeTree 表无唯一约束，故插入前按 (date, session_id) 查出两张表
@@ -287,7 +296,9 @@ export class ComputeNodeService {
 
       this.recordMetric(() => recordCleaningOutcome(this.redisService.getClient(), true))
 
-      this.logger.log(`[清洗] 任务 ${task.task_id} 完成，落库 ${finalEvents.length} 条清洗事件，耗时 ${Date.now() - startTime}ms`)
+      if (this.detailLogsEnabled) {
+        this.logger.log(`[清洗] 任务 ${task.task_id} 完成，落库 ${finalEvents.length} 条清洗事件，耗时 ${Date.now() - startTime}ms`)
+      }
 
       // TODO 手动回滚逻辑
 

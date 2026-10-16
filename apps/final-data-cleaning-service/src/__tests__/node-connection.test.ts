@@ -167,6 +167,7 @@ describe('计算节点接入 NodeConnectionService', () => {
     redis?: any
     pool?: any
     config?: Record<string, unknown>
+    deferEndpoint?: boolean
   } = {}) => {
     mockCH = options.clickhouse || new MockClickHouseService()
     nodeService = new ComputeNodeService(mockCH as any, options.redis, options.pool)
@@ -180,6 +181,7 @@ describe('计算节点接入 NodeConnectionService', () => {
         ...options.config,
       }),
     )
+    if (options.deferEndpoint) connection.requireHealthEndpoint()
     connection.onApplicationBootstrap()
     return connection
   }
@@ -203,6 +205,32 @@ describe('计算节点接入 NodeConnectionService', () => {
   const accept = (call: FakeNodeCall) => call.emitFrame({ ack: { accepted: true, message: 'ok' } })
 
   describe('注册与心跳', () => {
+    it('HTTP启动时首帧等待真实监听端口确定', () => {
+      boot({ deferEndpoint: true })
+      expect(connection.calls).toHaveLength(0)
+      connection.setHealthEndpoint('0.0.0.0', 23458)
+      expect(connection.calls).toHaveLength(1)
+      expect(connection.currentCall.registers[0].register).toMatchObject({ node_port: 23458, health_host: '0.0.0.0', health_port: 23458 })
+    })
+    it('监听成功后刷新注册的实际地址/端口，并在重连时保留', () => {
+      jest.useFakeTimers()
+      boot({ config: { 'node.advertisePort': 18000 } })
+      connection.setHealthEndpoint('::', 23456)
+      const register = connection.currentCall.registers.at(-1)!.register!
+      expect(register.node_address).toBe('10.0.0.8')
+      expect(register.node_port).toBe(18000)
+      expect(register.health_host).toBe('::')
+      expect(register.health_port).toBe(23456)
+      expect(connection.getSnapshot()).toMatchObject({ nodeAddress: '10.0.0.8', nodePort: 18000, healthHost: '::', healthPort: 23456 })
+      connection.currentCall.emitClose()
+      jest.advanceTimersByTime(1000)
+      expect(connection.currentCall.registers[0].register).toMatchObject({ node_port: 18000, health_host: '::', health_port: 23456 })
+    })
+    it('未配置外部端口时使用真实监听端口，回环总服务自动上报本机地址', () => {
+      boot({ config: { 'master.host': 'localhost', 'node.advertiseAddress': '' } })
+      connection.setHealthEndpoint('0.0.0.0', 23457)
+      expect(connection.currentCall.registers.at(-1)!.register).toMatchObject({ node_address: '127.0.0.1', node_port: 23457, health_port: 23457 })
+    })
     it('连上后立即发 NodeRegister，NodeInfo 的 CPU/内存字段为正数', () => {
       boot()
       const call = connection.currentCall

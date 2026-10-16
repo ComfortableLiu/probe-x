@@ -1,8 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common'
+import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common'
 import { MetaService } from './meta.service'
 import { AnalysisService } from './analysis.service'
 import { OverviewService } from './overview.service'
 import { NodeRegistryService } from '../compute-node/node-registry.service'
+import { InvalidNodeLogQueryError } from '@probe-x/shared-utils/src/lib/backend-common/node-logs'
+import type { NodeLogFilter } from '@probe-x/shared-types/src'
 import {
   IDataAnalysisStatistics,
   IDataAnalysisTrend,
@@ -46,10 +48,20 @@ export class SystemDataController {
   @Get('computing-nodes/:nodeId/logs')
   async getComputingNodeLogs(
     @Param('nodeId') nodeId: string,
-    @Query('limit') limit?: number,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+    @Query('level') level?: NodeLogFilter,
   ): Promise<IComputeNodeLogsRes> {
-    const capped = Math.min(Math.max(Number(limit) || 200, 1), 1000)
-    return { nodeId, entries: await this.nodeRegistryService.getNodeLogs(nodeId, capped) }
+    try {
+      return await this.nodeRegistryService.getNodeLogPage(nodeId, {
+        limit: limit === undefined ? undefined : Number(limit),
+        cursor,
+        level,
+      })
+    } catch (error: unknown) {
+      if (error instanceof InvalidNodeLogQueryError) throw new BadRequestException(error.message)
+      throw error
+    }
   }
 
   @Get('overview')

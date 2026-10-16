@@ -28,6 +28,18 @@ import * as styles from './styles.module.scss'
 /** 拓扑自动刷新间隔 */
 const POLL_INTERVAL_MS = 5000
 
+function formatHealthListener(host?: string, port?: number): string {
+  if (!host?.trim() || typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65535) return '—'
+  const address = host.trim()
+  return `${address.includes(':') && !address.startsWith('[') ? `[${address}]` : address}:${port}`
+}
+
+function isLocalHealthListener(host?: string): boolean {
+  const address = host?.trim().replace(/^\[|\]$/g, '').toLowerCase()
+  return address === 'localhost' || address === '::1' || address === '0:0:0:0:0:0:0:1'
+    || /^127(?:\.\d{1,3}){3}$/.test(address || '') || /^::ffff:127(?:\.\d{1,3}){3}$/.test(address || '')
+}
+
 const ComputingNodePage: React.FC = () => {
   const { topology, loading, fetchedAt } = useModel<ISystemDataComputingNodeState>(
     'computingNodeModel',
@@ -182,6 +194,7 @@ const NodeTooltip: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ no
 const NodeDetail: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ node, now }) => {
   const light = resolveNodeLight(node)
   const taskIds = node.busyTaskIds ?? (node.busyTaskId ? [node.busyTaskId] : [])
+  const healthListener = formatHealthListener(node.healthHost, node.healthPort)
 
   return (
     <Descriptions column={1} size="small" colon={false}>
@@ -197,7 +210,15 @@ const NodeDetail: React.FC<{ node: IComputeNodeLinkInfo; now: number }> = ({ nod
       <Descriptions.Item label="链接状态">{linkLabelMap[node.link]}</Descriptions.Item>
       <Descriptions.Item label="节点 ID">{node.nodeId}</Descriptions.Item>
       <Descriptions.Item label="节点名称">{node.nodeName || '—'}</Descriptions.Item>
-      <Descriptions.Item label="节点地址">{node.nodeAddress || '—'}</Descriptions.Item>
+      <Descriptions.Item label="节点 IP / 地址"><span style={{ overflowWrap: 'anywhere' }}>{node.nodeAddress || '—'}</span></Descriptions.Item>
+      <Descriptions.Item label="健康检查端口">
+        {typeof node.nodePort === 'number' && Number.isInteger(node.nodePort) && node.nodePort >= 1 && node.nodePort <= 65535 ? node.nodePort : '—'}
+      </Descriptions.Item>
+      <Descriptions.Item label="健康监听">
+        <span style={{ overflowWrap: 'anywhere' }}>{healthListener}</span>
+        {healthListener !== '—' && isLocalHealthListener(node.healthHost)
+          && <Tag style={{ marginInlineStart: 8 }}>仅本机访问</Tag>}
+      </Descriptions.Item>
       <Descriptions.Item label="节点类型">{node.nodeType}</Descriptions.Item>
       <Descriptions.Item label="最近心跳">{secondsAgo(node.lastHeartbeat, now)}</Descriptions.Item>
       <Descriptions.Item label="链接时长">

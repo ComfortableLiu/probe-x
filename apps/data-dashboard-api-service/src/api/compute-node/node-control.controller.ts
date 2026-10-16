@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs'
 import type { MasterFrame, NodeFrame } from '@probe-x/shared-types/src'
 import type { NodeSession } from './node-registry.service'
 import { NodeRegistryService } from './node-registry.service'
+import { parsePeerAddress } from './node-endpoint'
 
 const PROTO_SERVICE = 'NodeControlService'
 const PROTO_METHOD = 'Connect'
@@ -26,11 +27,18 @@ export class NodeControlController {
   connect(inbound: any, _metadata?: any, call?: any): Observable<MasterFrame> {
     const request$ = inbound as Observable<NodeFrame>
     const stream = call as
-      | { on(event: string, listener: (...args: any[]) => void): unknown }
+      | { on(event: string, listener: (...args: any[]) => void): unknown; getPeer?(): string }
       | undefined
 
     const outbound = new Subject<MasterFrame>()
+    let peerAddress: string | undefined
+    try {
+      peerAddress = parsePeerAddress(stream?.getPeer?.())
+    } catch {
+      // 对端已断开或传输层不提供 peer 时，仍允许节点使用自报地址注册。
+    }
     const session: NodeSession = {
+      peerAddress,
       send: (frame) => outbound.next(frame),
       close: () => outbound.complete(),
     }

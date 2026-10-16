@@ -2,24 +2,20 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ClickHouseModule } from '@probe-x/shared-utils/src/lib/backend-common'
 import { ComputeNodeEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/ComputeNode.entity'
-import { UserRoleRelation } from '@probe-x/shared-utils/src/lib/backend-common/entity/UserRoleRelation.entity'
-import { Role } from '@probe-x/shared-utils/src/lib/backend-common/entity/Role.entity'
 import { SystemConfigEntity } from '@probe-x/shared-utils/src/lib/backend-common/entity/SystemConfig.entity'
-import { ComputeNodeController } from './compute-node.controller'
 import { ComputeNodeService } from './compute-node.service'
 import { NodeControlController } from './node-control.controller'
 import { NodeRegistryService } from './node-registry.service'
 import { CleaningSchedulerService } from './cleaning-scheduler.service'
-import { AdminGuard } from '../../guard/admin.guard'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ComputeNodeEntity, UserRoleRelation, Role, SystemConfigEntity]),
+    TypeOrmModule.forFeature([ComputeNodeEntity, SystemConfigEntity]),
     ClickHouseModule,
   ],
-  // NodeControlController 只有 gRPC handler，没有 HTTP 路由，不走 AdminGuard
-  controllers: [ComputeNodeController, NodeControlController],
-  providers: [ComputeNodeService, NodeRegistryService, CleaningSchedulerService, AdminGuard],
+  // 节点通过 gRPC 自动注册，不再提供手工登记的 HTTP 接口。
+  controllers: [NodeControlController],
+  providers: [ComputeNodeService, NodeRegistryService, CleaningSchedulerService],
   exports: [ComputeNodeService, NodeRegistryService, CleaningSchedulerService],
 })
 export class ComputeNodeModule {}

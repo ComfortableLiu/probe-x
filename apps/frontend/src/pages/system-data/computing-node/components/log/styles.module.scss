@@ -1,20 +1,37 @@
 .container {
   padding: 24px;
-  background-color: var(--px-color-bg-layout);
-  min-height: 100%;
+  background: var(--px-color-bg-layout);
+  height: 100%;
+  min-height: 560px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
 }
 
-.header-extra {
+.pageHeader {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.headerExtra, .toolbarRight, .pageActions {
   display: flex;
   align-items: center;
-  gap: var(--px-spacing-xs, 8px);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.meta-text {
-  color: var(--px-color-text-tertiary, #8c8c8c);
+.metaText, .retention {
+  color: var(--px-color-text-secondary);
   font-size: 12px;
+}
+
+.nodeIdentity {
+  margin: 0 0 16px;
+  color: var(--px-color-text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .toolbar {
@@ -23,31 +40,18 @@
   justify-content: space-between;
   margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: var(--px-spacing-xs, 8px);
+  gap: 12px;
 }
 
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--px-spacing-xs, 8px);
-}
-
-.error-banner {
+.banner {
   margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  background-color: #fff2f0;
-  border: 1px solid #ffccc7;
-  color: #cf1322;
-  font-size: 12px;
 }
 
-.log-panel {
+.logPanel {
   flex: 1;
-  min-height: 400px;
-  max-height: calc(100vh - 260px);
-  overflow-y: auto;
-  background-color: #0d1117;
+  min-height: 200px;
+  overflow: auto;
+  background: #0d1117;
   border-radius: 6px;
   padding: 12px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -55,42 +59,78 @@
   line-height: 1.8;
 }
 
-.log-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  word-break: break-all;
+.logRow {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 0 8px;
+  padding: 3px 0;
 }
 
-.log-time {
-  flex-shrink: 0;
+.logTime {
   color: #8b949e;
+  white-space: nowrap;
 }
 
-.log-level {
-  flex-shrink: 0;
+.logLevel {
   margin-inline-end: 0;
 }
 
-.log-message {
+.logMessage {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: #c9d1d9;
   white-space: pre-wrap;
 
-  &.level-warn {
-    color: #fbbf24;
-  }
-
-  &.level-error {
-    color: #f87171;
-  }
-
-  &.level-debug {
-    color: #a371f7;
-  }
+  &.levelWarn { color: #fbbf24; }
+  &.levelError { color: #f87171; }
+  &.levelDebug { color: #a371f7; }
 }
 
 .empty {
   padding: 48px 0;
   text-align: center;
   color: #8b949e;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pageStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retention {
+  margin: 12px 0 0;
+}
+
+@container (max-width: 650px) {
+  .logRow {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 4px 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+  }
+
+  .logMessage {
+    grid-column: 1 / -1;
+  }
+
+  .logTime {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 16px;
+  }
 }

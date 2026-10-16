@@ -51,7 +51,7 @@ message NodeInfo {
     double load_average = 9;
     bool network_sampled = 10;
     double network_bytes_per_second = 11;
-    // 节点可同时执行的任务数，等于 CPU 线程池容量；未上报的旧节点按 1 处理
+    // 节点可同时执行的任务数；I/O任务槽可独立于CPU线程池，未上报的旧节点按1处理
     int32 task_capacity = 12;
     // 已接受且尚未结束的全部任务，包含本地排队任务
     repeated string active_task_ids = 13;
@@ -69,6 +69,12 @@ message NodeRegister {
     string version = 4;
     // 节点资源与运行状态
     NodeInfo info = 5;
+    // 声明的健康检查端口，可由对外映射配置覆盖；0表示未知，不是gRPC客户端临时端口
+    int32 node_port = 6;
+    // 健康检查实际监听地址，仅供排查；环回地址仅节点本机可访问
+    string health_host = 7;
+    // 健康检查实际监听端口；支持使用端口0后上报操作系统分配的结果
+    int32 health_port = 8;
 }
 
 // 总服务应答：对注册帧的确认

@@ -150,6 +150,8 @@ export interface ComputeTask {
   session_id: string
   /** 格式 YYYY-MM-DD */
   date: string
+  /** 仅供调度器内部使用；Rust 部分落库切片必须由 Rust 继续补齐，不进入 gRPC 协议。 */
+  required_runtime?: 'rust'
 }
 
 /** 进度更新指令 */
@@ -184,7 +186,7 @@ export interface NodeInfo {
   busy: boolean
   /** 忙碌任务 id */
   busy_task_id: string
-  /** 可同时执行的任务数，等于节点线程池容量；旧节点未上报时按 1 处理 */
+  /** 可同时执行的任务数，可独立于 CPU 线程池容量；旧节点未上报时按 1 处理 */
   task_capacity?: number
   /** 已接受且尚未结束的任务，包含本地排队任务；busy_task_id 保留首项兼容旧端 */
   active_task_ids?: string[]
@@ -197,6 +199,12 @@ export interface NodeRegister {
   node_address: string
   version: string
   info?: NodeInfo
+  /** 声明的健康检查端口，允许对外映射覆盖；0/缺省表示未知 */
+  node_port?: number
+  /** 实际健康检查监听地址；与连接来源 IP 含义不同 */
+  health_host?: string
+  /** 实际健康检查监听端口 */
+  health_port?: number
 }
 
 /** 总服务应答 */
@@ -208,8 +216,13 @@ export interface MasterAck {
 /** 节点日志级别 */
 export type NodeLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug'
 
+/** 日志查询级别；log 同时包含 console.info */
+export type NodeLogFilter = 'all' | Exclude<NodeLogLevel, 'info'>
+
 /** 节点日志条目 */
 export interface NodeLogEntry {
+  /** 留存周期内稳定的日志标识，由总服务读取时补充 */
+  id?: string
   /** 毫秒时间戳 */
   ts: number
   level: NodeLogLevel
@@ -236,10 +249,26 @@ export interface MasterFrame {
   task?: ComputeTask
 }
 
-/** 计算节点日志查询响应 */
+/** 计算节点日志查询；不传 cursor 时读取最新一页 */
+export interface IComputeNodeLogsQuery {
+  /** 默认 100，最多 200 */
+  limit?: number
+  /** 上一页返回的游标，用于读取更早日志 */
+  cursor?: string
+  level?: NodeLogFilter
+}
+
+/** 计算节点日志查询响应；单页内按记录顺序排列，尾部最新 */
 export interface IComputeNodeLogsRes {
   nodeId: string
   entries: NodeLogEntry[]
+  /** 当前页的稳定锚点，返回历史页时可复用；空页为 null */
+  pageCursor: string | null
+  nextCursor: string | null
+  hasMore: boolean
+  retentionLimit: number
+  /** 留存日志已过期或被裁剪，需要重新读取最新一页 */
+  resetRequired?: boolean
 }
 
 /** 计算节点清洗速度（条/s），所有指标均合计节点的全部并发任务 */
@@ -260,8 +289,14 @@ export interface IComputeNodeLinkInfo {
   nodeId: string
   /** 节点展示名 */
   nodeName: string
-  /** 节点上报地址，未上报为空串 */
+  /** 节点上报地址，缺省以连接来源 IP 兜底 */
   nodeAddress: string
+  /** 声明的健康检查端口，不用于调度连接 */
+  nodePort?: number
+  /** 实际健康检查监听地址，旧节点或离线恢复时可能未知 */
+  healthHost?: string
+  /** 实际健康检查监听端口 */
+  healthPort?: number
   /** 节点类型 */
   nodeType: NodeType
   /** 链接状态 */
@@ -308,70 +343,6 @@ export interface IComputeNodeTopology {
   }
   /** 已注册的计算节点 */
   nodes: IComputeNodeLinkInfo[]
-}
-
-/** 计算节点列表项 */
-export interface IComputeNodeListItem {
-  id: number
-  /** 节点自报标识（自动注册的节点才有） */
-  nodeId?: string
-  nodeName: string
-  nodeAddress: string
-  nodePort: number
-  nodeType: NodeType
-  status: NodeStatus
-  weight: number
-  description?: string
-  createTime?: string
-  updateTime?: string
-}
-
-/** 查询计算节点列表请求参数 */
-export interface IQueryComputeNodeListReq extends Partial<IPageQuery> {
-  nodeName?: string
-  status?: NodeStatus
-}
-
-/** 查询计算节点列表响应 */
-export type IQueryComputeNodeListRes = IPageResult<IComputeNodeListItem>
-
-/** 创建计算节点请求参数 */
-export interface ICreateComputeNodeReq {
-  nodeName: string
-  nodeAddress: string
-  nodePort: number
-  nodeType?: NodeType
-  weight?: number
-  description?: string
-}
-
-/** 创建计算节点响应数据 */
-export interface ICreateComputeNodeRes {
-  id: number
-  nodeName: string
-}
-
-/** 更新计算节点请求参数 */
-export interface IUpdateComputeNodeReq {
-  id: number
-  nodeName?: string
-  nodeAddress?: string
-  nodePort?: number
-  nodeType?: NodeType
-  status?: NodeStatus
-  weight?: number
-  description?: string
-}
-
-/** 更新计算节点响应数据 */
-export interface IUpdateComputeNodeRes {
-  id: number
-  nodeName: string
-}
-
-/** 删除计算节点请求参数 */
-export interface IDeleteComputeNodeReq {
-  id: number
 }
 
 // ============================================
@@ -436,8 +407,12 @@ export interface ICleanNowReq {
  * 立即清洗响应
  */
 export interface ICleanNowRes {
-  /** 本次实际下发到节点的任务数 */
+  /** 请求返回时已下发的任务数，后续按容量继续分片下发 */
   dispatched: number
-  /** 排队等待空闲节点的任务数 */
+  /** 已加载到有界缓冲的任务数，不代表全部历史待清洗量 */
   pending: number
+  /** 仍有扫描范围待分片加载 */
+  loading: boolean
+  /** 扫描正等待节点上线或空闲任务槽 */
+  waitingForCapacity: boolean
 }

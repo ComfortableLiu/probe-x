@@ -6,6 +6,7 @@ import * as protoLoader from '@grpc/proto-loader'
 import { resolveProtoPath } from '@probe-x/shared-utils/src/lib/backend-common'
 import { ComputeNodeService } from './node.service'
 import { drainNodeLogs, pendingNodeLogCount } from '../lib/node-log-buffer'
+import { resolveNodeEndpoint } from '../lib/node-endpoint'
 import type {
   ComputeTask,
   LinkStatus,
@@ -98,12 +99,16 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
   connectedAt: number | null = null
 
   private masterAddr = ''
+  private readonly detailLogsEnabled = process.env.CLEANING_DETAIL_LOG_ENABLED === 'true'
   private call: NodeCall | null = null
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private logFlushTimer: ReturnType<typeof setInterval> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectDelay = 0
   private stopped = false
+  private healthEndpoint = { host: '', port: 0 }
+  private endpointRequired = false
+  private bootstrapped = false
 
   constructor(
     private readonly nodeService: ComputeNodeService,
@@ -111,12 +116,18 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
   ) {}
 
   onApplicationBootstrap(): void {
+    this.bootstrapped = true
     this.masterAddr = this.resolveMasterAddr()
     console.log(
       `[节点 ${this.nodeService.nodeId}] 开始接入总服务 ${this.masterAddr}（节点名：${this.nodeService.nodeName}）`,
     )
-    this.connect()
+    if (!this.endpointRequired || this.healthEndpoint.port > 0) this.connect()
     this.startLogFlush()
+  }
+
+  /** HTTP 启动流程可要求首帧等到真实监听端口确定后再发送。 */
+  requireHealthEndpoint(): void {
+    this.endpointRequired = true
   }
 
   onModuleDestroy(): void {
@@ -138,16 +149,41 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
       currentTaskIds: this.nodeService.currentTaskIds,
       taskCapacity: this.nodeService.taskCapacity,
       activeTaskCount: this.nodeService.activeTaskCount,
+      ...this.getEndpoint(),
     }
+  }
+
+  /** app.listen 成功后更新真实端口，PORT=0 时也不能上报配置中的 0。 */
+  setHealthEndpoint(host: string, port: number): void {
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new Error('健康检查实际监听端口无效')
+    }
+    this.healthEndpoint = { host, port }
+    if (this.endpointRequired && this.bootstrapped && !this.call && !this.reconnectTimer && !this.stopped) this.connect()
+    else this.sendRegister()
+  }
+
+  private getEndpoint() {
+    return resolveNodeEndpoint({
+      masterHost: this.configService.get<string>('master.host') || 'localhost',
+      advertiseAddress: this.configService.get<string>('node.advertiseAddress'),
+      advertisePort: this.configService.get<string | number>('node.advertisePort'),
+      healthHost: this.healthEndpoint.host,
+      healthPort: this.healthEndpoint.port,
+    })
   }
 
   /** 发送注册帧，同时兼作心跳（刷新 CPU/内存/忙碌状态） */
   sendRegister(): void {
+    const endpoint = this.getEndpoint()
     this.call?.send({
       register: {
         node_id: this.nodeService.nodeId,
         node_name: this.nodeService.nodeName,
-        node_address: this.configService.get<string>('node.advertiseAddress') || '',
+        node_address: endpoint.nodeAddress,
+        node_port: endpoint.nodePort,
+        health_host: endpoint.healthHost,
+        health_port: endpoint.healthPort,
         version: process.env.npm_package_version || '0.0.0',
         info: this.nodeService.getLocalNodeInfo(),
       },
@@ -231,7 +267,9 @@ export class NodeConnectionService implements OnApplicationBootstrap, OnModuleDe
   }
 
   private handleTask(task: ComputeTask): void {
-    console.log(`[节点 ${this.nodeService.nodeId}] 收到总服务任务 ${task.task_id}`)
+    if (this.detailLogsEnabled) {
+      console.log(`[节点 ${this.nodeService.nodeId}] 收到总服务任务 ${task.task_id}`)
+    }
 
     // 每个任务一条独立进度流，避免共享 Subject 在任务结束后被 complete 影响后续任务
     const progressSubject = new Subject<ProgressUpdate>()

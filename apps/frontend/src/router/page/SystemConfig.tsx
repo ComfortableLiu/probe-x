@@ -19,11 +19,6 @@ export default {
     path: '/system-config/system',
     component: lazy(() => import('@pages/system-config/system')),
   }, {
-    name: '计算节点配置',
-    key: 'system-config-computing-node',
-    path: '/system-config/computing-node',
-    component: lazy(() => import('@pages/system-config/computing-node')),
-  }, {
     name: '角色管理',
     key: 'system-config-role',
     path: '/system-config/role',

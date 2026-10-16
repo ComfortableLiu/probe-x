@@ -32,12 +32,6 @@
 - `permission:delete` - 删除权限
 - `permission:view` - 查看权限
 
-#### 1.4 计算节点配置页面 (`system:config:computing-node`)
-- `computing:node:create` - 创建计算节点
-- `computing:node:update` - 更新计算节点
-- `computing:node:delete` - 删除计算节点
-- `computing:node:view` - 查看计算节点
-
 ### 2. 埋点管理模块
 
 #### 2.1 事件管理页面 (`point:manage:event`)
@@ -107,6 +101,8 @@
 
 #### 4.4 计算节点页面 (`system:data:computing-node`)
 - `system:data:computing-node:view` - 查看计算节点
+
+计算节点由清洗服务自动注册，统一在此页面查看连接状态、资源、任务和日志；没有手工登记或增删改权限。
 
 ## 系统角色权限分配
 

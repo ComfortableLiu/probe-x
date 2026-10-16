@@ -27,7 +27,6 @@ import systemDataAlertModel from "@pages/system-data/alert/model"
 import systemConfigUserManageModel from "@pages/system-config/user/model"
 import systemConfigRoleManageModel from "@pages/system-config/role/model"
 import systemConfigSystemManageModel from "@pages/system-config/system/model"
-import systemConfigComputeNodeModel from "@pages/system-config/computing-node/model"
 import systemConfigGeneralModel from "@pages/system-config/general/model"
 import systemConfigAuditLogModel from "@pages/system-config/audit-log/model"
 
@@ -69,7 +68,6 @@ export interface RootModel extends Models<RootModel> {
   systemConfigUserManageModel: typeof systemConfigUserManageModel
   systemConfigRoleManageModel: typeof systemConfigRoleManageModel
   systemConfigSystemManageModel: typeof systemConfigSystemManageModel
-  systemConfigComputeNodeModel: typeof systemConfigComputeNodeModel
   systemConfigGeneralModel: typeof systemConfigGeneralModel
   systemConfigAuditLogModel: typeof systemConfigAuditLogModel
 }
@@ -100,7 +98,6 @@ export const models: RootModel = {
   systemConfigUserManageModel,
   systemConfigRoleManageModel,
   systemConfigSystemManageModel,
-  systemConfigComputeNodeModel,
   systemConfigGeneralModel,
   systemConfigAuditLogModel,
 }
