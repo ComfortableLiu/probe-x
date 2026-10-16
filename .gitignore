@@ -143,3 +143,6 @@ pubilsh.sh
 tmp
 .DS_Store
 .rollup.cache
+
+# Rust build output (Cargo.lock is versioned for the service)
+apps/final-data-cleaning-rust/target/

@@ -1,0 +1,1856 @@
+[
+  {
+    "name": "empty batch",
+    "input": [],
+    "expected": {
+      "finalEvents": [],
+      "attributions": []
+    }
+  },
+  {
+    "name": "string and object extensions",
+    "input": [
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "{\"$campaign_id\":\"camp-json\",\"$item_count\":5}",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-2",
+        "$session_id": "session-2",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {
+          "$campaign_id": "camp-object"
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "{\"$campaign_id\":\"camp-json\",\"$item_count\":5}",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-2",
+          "$session_id": "session-2",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {
+            "$campaign_id": "camp-object"
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "$campaignId",
+          "attr_value": "camp-json",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "$itemCount",
+          "attr_value": "5",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-2",
+          "session_id": "session-2",
+          "attr_key": "$campaignId",
+          "attr_value": "camp-object",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid, null, and non-object extensions",
+    "input": [
+      {
+        "$event_id": "event-0",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": null,
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-2",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": false,
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-3",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": true,
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-4",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": 0,
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-5",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": 1,
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-6",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-7",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "{invalid",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-8",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "null",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-9",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "false",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-10",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "0",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-11",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "\"text\"",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-12",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "[]",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-13",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "[{\"x\":1}]",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-14",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": [],
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-15",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": [
+          1
+        ],
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-16",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "{}",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-17",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {},
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-0",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": null,
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-2",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": false,
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-3",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": true,
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-4",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": 0,
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-5",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": 1,
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-6",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-7",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "{invalid",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-8",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "null",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-9",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "false",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-10",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "0",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-11",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "\"text\"",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-12",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "[]",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-13",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "[{\"x\":1}]",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-14",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": [],
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-15",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": [
+            1
+          ],
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-16",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "{}",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-17",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {},
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": []
+    }
+  },
+  {
+    "name": "JavaScript flag and target truthiness",
+    "input": [
+      {
+        "$event_id": "event-0",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": false,
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 0
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": 0,
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 1
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-2",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": "",
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 2
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-3",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": null,
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 3
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-4",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 4
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-5",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "",
+        "$ex_attribution_params": {
+          "x": 5
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-6",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": 0,
+        "$ex_attribution_params": {
+          "x": 6
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-7",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": null,
+        "$ex_attribution_params": {
+          "x": 7
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-8",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": false,
+        "$ex_attribution_params": {
+          "x": 8
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-9",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$ex_attribution_params": {
+          "x": 9
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-10",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": "false",
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 10
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-11",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": "0",
+        "$target_page_id": "target",
+        "$ex_attribution_params": {
+          "x": 11
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-12",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": 1,
+        "$target_page_id": 1,
+        "$ex_attribution_params": {
+          "x": 12
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-13",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": [],
+        "$target_page_id": {},
+        "$ex_attribution_params": {
+          "x": 13
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-14",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": {},
+        "$target_page_id": [],
+        "$ex_attribution_params": {
+          "x": 14
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-0",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": false,
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 0
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": 0,
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 1
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-2",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": "",
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 2
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-3",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": null,
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 3
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-4",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 4
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-5",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "",
+          "$ex_attribution_params": {
+            "x": 5
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-6",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": 0,
+          "$ex_attribution_params": {
+            "x": 6
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-7",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": null,
+          "$ex_attribution_params": {
+            "x": 7
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-8",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": false,
+          "$ex_attribution_params": {
+            "x": 8
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-9",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$ex_attribution_params": {
+            "x": 9
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-10",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": "false",
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 10
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-11",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": "0",
+          "$target_page_id": "target",
+          "$ex_attribution_params": {
+            "x": 11
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-12",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": 1,
+          "$target_page_id": 1,
+          "$ex_attribution_params": {
+            "x": 12
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-13",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": [],
+          "$target_page_id": {},
+          "$ex_attribution_params": {
+            "x": 13
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-14",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": {},
+          "$target_page_id": [],
+          "$ex_attribution_params": {
+            "x": 14
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-10",
+          "session_id": "session-1",
+          "attr_key": "x",
+          "attr_value": "10",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-11",
+          "session_id": "session-1",
+          "attr_key": "x",
+          "attr_value": "11",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-12",
+          "session_id": "session-1",
+          "attr_key": "x",
+          "attr_value": "12",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-13",
+          "session_id": "session-1",
+          "attr_key": "x",
+          "attr_value": "13",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-14",
+          "session_id": "session-1",
+          "attr_key": "x",
+          "attr_value": "14",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  },
+  {
+    "name": "String values, recursive Array.join, and numeric thresholds",
+    "input": [
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {
+          "nil": null,
+          "yes": true,
+          "no": false,
+          "text": "中文\ntext",
+          "object": {
+            "nested": 1
+          },
+          "empty_array": [],
+          "array": [
+            1,
+            null,
+            [
+              null,
+              "x",
+              [
+                "deep",
+                false
+              ]
+            ],
+            {
+              "foo": 1
+            }
+          ],
+          "decimal": 1.25,
+          "zero": 0,
+          "negative_zero": 0,
+          "small_fixed": 0.000001,
+          "small_exponential": 1e-7,
+          "large_fixed": 100000000000000000000,
+          "large_exponential": 1e+21
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {
+            "nil": null,
+            "yes": true,
+            "no": false,
+            "text": "中文\ntext",
+            "object": {
+              "nested": 1
+            },
+            "empty_array": [],
+            "array": [
+              1,
+              null,
+              [
+                null,
+                "x",
+                [
+                  "deep",
+                  false
+                ]
+              ],
+              {
+                "foo": 1
+              }
+            ],
+            "decimal": 1.25,
+            "zero": 0,
+            "negative_zero": 0,
+            "small_fixed": 0.000001,
+            "small_exponential": 1e-7,
+            "large_fixed": 100000000000000000000,
+            "large_exponential": 1e+21
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "nil",
+          "attr_value": "null",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "yes",
+          "attr_value": "true",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "no",
+          "attr_value": "false",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "text",
+          "attr_value": "中文\ntext",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "object",
+          "attr_value": "[object Object]",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "emptyArray",
+          "attr_value": "",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "array",
+          "attr_value": "1,,,x,deep,false,[object Object]",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "decimal",
+          "attr_value": "1.25",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "zero",
+          "attr_value": "0",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "negativeZero",
+          "attr_value": "0",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "smallFixed",
+          "attr_value": "0.000001",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "smallExponential",
+          "attr_value": "1e-7",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "largeFixed",
+          "attr_value": "100000000000000000000",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "largeExponential",
+          "attr_value": "1e+21",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  },
+  {
+    "name": "JSON numbers use Node Number rounding but original text survives",
+    "input": [
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "{\"huge\":18446744073709551615,\"unsafe\":9007199254740993,\"infinite\":1e400,\"negative_infinite\":-1e400,\"negative_zero\":-0}",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "{\"huge\":18446744073709551615,\"unsafe\":9007199254740993,\"infinite\":1e400,\"negative_infinite\":-1e400,\"negative_zero\":-0}",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "huge",
+          "attr_value": "18446744073709552000",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "unsafe",
+          "attr_value": "9007199254740992",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "infinite",
+          "attr_value": "Infinity",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "negativeInfinite",
+          "attr_value": "-Infinity",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "negativeZero",
+          "attr_value": "0",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  },
+  {
+    "name": "exact underscore conversion and Object.entries ordering",
+    "input": [
+      {
+        "$event_id": "event-1",
+        "$session_id": "session-1",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"last index\",\"last_key\":\"first normal key\",\"01\":\"leading zero\",\"4294967295\":\"not an index\",\"00\":\"double zero\",\"$product_id\":\"product\",\"__a\":\"double underscore\",\"_a_b\":\"adjacent pairs\",\"_X\":\"uppercase unchanged\",\"_ä\":\"non-ascii unchanged\",\"$_\":\"suffix unchanged\",\"snake__case\":\"double underscore middle\",\"a_0_b\":\"underscore number\"}",
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-1",
+          "$session_id": "session-1",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"last index\",\"last_key\":\"first normal key\",\"01\":\"leading zero\",\"4294967295\":\"not an index\",\"00\":\"double zero\",\"$product_id\":\"product\",\"__a\":\"double underscore\",\"_a_b\":\"adjacent pairs\",\"_X\":\"uppercase unchanged\",\"_ä\":\"non-ascii unchanged\",\"$_\":\"suffix unchanged\",\"snake__case\":\"double underscore middle\",\"a_0_b\":\"underscore number\"}",
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "0",
+          "attr_value": "zero",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "2",
+          "attr_value": "two",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "10",
+          "attr_value": "ten",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "4294967294",
+          "attr_value": "last index",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "lastKey",
+          "attr_value": "first normal key",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "01",
+          "attr_value": "leading zero",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "4294967295",
+          "attr_value": "not an index",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "00",
+          "attr_value": "double zero",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "$productId",
+          "attr_value": "product",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "_A",
+          "attr_value": "double underscore",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "AB",
+          "attr_value": "adjacent pairs",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "_X",
+          "attr_value": "uppercase unchanged",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "_ä",
+          "attr_value": "non-ascii unchanged",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "$_",
+          "attr_value": "suffix unchanged",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "snake_Case",
+          "attr_value": "double underscore middle",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-1",
+          "session_id": "session-1",
+          "attr_key": "a_0B",
+          "attr_value": "underscore number",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  },
+  {
+    "name": "same target does not accumulate attributes across events or sessions",
+    "input": [
+      {
+        "$event_id": "event-a",
+        "$session_id": "session-a",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {
+          "$nav_position": "top"
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-b",
+        "$session_id": "session-a",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {
+          "$nav_position": "bottom"
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      },
+      {
+        "$event_id": "event-c",
+        "$session_id": "session-b",
+        "$service_time": "2026-10-15 12:00:00.123",
+        "$is_attribution_event": true,
+        "$target_page_id": "target-page",
+        "$ex_attribution_params": {
+          "$campaign_id": "other"
+        },
+        "custom_unchanged": {
+          "text": "中文",
+          "array": [
+            false,
+            null,
+            3
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "finalEvents": [
+        {
+          "$event_id": "event-a",
+          "$session_id": "session-a",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {
+            "$nav_position": "top"
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-b",
+          "$session_id": "session-a",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {
+            "$nav_position": "bottom"
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        },
+        {
+          "$event_id": "event-c",
+          "$session_id": "session-b",
+          "$service_time": "2026-10-15 12:00:00.123",
+          "$is_attribution_event": true,
+          "$target_page_id": "target-page",
+          "$ex_attribution_params": {
+            "$campaign_id": "other"
+          },
+          "custom_unchanged": {
+            "text": "中文",
+            "array": [
+              false,
+              null,
+              3
+            ]
+          }
+        }
+      ],
+      "attributions": [
+        {
+          "event_id": "event-a",
+          "session_id": "session-a",
+          "attr_key": "$navPosition",
+          "attr_value": "top",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-b",
+          "session_id": "session-a",
+          "attr_key": "$navPosition",
+          "attr_value": "bottom",
+          "event_time": "2026-10-15 12:00:00.123"
+        },
+        {
+          "event_id": "event-c",
+          "session_id": "session-b",
+          "attr_key": "$campaignId",
+          "attr_value": "other",
+          "event_time": "2026-10-15 12:00:00.123"
+        }
+      ]
+    }
+  }
+]

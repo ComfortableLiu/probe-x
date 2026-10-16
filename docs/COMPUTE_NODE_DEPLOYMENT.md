@@ -71,6 +71,24 @@ yarn start:final-cleaning
 
 前提是总服务已在本地跑起来（`yarn start:dashboard-api`），并且 MySQL / ClickHouse / Redis 可达。
 
+### 地址和健康检查端口自动上报
+
+Node 与 Rust 节点均在启动后自动注册地址和实际健康检查端口，统一在「系统数据 → 计算节点」查看。
+节点详情将节点地址、声明的健康检查端口和实际监听地址分别展示，未上报端口显示“—”。
+如需修改节点名称，调整对应服务的 `NODE_NAME` 或 `RUST_NODE_NAME`；如需覆盖声明的地址或端口，
+修改 `NODE_ADVERTISE_ADDRESS` / `NODE_ADVERTISE_PORT` 后重启节点。系统不提供手工登记、编辑或删除节点的入口。
+
+Node 自动选择本机可用网卡 IP，Rust 优先使用通往总服务的本地路由 IP；本机总服务可使用环回地址，显式声明地址始终优先。
+未识别到地址时，总服务以 gRPC 连接来源 IP 兜底，该来源可能经过 NAT/代理，不保证是可远程访问的健康地址。
+总服务只提取连接来源的 IP，不会把临时出站端口作为节点服务端口。
+
+Node 健康监听默认 `0.0.0.0:10000`，用 `HOST` / `PORT` 修改；Rust 默认 `127.0.0.1:10001`，
+用 `RUST_HEALTH_HOST` / `RUST_HEALTH_PORT` 修改。监听端口为 `0` 时，成功监听后上报操作系统实际分配值。
+实际监听地址/端口会独立展示，环回地址标为“仅本机访问”；声明对外地址或端口不会改变监听配置。
+节点主动连接总服务接任务，无需开放入站 gRPC 端口；健康端口仅用于运维检查。
+
+升级时先重启总服务加载新增的兼容协议字段，再重启 Node / Rust 节点刷新注册信息；无需数据库结构迁移。
+
 ### 单节点的 CPU 并行计算
 
 每个节点有一个常驻 Worker Threads 池，并发上限由
@@ -117,15 +135,55 @@ worker 每 500 条事件汇报一次进度，主线程按任务最多每 100ms �
 并发验收命令（使用内存数据库替身、真实 Worker Threads 和 protobuf 编解码）：
 
 ```bash
-node --test scripts/cleaning-scheduler.test.cjs scripts/cleaning-concurrency.test.cjs scripts/restart-service-plugin.test.cjs
+node --test scripts/cleaning-scheduler.test.cjs scripts/cleaning-large-backlog.test.cjs scripts/cleaning-backlog-reader.test.cjs scripts/cleaning-concurrency.test.cjs scripts/clickhouse-stream.test.cjs scripts/restart-service-plugin.test.cjs
 yarn workspace final-data-cleaning-service test --runInBand
 yarn workspace final-data-cleaning-service build
 yarn workspace data-dashboard-api-service build
 ```
 
+### 大批次清洗调度
+
+点击“立即清洗”会枚举过去日期尚未完成的 `(date, session)` 切片，事件数和任务数不同。
+例如百万条事件可能对应十几万个会话任务。旧版把整批任务通过 `push(...tasks)` 展开成函数参数，
+任务过多会触发 `RangeError: Maximum call stack size exceeded`，此时错误发生在总服务入队阶段，
+增加计算节点线程数或调高栈大小不能解决这段代码的问题。
+
+调度器不再执行全历史 `DISTINCT + NOT IN` 后装满内存队列。启动请求立即登记日期范围并返回，
+后台按原表物理排序键 `($service_time, $session_id, $event_name)` 顺序读取，每页默认只取 1000 行键和日期，
+不拉取事件宽表内容；只对本页涉及的 `(date, session)` 查询最终表是否已有记录。首批可用任务立即下发，
+剩余部分使用严格大于上一页末尾排序键的游标续读，不使用随已清洗集合变化而跳行的 `OFFSET`。
+页边界若存在相同排序键的多条事件，它们必属同一切片，任务已在当前页发现，计算节点仍读取该切片完整事件。
+
+无空闲节点或已达到缓冲上限时暂停查询，节点上线/任务落定后继续加载。默认排队和在途任务合计最多 2000 个，
+另有至多一页查询结果暂存；最近完成切片缓存最多 10000 条，重试状态在任务最终落定后释放。
+加载查询全局串行，查询线程最多 2 个、内存上限 256 MiB、执行时间上限 30 秒。源表查询利用物理排序与 LIMIT 早停，
+最终表查重的去重集合受本页候选数量限制；仍可能扫描所涉及日期的最终表，需要按实际磁盘及数据规模评估吞吐。
+查询失败保留原游标与已有任务，下一分钟巡检或重复点击触发重试；关机取消在途查询并忽略迟到结果。
+重复触发复用正在扫描的范围，跨日的新一轮补扫等待旧轮已加载任务结束后从头扫描，以覆盖旧游标之前失败的切片。
+每日完成标记仅在扫描及已加载任务全部落定后写入，服务重启后未结束的自动清洗可从头重新发现欠账。
+
+接口返回的 `pending` 仅表示当前已缓冲任务数，`loading` 表示还有范围待加载，`waitingForCapacity` 表示等待节点空闲；
+`pending=0` 不代表全部历史任务已经完成。队列仍按 `(date, session)` 去重，下发遵守节点线程容量，
+每轮最多下发 100 次后让出事件循环。归因引擎逐条追加扩展属性，避免大量属性展开为函数参数导致爆栈。
+
+本次优化限制的是调度启动查询和常驻任务内存，不承诺单机百亿事件的处理吞吐。Node 版仍读取完整会话事件列表，
+并沿用“最终表存在该切片记录即视为已洗”的判据。独立 Rust 版采用流式批次，并通过 Redis 未完成切片标记覆盖该判据，
+部分写入后仍能被重新发现，且只派给 Rust 修复。百亿级持续吞吐还需评估持久任务索引、表排序/投影和数据库集群容量。
+无需表迁移；更新并重启总服务即可启用分片调度。
+
 ---
 
 ## 二、配置速查
+
+### 可选 Rust 独立节点
+
+原 Node 节点及默认启动命令保留，另提供 `apps/final-data-cleaning-rust`。更新总服务后可使用
+`yarn start:final-cleaning-rust` 或 `bash scripts/start-final-cleaning-rust.sh` 启动 release 版本。
+Rust CPU 池默认使用全部可用 CPU 线程，I/O 任务槽默认是 CPU 池的 4 倍，分别用
+`RUST_CLEANING_THREADS` 和 `RUST_TASK_CONCURRENCY` 调整。流式分批读取单会话、按批查重，
+不同会话的输出可合批写入；传输默认压缩，监控每秒聚合上报。默认节点 ID 为 `rust-node-<hostname>`、
+健康检查端口 10001，可与现有 Node 节点分别接入。Rust 部分写入后的任务只派回 Rust 修复。
+完整环境模板、启动参数、失败恢复和验证命令见 [Rust 服务说明](../apps/final-data-cleaning-rust/README.md)。
 
 ### 计算节点侧（`final-data-cleaning-service`）
 
@@ -138,9 +196,10 @@ yarn workspace data-dashboard-api-service build
 | `NODE_ADVERTISE_ADDRESS` | 空 | 节点上报地址，仅用于页面展示节点在哪 |
 | `HEARTBEAT_INTERVAL_MS` | `5000` | 心跳间隔（注册帧兼作心跳） |
 | `NODE_LOG_FLUSH_INTERVAL_MS` | `2000` | 节点日志上行冲刷间隔（捕获的 console 日志缓冲后经双向流上报总服务） |
+| `CLEANING_DETAIL_LOG_ENABLED` | `false` | 逐任务接收、开始、重复跳过、拉取事件、归因和落库完成日志，排查时显式设为 `true` 后重启节点 |
 | `PORT` | `10000` | 进程内的 `/health` 监听端口，**不需要对外发布** |
 
-`NODE_ID` / `NODE_NAME` 在 `ComputeNodeService` 中读取，其余在 `config/configuration.ts`。
+`NODE_ID` / `NODE_NAME` / `CLEANING_DETAIL_LOG_ENABLED` 由节点服务直接读取，其余在 `config/configuration.ts`。
 
 ### 总服务侧（`data-dashboard-api-service`）
 
@@ -149,10 +208,17 @@ yarn workspace data-dashboard-api-service build
 | `NODE_CONTROL_PORT` | `8105` | 计算节点接入的 gRPC 监听端口。跨机器部署时需对外可达 |
 | `MASTER_NODE_NAME` | `总服务` | 拓扑图根节点展示名 |
 | `HEARTBEAT_TIMEOUT_MS` | `15000` | 超过该时长没收到心跳即判定离线（默认 3 倍于节点 5s 心跳） |
+| `CLEANING_DETAIL_LOG_ENABLED` | `false` | 逐任务下发成功日志，排查时显式设为 `true` 后重启总服务 |
+| `CLEANING_SCAN_PAGE_SIZE` | `1000` | 每次读取的事件排序键行数，最大 10000；候选任务数不超过该值 |
+| `CLEANING_MAX_BUFFERED_TASKS` | `2000` | 已加载的排队与在途任务合计上限，最大 100000；为失败重试预留在途位置 |
+
+最终清洗详情日志默认关闭，关闭后不再打印到控制台或上报节点日志页。任务进度、处理速度和成功率统计继续更新；错误、重试、节点连接状态及调度汇总日志保留。两个服务分别读取各自的 `CLEANING_DETAIL_LOG_ENABLED`，需要完整详情时两侧均设为 `true` 并重启。
 
 ### 数据库
 
-节点和总服务都连同一套 MySQL。`compute_node` 表由自动注册写入：
+节点和总服务都连同一套 MySQL。`compute_node` 表由自动注册写入，并保留离线节点记录，
+总服务重启后仍可在「系统数据 → 计算节点」展示已注册的节点。节点调度按上报容量和空闲槽位分配任务，
+表中的 `weight` 仅作为兼容字段保留，不参与调度。
 
 | 变量 | 说明 |
 |---|---|
@@ -165,7 +231,8 @@ yarn workspace data-dashboard-api-service build
 
 ## 三、数据库变更
 
-自动注册用 `compute_node.node_id` 做幂等键，拨出接入的节点没有监听端口所以 `node_port` 放开为空。
+自动注册用 `compute_node.node_id` 做幂等键，`node_port` 记录声明的健康检查端口。
+旧节点可能没有上报端口，因此该列允许为空或为 `0`；它不代表 gRPC 入站端口。
 
 **`DB_SYNCHRONIZE=true` 的环境不用管**（TypeORM 启动时会自己把表对齐到实体）。
 **`DB_SYNCHRONIZE=false` 的环境需要手工补**。先看表长什么样再挑对应的语句：
@@ -179,12 +246,12 @@ mysql -h<host> -P<port> -u<user> -p <db> -e "SHOW COLUMNS FROM \`compute_node\`"
 ```sql
 ALTER TABLE `compute_node`
   ADD COLUMN `node_id` VARCHAR(100) NULL UNIQUE COMMENT '节点自报标识（自动注册的节点以此字段幂等 upsert）' AFTER `id`,
-  MODIFY COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）';
+  MODIFY COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '健康检查端口（未上报时为空或0）';
 ```
 
 ### 情况 B：有 `last_heartbeat` / `capabilities`（表来自旧版 [scripts/init-db.sql](../scripts/init-db.sql)）
 
-这一版 `node_id` 是 `NOT NULL`（手工登记的节点没有自报 id，会被拒写）、缺
+这一版 `node_id` 是 `NOT NULL`，与当前实体的可空定义不同；同时缺
 `node_address` / `node_port` / `node_type` / `weight` / `description`，而且 `status` 是
 `ENUM('online','offline','busy')`——自动注册写 `'running'` 会被截断，必须一并改掉：
 
@@ -192,9 +259,9 @@ ALTER TABLE `compute_node`
 ALTER TABLE `compute_node`
   MODIFY COLUMN `node_id` VARCHAR(100) NULL COMMENT '节点自报标识（自动注册的节点以此字段幂等 upsert）' AFTER `id`,
   ADD COLUMN `node_address` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '节点地址' AFTER `node_name`,
-  ADD COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '节点端口（拨出接入的计算节点无监听端口，允许为空）' AFTER `node_address`,
+  ADD COLUMN `node_port` INT NULL DEFAULT 0 COMMENT '健康检查端口（未上报时为空或0）' AFTER `node_address`,
   ADD COLUMN `node_type` VARCHAR(20) NOT NULL DEFAULT 'grpc' COMMENT '节点类型（grpc）' AFTER `node_port`,
-  ADD COLUMN `weight` INT NOT NULL DEFAULT 100 COMMENT '权重（用于负载均衡，默认100）' AFTER `status`,
+  ADD COLUMN `weight` INT NOT NULL DEFAULT 100 COMMENT '兼容权重字段（不参与调度）' AFTER `status`,
   ADD COLUMN `description` VARCHAR(255) NULL COMMENT '描述' AFTER `weight`,
   MODIFY COLUMN `node_name` VARCHAR(100) NOT NULL COMMENT '节点名称',
   MODIFY COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'stopped' COMMENT '节点状态（running/stopped/error）',
@@ -237,10 +304,16 @@ ALTER TABLE `compute_node`
    `status` 为 `ok` 表示已连上总服务，`degraded` 表示正在重连或连不上。
    （端口只在容器网络内，宿主机上要 `docker exec <容器> curl -s localhost:10000/health`。）
 3. **拓扑 API**（与页面同源）：`GET /api/system-data/computing-nodes`
-4. **节点日志页**：拓扑页选中节点后点「查看日志」，或 `GET /api/system-data/computing-nodes/:nodeId/logs?limit=200`。
+4. **节点日志页**：拓扑页选中节点后点「查看日志」，或 `GET /api/system-data/computing-nodes/:nodeId/logs?limit=100&level=all`。
    节点捕获自身 console / NestJS Logger 输出，按 `NODE_LOG_FLUSH_INTERVAL_MS` 周期经双向流上行，
    总服务落 Redis 有界列表（每节点最近 2000 条、保留 3 天）——节点离线后仍能查到留存的历史日志。
-5. **自动注册落库**：`GET /api/compute-node/list` 能看到自动生成的记录（`description` 为「由计算节点自动注册」）。
+   默认一页 100 条，可选 50 / 100 / 200 条；级别在服务端筛选后分页，信息级别包括 `log` 与 `info`。
+   响应提供当前页稳定锚点 `pageCursor`、更早页 `nextCursor` 和 `hasMore`，下一页携带 `cursor=nextCursor`。
+   序号和留存周期标识在 Redis 内原子维护，新增日志、同毫秒记录和列表裁剪不会让历史页错位。
+   最新页开启跟随后每 3 秒更新；翻历史页自动暂停，只渲染当前页。刷新重读当前锚点，回到最新会清空翻页历史并恢复跟随。
+   游标超过留存范围返回 `resetRequired`，页面提示并重新读取最新页；Redis 故障返回 503，页面保留当前页供重试。
+5. **自动注册落库**：`compute_node` 保存节点自动注册记录（`description` 为「由计算节点自动注册」），
+   拓扑 API 合并实时连接信息和数据库记录，已注册的离线节点仍会展示。
 
 ---
 
