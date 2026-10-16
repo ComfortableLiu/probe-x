@@ -26,6 +26,7 @@ import { FunnelAnalysisService } from '../data-analysis/funnel-analysis.service'
 import { UserPathAnalysisService } from '../data-analysis/user-path-analysis.service'
 import { AttributionAnalysisService } from '../data-analysis/attribution-analysis.service'
 import { UtmAnalysisService } from '../data-analysis/utm-analysis.service'
+import { RetentionAnalysisService } from '../data-analysis/retention-analysis.service'
 import { AuthorizationService } from '../../service/authorization.service'
 
 /**
@@ -53,6 +54,7 @@ export class DashboardService {
     private readonly userPathAnalysisService: UserPathAnalysisService,
     private readonly attributionAnalysisService: AttributionAnalysisService,
     private readonly utmAnalysisService: UtmAnalysisService,
+    private readonly retentionAnalysisService: RetentionAnalysisService,
     private readonly authorizationService: AuthorizationService,
   ) {}
 
@@ -335,6 +337,12 @@ export class DashboardService {
         queryParams.timeRange = data.timeRange
       }
       analysisData = await this.utmAnalysisService.query(queryParams, user)
+    } else if (dashboard.analysisType === AnalysisType.RETENTION && config.retentionAnalysis) {
+      const queryParams = { ...config.retentionAnalysis }
+      if (data.timeRange) {
+        queryParams.timeRange = data.timeRange
+      }
+      analysisData = await this.retentionAnalysisService.queryRetention(queryParams, user)
     }
 
     // 检查配置是否匹配分析类型
@@ -345,10 +353,11 @@ export class DashboardService {
         [AnalysisType.USER_PATH]: '用户路径分析',
         [AnalysisType.ATTRIBUTION]: '归因分析',
         [AnalysisType.UTM]: 'UTM 分析',
+        [AnalysisType.RETENTION]: '留存分析',
       }[dashboard.analysisType] || dashboard.analysisType
-      
+
       throw new BusinessException(
-        `看板配置错误：看板类型为 ${analysisTypeName}，但缺少对应的配置信息`
+        `看板配置错误：看板类型为 ${analysisTypeName}，但缺少对应的配置信息`,
       )
     }
 

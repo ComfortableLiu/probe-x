@@ -21,6 +21,7 @@ export const guideCategories: GuideCategory[] = [
     items: [
       { key: 'event', label: '事件分析', path: '/guide/data-analysis/event', appPath: '/data-analysis/event', summary: '选择事件、指标与维度，比较次数和用户数。' },
       { key: 'funnel', label: '漏斗分析', path: '/guide/data-analysis/funnel', appPath: '/data-analysis/funnel', summary: '按业务步骤查看转化和流失。' },
+      { key: 'retention', label: '留存分析', path: '/guide/data-analysis/retention', appPath: '/data-analysis/retention', summary: '观察初始行为后的用户在不同窗口的回访留存。' },
       { key: 'user-path', label: '用户路径分析', path: '/guide/data-analysis/user-path', appPath: '/data-analysis/userPath', summary: '从起点或终点观察事件流转。' },
       { key: 'attribution', label: '归因分析', path: '/guide/data-analysis/attribution', appPath: '/data-analysis/attribution', summary: '比较不同归因模型下的触点贡献。' },
       { key: 'utm', label: 'UTM 分析', path: '/guide/data-analysis/utm', appPath: '/data-analysis/utm', summary: '按来源、媒介和活动分析渠道表现。' },

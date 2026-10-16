@@ -3,7 +3,7 @@ import { Form, Input, Modal, Switch, message } from "antd"
 import { AnalysisType, DashboardType, ICreateDashboardReq, IUpdateDashboardReq } from "@pages/data-analysis/dashboard-config/type"
 import { createDashboard, updateDashboard } from "@pages/data-analysis/dashboard-config/services"
 import { useQuery } from "@/hooks"
-import { IEventAnalysisReq, IFunnelAnalysisReq, IUserPathAnalysisReq, IAttributionAnalysisReq, IUtmAnalysisReq } from "@probe-x/shared-types/src"
+import { IEventAnalysisReq, IFunnelAnalysisReq, IUserPathAnalysisReq, IAttributionAnalysisReq, IUtmAnalysisReq, IRetentionAnalysisReq } from "@probe-x/shared-types/src"
 
 interface ISaveAsDashboardPopupProps {
   analysisType: AnalysisType
@@ -83,7 +83,7 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
       // 获取当前页面的查询参数作为配置，包含时间范围
       // 时间范围应该保存在配置中，这样编辑看板时可以恢复原始的时间范围
       const config: any = {}
-      
+
       if (analysisType === AnalysisType.EVENT) {
         config.eventAnalysis = fullQueryParams as IEventAnalysisReq
       } else if (analysisType === AnalysisType.FUNNEL) {
@@ -94,6 +94,8 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
         config.attributionAnalysis = fullQueryParams as IAttributionAnalysisReq
       } else if (analysisType === AnalysisType.UTM) {
         config.utmAnalysis = fullQueryParams as IUtmAnalysisReq
+      } else if (analysisType === AnalysisType.RETENTION) {
+        config.retentionAnalysis = fullQueryParams as IRetentionAnalysisReq
       }
 
       if (isEdit && editDashboardId) {
@@ -136,6 +138,7 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
       [AnalysisType.USER_PATH]: '用户路径分析',
       [AnalysisType.ATTRIBUTION]: '归因分析',
       [AnalysisType.UTM]: 'UTM 分析',
+      [AnalysisType.RETENTION]: '留存分析',
     }
     return map[analysisType] || '分析'
   }, [analysisType])
@@ -182,7 +185,7 @@ function SaveAsDashboardPopup(props: ISaveAsDashboardPopupProps) {
         </Form.Item>
         <Form.Item label="提示">
           <div style={{ color: 'var(--px-color-text-tertiary)', fontSize: '12px' }}>
-            {isEdit 
+            {isEdit
               ? `更新当前${getAnalysisTypeText()}的配置到看板，可在首页统一查看。`
               : `将当前${getAnalysisTypeText()}的配置保存为看板，可在首页统一查看。`}
           </div>

@@ -22,6 +22,8 @@ function GuidePopup(props: IGuidePopupProps) {
       [AnalysisType.FUNNEL]: '/data-analysis/funnel',
       [AnalysisType.USER_PATH]: '/data-analysis/userPath',
       [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
+      [AnalysisType.UTM]: '/data-analysis/utm',
+      [AnalysisType.RETENTION]: '/data-analysis/retention',
     }
     const route = routeMap[analysisType]
     if (route) {
@@ -36,6 +38,8 @@ function GuidePopup(props: IGuidePopupProps) {
       [AnalysisType.FUNNEL]: '漏斗分析',
       [AnalysisType.USER_PATH]: '用户路径分析',
       [AnalysisType.ATTRIBUTION]: '归因分析',
+      [AnalysisType.UTM]: 'UTM 分析',
+      [AnalysisType.RETENTION]: '留存分析',
     }
     return map[type] || type
   }, [])
@@ -82,6 +86,13 @@ function GuidePopup(props: IGuidePopupProps) {
           >
             创建归因分析看板
           </Button>
+          <Button
+            type="default"
+            block
+            onClick={() => handleNavigate(AnalysisType.RETENTION)}
+          >
+            创建留存分析看板
+          </Button>
         </div>
         <div style={{ marginTop: 24, padding: 12, background: 'var(--px-color-border-secondary)', borderRadius: 4 }}>
           <div style={{ fontSize: 12, color: 'var(--px-color-text-secondary)', lineHeight: 1.6 }}>
@@ -89,7 +100,7 @@ function GuidePopup(props: IGuidePopupProps) {
             <ol style={{ margin: 0, paddingLeft: 20 }}>
               <li>点击上方按钮跳转到对应的数据分析页面</li>
               <li>在数据分析页面配置好您的分析参数</li>
-              <li>点击页面顶部的"保存为看板"按钮</li>
+              <li>点击页面顶部的&quot;保存为看板&quot;按钮</li>
               <li>填写看板名称和展示选项，完成创建</li>
             </ol>
           </div>

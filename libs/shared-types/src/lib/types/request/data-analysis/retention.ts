@@ -28,7 +28,7 @@ export interface IRetentionAnalysisReq {
   }
   // 时间范围
   timeRange: [`${string}-${string}-${string}`, `${string}-${string}-${string}`]
-  // 留存窗口天数列表（如 [1, 3, 7, 14, 30] 表示次日、3日、7日、14日、30日留存）
+  // 留存窗口列表（如 [1, 3, 7, 14, 30]，窗口单位跟随时间粒度：按日表示第 N 日留存，按周/月表示第 N 周/月留存）
   retentionWindows: number[]
   // 时间粒度
   granularity: RetentionGranularity

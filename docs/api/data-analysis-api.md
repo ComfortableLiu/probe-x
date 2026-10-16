@@ -16,33 +16,48 @@
 
 **接口**: `POST /data-analysis/retention/query`
 
-**描述**: 查询用户留存分析数据，支持按日/周/月计算留存率。
+**描述**: 查询用户留存分析数据。以触发起始事件的用户为队列，按特定日期留存（第 N 天/周/月）口径计算各留存窗口的留存人数与留存率：队列用户在队列周期后第 N 个粒度周期内触发回访事件才算留存（窗口单位跟随时间粒度，按日即第 N 天当天、按周即第 N 周、按月即第 N 月），各窗口独立计算。实体口径为登录用户按 `$uid`、匿名用户回退按 `$device_id`，时间字段统一使用客户端日志时间 `$log_time`；设置分组维度时按队列周期内首个起始事件的属性值归入唯一分组（单分组口径），回访行为不做属性关联。
+
+**权限**: `data:analysis:view`
 
 **请求参数**:
 
 ```typescript
 interface IRetentionAnalysisReq {
-  // 事件名称
-  eventName: string;
-  
-  // 留存事件名称（可选，默认与 eventName 相同）
-  retentionEventName?: string;
-  
-  // 时间范围
-  startDate: string;  // YYYY-MM-DD
-  endDate: string;    // YYYY-MM-DD
-  
-  // 留存粒度：day | week | month
-  granularity: 'day' | 'week' | 'month';
-  
-  // 留存窗口（天数）
-  retentionWindow: number;
-  
-  // 分组维度（可选）
-  groupBy?: string;
-  
-  // 筛选条件（可选）
-  filters?: Record<string, any>;
+  // 起始事件（用户首次触发、进入队列的事件）
+  startEvent: {
+    eventName: string;
+    filters?: IAttributionAnalysisFilter[];  // 事件筛选条件（可选）
+  };
+
+  // 回访事件（用于判定留存的事件，可与起始事件相同）
+  returnEvent: {
+    eventName: string;
+    filters?: IAttributionAnalysisFilter[];  // 事件筛选条件（可选）
+  };
+
+  // 时间范围 [开始日期, 结束日期]，闭区间
+  timeRange: ['YYYY-MM-DD', 'YYYY-MM-DD'];
+
+  // 留存窗口列表（1-365 的整数，可多选，如 [1, 3, 7, 14, 30]；窗口单位跟随时间粒度：第 N 日/周/月）
+  retentionWindows: number[];
+
+  // 时间粒度：DAY | WEEK | MONTH（队列按日 / 周 / 月划分）
+  granularity: 'DAY' | 'WEEK' | 'MONTH';
+
+  // 分组维度（可选，按用户属性或事件属性分组对比）
+  dimension?: string[];
+
+  // 全局筛选条件（可选）
+  globalFilters?: IAttributionAnalysisFilter[];
+}
+
+// 筛选条件
+interface IAttributionAnalysisFilter {
+  propertyName: string;                              // 属性名
+  propertyType: MetaPropertyType;                    // 属性类型
+  propertyValue: string | number | string[] | number[];  // 属性值
+  compareType: CompareType;                          // 比较方式（等于 / 不等于 / 大于等）
 }
 ```
 
@@ -50,22 +65,32 @@ interface IRetentionAnalysisReq {
 
 ```typescript
 interface IRetentionAnalysisRes {
-  // 队列数据
+  // 队列数据（每行一个 队列日期 × 维度组合）
   cohorts: Array<{
     // 队列日期
     cohortDate: string;
-    // 初始用户数
-    initialUsers: number;
-    // 留存用户数
-    retainedUsers: number[];
-    // 留存率
-    retentionRates: number[];
+    // 队列规模（该周期内触发起始事件的去重用户数）
+    cohortSize: number;
+    // 各窗口的留存数据，按窗口升序
+    windows: Array<{
+      day: number;             // 窗口（单位跟随粒度）
+      retentionUsers: number;  // 留存用户数
+      retentionRate: number;   // 留存率（百分数，保留两位小数）
+    }>;
+    // 分组维度值（指定 dimension 时返回，key 为维度名）
+    dimensionValues?: Record<string, string>;
   }>;
-  
+
   // 汇总信息
   summary: {
+    // 全部队列的总用户数
     totalUsers: number;
-    avgRetentionRate: number;
+    // 各窗口的加权留存率（已成熟队列的留存人数之和 ÷ 初始人数之和；已成熟指队列日期 + N 个粒度单位 ≤ 今天）
+    avgRetentionRates: Array<{
+      day: number;
+      retentionUsers: number;
+      retentionRate: number;
+    }>;
   };
 }
 ```
@@ -74,11 +99,45 @@ interface IRetentionAnalysisRes {
 
 ```json
 {
-  "eventName": "page_view",
-  "startDate": "2024-01-01",
-  "endDate": "2024-01-31",
-  "granularity": "day",
-  "retentionWindow": 7
+  "startEvent": {
+    "eventName": "app_launch"
+  },
+  "returnEvent": {
+    "eventName": "page_view"
+  },
+  "timeRange": ["2026-10-01", "2026-10-14"],
+  "retentionWindows": [1, 3, 7, 14],
+  "granularity": "DAY",
+  "dimension": ["$channel"]
+}
+```
+
+**示例响应**:
+
+```json
+{
+  "cohorts": [
+    {
+      "cohortDate": "2026-10-01",
+      "cohortSize": 1200,
+      "windows": [
+        { "day": 1, "retentionUsers": 456, "retentionRate": 38.00 },
+        { "day": 3, "retentionUsers": 312, "retentionRate": 26.00 },
+        { "day": 7, "retentionUsers": 216, "retentionRate": 18.00 },
+        { "day": 14, "retentionUsers": 144, "retentionRate": 12.00 }
+      ],
+      "dimensionValues": { "$channel": "app_store" }
+    }
+  ],
+  "summary": {
+    "totalUsers": 1200,
+    "avgRetentionRates": [
+      { "day": 1, "retentionUsers": 456, "retentionRate": 38.00 },
+      { "day": 3, "retentionUsers": 312, "retentionRate": 26.00 },
+      { "day": 7, "retentionUsers": 216, "retentionRate": 18.00 },
+      { "day": 14, "retentionUsers": 144, "retentionRate": 12.00 }
+    ]
+  }
 }
 ```
 
@@ -88,7 +147,9 @@ interface IRetentionAnalysisRes {
 
 **接口**: `POST /data-analysis/retention/download`
 
-**描述**: 创建留存分析数据的下载任务。
+**描述**: 创建留存分析数据的异步下载任务。任务进入 BullMQ 队列执行，完成后生成中文表头的留存网格 Excel 文件（列顺序：队列日期 → 队列用户数 → 维度列 → 各窗口的「第N日留存率 / 第N日留存人数」）并上传至文件存储。
+
+**权限**: `data:analysis:export`
 
 **请求参数**: 与查询接口相同（`IRetentionAnalysisReq`）
 
@@ -96,10 +157,16 @@ interface IRetentionAnalysisRes {
 
 ```typescript
 interface ISubmitDownloadTaskRes {
-  // 任务ID
+  // 任务ID，用于查询任务进度
   taskId: string;
-  // 任务状态
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+}
+```
+
+**示例响应**:
+
+```json
+{
+  "taskId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 }
 ```
 
@@ -109,7 +176,9 @@ interface ISubmitDownloadTaskRes {
 
 **接口**: `POST /data-analysis/retention/download/task`
 
-**描述**: 查询下载任务的进度和结果。
+**描述**: 查询留存分析下载任务的进度和结果。任务状态保留 24 小时，过期后查询返回「任务不存在」。
+
+**权限**: `data:analysis:export`
 
 **请求参数**:
 
@@ -123,16 +192,27 @@ interface IQueryDownloadTaskReq {
 
 ```typescript
 interface IQueryDownloadTaskRes {
-  // 任务ID
-  taskId: string;
-  // 任务状态
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  // 下载链接（完成时）
+  // 任务状态：RUNNING-执行中 | SUCCESS-已完成 | FAIL-失败
+  status: 'SUCCESS' | 'FAIL' | 'RUNNING';
+  // 下载链接（status 为 SUCCESS 时返回）
   downloadUrl?: string;
-  // 进度百分比
-  progress?: number;
-  // 错误信息（失败时）
-  error?: string;
+}
+```
+
+**示例请求**:
+
+```json
+{
+  "taskId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+}
+```
+
+**示例响应**:
+
+```json
+{
+  "status": "SUCCESS",
+  "downloadUrl": "http://localhost:9000/downloads/留存分析数据导出_f47ac10b-58cc-4372-a567-0e02b2c3d479.xlsx"
 }
 ```
 
@@ -303,16 +383,16 @@ interface ISegmentExportReq {
 ### 留存分析示例
 
 ```bash
-# 查询7日留存率
+# 查询次日 / 3 日 / 7 日留存率
 curl -X POST http://localhost:8101/api/data-analysis/retention/query \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
-    "eventName": "page_view",
-    "startDate": "2024-01-01",
-    "endDate": "2024-01-31",
-    "granularity": "day",
-    "retentionWindow": 7
+    "startEvent": { "eventName": "app_launch" },
+    "returnEvent": { "eventName": "page_view" },
+    "timeRange": ["2026-10-01", "2026-10-14"],
+    "retentionWindows": [1, 3, 7],
+    "granularity": "DAY"
   }'
 ```
 

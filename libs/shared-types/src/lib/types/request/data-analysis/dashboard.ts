@@ -3,6 +3,7 @@ import { IFunnelAnalysisReq } from "./funnel"
 import { IUserPathAnalysisReq } from "./user-path"
 import { IAttributionAnalysisReq } from "./attribution"
 import { IUtmAnalysisReq } from "./utm"
+import { IRetentionAnalysisReq } from "./retention"
 
 /**
  * 看板类型枚举
@@ -21,6 +22,7 @@ export enum AnalysisType {
   USER_PATH = 'user-path',   // 用户路径分析
   ATTRIBUTION = 'attribution', // 归因分析
   UTM = 'utm',             // UTM 分析
+  RETENTION = 'retention',   // 留存分析
 }
 
 /**
@@ -39,6 +41,8 @@ export interface IDashboardConfig {
   attributionAnalysis?: IAttributionAnalysisReq
   // UTM 分析
   utmAnalysis?: IUtmAnalysisReq
+  // 留存分析
+  retentionAnalysis?: IRetentionAnalysisReq
   // 其他配置
   [key: string]: any
 }

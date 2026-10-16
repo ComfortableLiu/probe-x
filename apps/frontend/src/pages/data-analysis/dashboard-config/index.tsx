@@ -134,6 +134,8 @@ function DashboardConfig() {
       [AnalysisType.FUNNEL]: '/data-analysis/funnel',
       [AnalysisType.USER_PATH]: '/data-analysis/userPath',
       [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
+      [AnalysisType.UTM]: '/data-analysis/utm',
+      [AnalysisType.RETENTION]: '/data-analysis/retention',
     }
     const route = routeMap[dashboard.analysisType]
     if (route) {
@@ -159,6 +161,8 @@ function DashboardConfig() {
       [AnalysisType.FUNNEL]: '漏斗分析',
       [AnalysisType.USER_PATH]: '用户路径分析',
       [AnalysisType.ATTRIBUTION]: '归因分析',
+      [AnalysisType.UTM]: 'UTM 分析',
+      [AnalysisType.RETENTION]: '留存分析',
     }
     return map[type] || type
   }, [])

@@ -23,6 +23,15 @@ export default {
       },
     },
     {
+      path: '/data-analysis/retention',
+      name: '留存分析说明',
+      key: 'guide-data-analysis-retention',
+      component: lazy(() => import('@pages/guide/pages/data-analysis/retention/index')),
+      meta: {
+        isHidden: true,
+      },
+    },
+    {
       path: '/data-analysis/event',
       name: '事件分析说明',
       key: 'guide-data-analysis-event',

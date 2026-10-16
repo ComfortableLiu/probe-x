@@ -10,6 +10,7 @@ import type {
   IDashboardConfig,
   IDashboardDataRes,
   IFunnelAnalysisRes,
+  IRetentionAnalysisRes,
   IUtmAnalysisRes,
   IUtmAnalysisRow,
   IUserPathAnalysisRes,
@@ -17,6 +18,7 @@ import type {
 } from "@probe-x/shared-types/src"
 import {
   Metrics,
+  RetentionGranularity,
   UTM_DIMENSION_LABEL,
   utmDimAlias,
   utmMetricDateAlias,
@@ -32,6 +34,7 @@ export const ANALYSIS_TYPE_TEXT: Record<AnalysisType, string> = {
   [AnalysisType.USER_PATH]: '用户路径分析',
   [AnalysisType.ATTRIBUTION]: '归因分析',
   [AnalysisType.UTM]: 'UTM 分析',
+  [AnalysisType.RETENTION]: '留存分析',
 }
 
 export interface IDashboardTableData {
@@ -342,6 +345,58 @@ function buildUtmChartOption(
 }
 
 /**
+ * 留存分析：加权留存率折线图
+ * x 轴为按窗口升序的「第N日/周/月」标签（单位跟随时间粒度），series 取 summary.avgRetentionRates 的加权留存率（百分比数值）
+ */
+function buildRetentionChartOption(dashboard: IDashboard, data: IRetentionAnalysisRes): EChartsOption | null {
+  const config = dashboard.config?.retentionAnalysis
+  const windows = [...(config?.retentionWindows || [])].sort((a, b) => a - b)
+  if (!windows.length || !data?.cohorts?.length) return null
+
+  // 窗口单位文案跟随时间粒度
+  const unitLabel = config?.granularity === RetentionGranularity.WEEK
+    ? '周'
+    : config?.granularity === RetentionGranularity.MONTH
+      ? '月'
+      : '日'
+
+  // 加权留存率按窗口建索引，配置窗口在汇总数据中缺失时按 0 处理
+  const rateByDay = new Map<number, number>()
+  const avgRetentionRates = data.summary?.avgRetentionRates || []
+  avgRetentionRates.forEach(item => rateByDay.set(item.day, item.retentionRate))
+  const labels = windows.map(day => `第${day}${unitLabel}`)
+
+  return {
+    xAxis: {
+      type: 'category',
+      data: labels,
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        formatter: '{value}%',
+      },
+    },
+    series: [
+      {
+        name: '加权留存率',
+        type: 'line',
+        smooth: true,
+        data: windows.map(day => rateByDay.get(day) ?? 0),
+      },
+    ],
+    legend: {
+      data: ['加权留存率'],
+      top: 0,
+    },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: value => `${value}%`,
+    },
+  }
+}
+
+/**
  * 根据看板分析类型构建图表配置
  */
 export function buildChartOption(
@@ -361,6 +416,8 @@ export function buildChartOption(
       return buildAttributionChartOption(res.data)
     case AnalysisType.UTM:
       return buildUtmChartOption(dashboard, res.data, timeRange)
+    case AnalysisType.RETENTION:
+      return buildRetentionChartOption(dashboard, res.data)
     default:
       return null
   }
@@ -597,6 +654,73 @@ function buildUtmTableData(dashboard: IDashboard, data: IUtmAnalysisRes): IDashb
 }
 
 /**
+ * 留存分析表格：维度 + 队列日期 + 队列用户数 + 各窗口留存率
+ * 留存率在后端已是百分比数值，直接渲染为 xx.xx% 字符串，维度值在队列日期前列展示
+ * 窗口单位跟随时间粒度（第 N 日/周/月）；未成熟窗口（队列日期 + N 个粒度单位 > 今天）显示 '-'
+ */
+function buildRetentionTableData(dashboard: IDashboard, data: IRetentionAnalysisRes): IDashboardTableData | null {
+  const config = dashboard.config?.retentionAnalysis
+  // 「总体」维度在参数中是空字符串，渲染列时需要过滤掉
+  const dimensions = (config?.dimension || []).filter(item => typeof item === 'string' && item.trim())
+  const windows = [...(config?.retentionWindows || [])].sort((a, b) => a - b)
+  if (!windows.length || !data?.cohorts?.length) return null
+
+  // 窗口单位文案与未成熟判断的时间单位跟随时间粒度
+  const unitLabel = config?.granularity === RetentionGranularity.WEEK
+    ? '周'
+    : config?.granularity === RetentionGranularity.MONTH
+      ? '月'
+      : '日'
+  const dayjsUnit = config?.granularity === RetentionGranularity.WEEK
+    ? 'week' as const
+    : config?.granularity === RetentionGranularity.MONTH
+      ? 'month' as const
+      : 'day' as const
+  const isWindowImmature = (cohortDate: string, day: number) => dayjs(cohortDate).add(day, dayjsUnit).isAfter(dayjs(), 'day')
+
+  const dataSource = data.cohorts.map((cohort, index) => {
+    const rateByDay = new Map<number, number>()
+    cohort.windows.forEach(item => rateByDay.set(item.day, item.retentionRate))
+    const tableRow: Record<string, unknown> = { key: index }
+    dimensions.forEach((dim) => {
+      tableRow[dim] = cohort.dimensionValues?.[dim] ?? '-'
+    })
+    tableRow.cohortDate = cohort.cohortDate
+    tableRow.cohortSize = cohort.cohortSize
+    windows.forEach((day) => {
+      const rate = rateByDay.get(day)
+      tableRow[`retention_${day}d`] = rate === undefined || isWindowImmature(cohort.cohortDate, day) ? '-' : `${Number(rate).toFixed(2)}%`
+    })
+    return tableRow
+  })
+
+  const columns: TableProps['columns'] = [
+    ...dimensions.map(dim => ({
+      title: dim,
+      dataIndex: dim,
+      width: 120,
+    })),
+    {
+      title: '队列日期',
+      dataIndex: 'cohortDate',
+      width: 120,
+    },
+    {
+      title: '队列用户数',
+      dataIndex: 'cohortSize',
+      width: 110,
+    },
+    ...windows.map(day => ({
+      title: `第${day}${unitLabel}留存率`,
+      dataIndex: `retention_${day}d`,
+      width: 120,
+    })),
+  ]
+
+  return { columns, dataSource }
+}
+
+/**
  * 根据看板分析类型构建表格行列数据
  */
 export function buildTableData(
@@ -616,6 +740,8 @@ export function buildTableData(
       return buildAttributionTableData(res.data)
     case AnalysisType.UTM:
       return buildUtmTableData(dashboard, res.data)
+    case AnalysisType.RETENTION:
+      return buildRetentionTableData(dashboard, res.data)
     default:
       return null
   }
@@ -629,6 +755,7 @@ const ANALYSIS_CONFIG_KEY: Record<AnalysisType, keyof IDashboardConfig> = {
   [AnalysisType.USER_PATH]: 'userPathAnalysis',
   [AnalysisType.ATTRIBUTION]: 'attributionAnalysis',
   [AnalysisType.UTM]: 'utmAnalysis',
+  [AnalysisType.RETENTION]: 'retentionAnalysis',
 }
 
 // 分析类型对应的详情页路由
@@ -638,6 +765,7 @@ const ANALYSIS_DETAIL_ROUTE: Record<AnalysisType, string> = {
   [AnalysisType.USER_PATH]: '/data-analysis/userPath',
   [AnalysisType.ATTRIBUTION]: '/data-analysis/attribution',
   [AnalysisType.UTM]: '/data-analysis/utm',
+  [AnalysisType.RETENTION]: '/data-analysis/retention',
 }
 
 /**

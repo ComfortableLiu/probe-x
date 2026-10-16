@@ -304,6 +304,10 @@ yarn start:ecommerce-demo
 - 营销活动归因
 - 用户触点贡献分析
 
+### 7.5 留存分析
+- 特定日期留存（第 N 天/周/月）：队列用户在队列周期后第 N 个粒度周期内触发回访事件才算留存，窗口单位跟随时间粒度；汇总采用加权留存（留存人数之和 ÷ 初始人数之和）
+- 查询接口：`POST /data-analysis/retention/query`（配套异步导出：`POST /data-analysis/retention/download`、`POST /data-analysis/retention/download/task`）
+
 ## 8. 监控和运维
 
 ### 8.1 任务队列

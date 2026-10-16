@@ -22,6 +22,7 @@ export enum PagePermission {
   // 数据分析
   DATA_ANALYSIS_EVENT = 'data:analysis:event', // 事件分析页面
   DATA_ANALYSIS_FUNNEL = 'data:analysis:funnel', // 漏斗分析页面
+  DATA_ANALYSIS_RETENTION = 'data:analysis:retention', // 留存分析页面
   DATA_ANALYSIS_USER_PATH = 'data:analysis:user-path', // 用户路径分析页面
   DATA_ANALYSIS_ATTRIBUTION = 'data:analysis:attribution', // 归因分析页面
   DATA_ANALYSIS_UTM = 'data:analysis:utm', // UTM 分析页面
@@ -173,6 +174,7 @@ export const SYSTEM_ROLE_CONFIGS: Record<SystemRoleKey, ISystemRoleConfig> = {
     pagePermissions: [
       PagePermission.DATA_ANALYSIS_EVENT,
       PagePermission.DATA_ANALYSIS_FUNNEL,
+      PagePermission.DATA_ANALYSIS_RETENTION,
       PagePermission.DATA_ANALYSIS_USER_PATH,
       PagePermission.DATA_ANALYSIS_ATTRIBUTION,
       PagePermission.DATA_ANALYSIS_UTM,

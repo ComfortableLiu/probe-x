@@ -19,6 +19,11 @@ export default {
     key: 'data-analysis-funnel',
     component: lazy(() => import('@pages/data-analysis/funnel/index')),
   }, {
+    path: '/data-analysis/retention',
+    name: '留存分析',
+    key: 'data-analysis-retention',
+    component: lazy(() => import('@pages/data-analysis/retention/index')),
+  }, {
     path: '/data-analysis/userPath',
     name: '用户路径分析',
     key: 'data-analysis-user-path',

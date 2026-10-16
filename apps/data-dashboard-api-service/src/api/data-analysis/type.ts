@@ -16,6 +16,12 @@ export interface IDownloadTask {
   createTime: number
   sqlParams?: IAnyObj
   downloadUrl: string
+  // 分析类型（留存分析为 'retention'），下载导出时按分析类型定制表格格式
+  analysisType?: string
+  // 留存分析的窗口天数列表（如 [1, 3, 7]），仅留存分析下载时使用
+  retentionWindows?: number[]
+  // 留存分析的时间粒度（DAY/WEEK/MONTH），用于导出表头的窗口单位（第 N 日/周/月），仅留存分析下载时使用
+  granularity?: string
 }
 
 /**

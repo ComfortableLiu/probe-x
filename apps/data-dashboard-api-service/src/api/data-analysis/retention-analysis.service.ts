@@ -7,6 +7,7 @@ import {
   IRetentionWindowData,
   ISubmitDownloadTaskReq,
   IUser,
+  RetentionGranularity,
 } from "@probe-x/shared-types/src"
 import { BusinessException, ClickHouseService, RedisService } from "@probe-x/shared-utils/src/lib/backend-common"
 import { v4 as uuidv4 } from "uuid"
@@ -15,6 +16,7 @@ import { InjectQueue } from "@nestjs/bullmq"
 import { Queue } from "bullmq"
 import { generateRetentionAnalysisSql } from "@src/api/data-analysis/RetentionAnalysisSqlBuilder"
 import { DataAnalysisRecordService } from "./record.service"
+import dayjs from "dayjs"
 
 @Injectable()
 export class RetentionAnalysisService {
@@ -31,6 +33,11 @@ export class RetentionAnalysisService {
    * 查询留存分析数据
    */
   async queryRetention(data: IRetentionAnalysisReq, user: IUser): Promise<IRetentionAnalysisRes> {
+    // 留存窗口归一化（与 SQL builder 一致：去重、升序、仅保留 1-365 的整数），保证列名与结果映射对得上
+    const windows = [...new Set(data.retentionWindows.filter(d => Number.isInteger(d) && d >= 1 && d <= 365))].sort((a, b) => a - b)
+    // 维度列名（与 SQL builder 一致：去重并过滤空值，结果列名即原始维度名，如 $zoon）
+    const dimensionFields = [...new Set((data.dimension || []).filter(field => field && field.trim() !== ''))]
+
     // 拼接SQL语句
     const { sql, params, error } = generateRetentionAnalysisSql(data)
 
@@ -51,7 +58,7 @@ export class RetentionAnalysisService {
         cohorts: [],
         summary: {
           totalUsers: 0,
-          avgRetentionRates: data.retentionWindows.map(day => ({
+          avgRetentionRates: windows.map(day => ({
             day,
             retentionUsers: 0,
             retentionRate: 0,
@@ -63,7 +70,7 @@ export class RetentionAnalysisService {
     // 转换结果格式
     const cohorts: IRetentionCohortData[] = result.map((row: any) => {
       const cohortSize = Number(row.cohort_size) || 0
-      const windows: IRetentionWindowData[] = data.retentionWindows.map(day => {
+      const windowData: IRetentionWindowData[] = windows.map(day => {
         const retentionUsers = Number(row[`retention_users_${day}d`]) || 0
         const retentionRate = Number(row[`retention_rate_${day}d`]) || 0
         return {
@@ -73,33 +80,46 @@ export class RetentionAnalysisService {
         }
       })
 
+      // 维度值（ClickHouse 返回的列名即原始维度名）
+      const dimensionValues: Record<string, string> = {}
+      dimensionFields.forEach(field => {
+        const value = row[field]
+        dimensionValues[field] = value === null || value === undefined ? '' : String(value)
+      })
+
       return {
         cohortDate: row.cohort_date,
         cohortSize,
-        windows,
+        windows: windowData,
+        ...(dimensionFields.length > 0 ? { dimensionValues } : {}),
       }
     })
 
     // 计算汇总数据
     const totalUsers = cohorts.reduce((sum, c) => sum + c.cohortSize, 0)
-    const avgRetentionRates: IRetentionWindowData[] = data.retentionWindows.map(day => {
-      const rates = cohorts
-        .map(c => c.windows.find(w => w.day === day))
-        .filter((w): w is IRetentionWindowData => w !== undefined && w.retentionRate > 0)
+    // 加权留存口径（与神策一致）：某窗口的总体留存率 = 已成熟队列在该窗口的留存人数之和 ÷ 已成熟队列的初始人数之和
+    // 「已成熟」指 队列日期 + N 个粒度单位（天/周/月） <= 今天，未成熟队列该窗口尚无数据
+    const today = dayjs().startOf('day')
+    const dayjsUnit = data.granularity === RetentionGranularity.WEEK
+      ? 'week'
+      : data.granularity === RetentionGranularity.MONTH
+        ? 'month'
+        : 'day'
+    const avgRetentionRates: IRetentionWindowData[] = windows.map(day => {
+      const matureCohorts = cohorts.filter(c => !dayjs(c.cohortDate).add(day, dayjsUnit).isAfter(today))
 
-      const avgRate = rates.length > 0
-        ? rates.reduce((sum, w) => sum + w.retentionRate, 0) / rates.length
-        : 0
-
-      const totalRetentionUsers = cohorts.reduce((sum, c) => {
+      const totalRetentionUsers = matureCohorts.reduce((sum, c) => {
         const w = c.windows.find(w => w.day === day)
         return sum + (w?.retentionUsers || 0)
       }, 0)
+      const totalCohortSize = matureCohorts.reduce((sum, c) => sum + c.cohortSize, 0)
 
       return {
         day,
         retentionUsers: totalRetentionUsers,
-        retentionRate: Math.round(avgRate * 100) / 100,
+        retentionRate: totalCohortSize > 0
+          ? Math.round(totalRetentionUsers * 10000 / totalCohortSize) / 100
+          : 0,
       }
     })
 
@@ -124,6 +144,9 @@ export class RetentionAnalysisService {
       throw new BusinessException(error)
     }
 
+    // 留存窗口归一化（与 SQL builder 一致：去重、升序、仅保留 1-365 的整数）
+    const windows = [...new Set(data.retentionWindows.filter(d => Number.isInteger(d) && d >= 1 && d <= 365))].sort((a, b) => a - b)
+
     const taskData: IDownloadTask = {
       taskId,
       sql,
@@ -131,6 +154,9 @@ export class RetentionAnalysisService {
       downloadUrl: '',
       status: 'RUNNING',
       createTime: Date.now(),
+      analysisType: 'retention',
+      retentionWindows: windows,
+      granularity: data.granularity || RetentionGranularity.DAY,
     }
 
     // 记录任务

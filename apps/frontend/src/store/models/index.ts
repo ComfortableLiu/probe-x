@@ -13,6 +13,7 @@ import pointManageBasicCodingModel from "@pages/point-manage/basic-coding/model"
 
 import dataAnalysisEventModel from "@pages/data-analysis/event/model"
 import dataAnalysisFunnelModel from "@pages/data-analysis/funnel/model"
+import dataAnalysisRetentionModel from "@pages/data-analysis/retention/model"
 import dataAnalysisUserPathModel from "@pages/data-analysis/user-path/model"
 import dataAnalysisAttributionModel from "@pages/data-analysis/attribution/model"
 import dataAnalysisUtmModel from "@pages/data-analysis/utm/model"
@@ -52,6 +53,7 @@ export interface RootModel extends Models<RootModel> {
   // 数据分析
   dataAnalysisEventModel: typeof dataAnalysisEventModel
   dataAnalysisFunnelModel: typeof dataAnalysisFunnelModel
+  dataAnalysisRetentionModel: typeof dataAnalysisRetentionModel
   dataAnalysisUserPathModel: typeof dataAnalysisUserPathModel
   dataAnalysisAttributionModel: typeof dataAnalysisAttributionModel
   dataAnalysisUtmModel: typeof dataAnalysisUtmModel
@@ -86,6 +88,7 @@ export const models: RootModel = {
   pointManageBasicCodingModel,
   dataAnalysisEventModel,
   dataAnalysisFunnelModel,
+  dataAnalysisRetentionModel,
   dataAnalysisUserPathModel,
   dataAnalysisAttributionModel,
   dataAnalysisUtmModel,
